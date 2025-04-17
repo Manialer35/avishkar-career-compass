@@ -18,7 +18,7 @@ const ImageCarousel = ({ images, direction }: ImageCarouselProps) => {
             <img 
               src={src} 
               alt={`Carousel image ${index + 1}`} 
-              className="w-[350px] h-[230px] object-cover rounded-lg shadow-md"
+              className="w-[380px] h-[250px] object-cover rounded-lg shadow-md"
             />
           </div>
         ))}
@@ -28,7 +28,7 @@ const ImageCarousel = ({ images, direction }: ImageCarouselProps) => {
             <img 
               src={src} 
               alt={`Carousel image ${index + 1}`} 
-              className="w-[350px] h-[230px] object-cover rounded-lg shadow-md"
+              className="w-[380px] h-[250px] object-cover rounded-lg shadow-md"
             />
           </div>
         ))}
