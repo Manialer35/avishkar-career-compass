@@ -10,6 +10,7 @@ import About from "./pages/About";
 import Event from "./pages/Event";
 import Enquiry from "./pages/Enquiry";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -23,16 +24,14 @@ const App = () => (
           <Navbar />
           <main className="flex-1 bg-gray-50">
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/event" element={<Event />} />
               <Route path="/enquiry" element={<Enquiry />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
-          <footer className="bg-academy-primary text-white p-4 text-center text-sm">
-            &copy; {new Date().getFullYear()} Avishkar Career Academy. All rights reserved.
-          </footer>
         </div>
       </BrowserRouter>
     </TooltipProvider>

@@ -109,12 +109,31 @@
 
 .carousel-track {
   display: flex;
-  width: 200%;
+  width: max-content;
 }
 
 .carousel-slide {
   flex: 0 0 auto;
-  width: 80px;
-  height: 80px;
+  width: 350px;
+  height: 230px;
   margin: 0 10px;
+}
+
+/* Updated animations for smoother looping */
+@keyframes slide-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-350px * 5 - 10px * 5)); }
+}
+
+@keyframes slide-right {
+  0% { transform: translateX(calc(-350px * 5 - 10px * 5)); }
+  100% { transform: translateX(0); }
+}
+
+.animate-slide-left {
+  animation: slide-left 25s linear infinite;
+}
+
+.animate-slide-right {
+  animation: slide-right 25s linear infinite;
 }
