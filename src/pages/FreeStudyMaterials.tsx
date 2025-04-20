@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const FreeStudyMaterials = () => {
   const materials = [
@@ -33,7 +34,19 @@ const FreeStudyMaterials = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-academy-primary mb-6">Free Study Materials</h1>
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="mr-4" 
+          asChild
+        >
+          <Link to="/">
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold text-academy-primary">Free Study Materials</h1>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {materials.map((material, index) => (
           <div

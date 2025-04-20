@@ -1,5 +1,8 @@
 
 import Product, { ProductGrid } from '@/components/ProductPurchase';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PremiumStudyMaterials = () => {
   const products = [
@@ -35,7 +38,19 @@ const PremiumStudyMaterials = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-academy-primary mb-6">Premium Study Materials</h1>
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="mr-4" 
+          asChild
+        >
+          <Link to="/">
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold text-academy-primary">Premium Study Materials</h1>
+      </div>
       <ProductGrid products={products} />
     </div>
   );
