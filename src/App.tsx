@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
+import FreeStudyMaterials from "./pages/FreeStudyMaterials";
+import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 
 const queryClient = new QueryClient();
 
