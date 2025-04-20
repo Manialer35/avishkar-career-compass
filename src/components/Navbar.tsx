@@ -37,10 +37,17 @@ const Navbar = () => {
   return (
     <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
-        <h1 className="text-xl font-bold">
-          <span className="text-white">Avishkar</span>
-          <span className="text-academy-red"> Career Academy</span>
-        </h1>
+        <div className="flex items-center gap-2">
+          <img
+            src="https://via.placeholder.com/40x40/ffffff/1e3a8a?text=A"
+            alt="Avishkar Academy Logo"
+            className="w-10 h-10 rounded-md"
+          />
+          <h1 className="text-xl font-bold">
+            <span className="text-white">Avishkar</span>
+            <span className="text-academy-red"> Career Academy</span>
+          </h1>
+        </div>
         
         <div className="flex items-center gap-4">
           {session && (

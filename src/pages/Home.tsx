@@ -108,7 +108,9 @@ const Home = () => {
               className="w-full mt-4 border-academy-primary text-academy-primary hover:bg-academy-light"
               asChild
             >
-              <a href="#"><ExternalLink className="h-4 w-4 mr-1" /> Browse All Free Materials</a>
+              <Link to="/free-materials">
+                <ExternalLink className="h-4 w-4 mr-1" /> Browse All Free Materials
+              </Link>
             </Button>
           </div>
           
@@ -143,7 +145,9 @@ const Home = () => {
               className="w-full mt-4 bg-academy-red hover:bg-academy-red/90 text-white"
               asChild
             >
-              <a href="#"><ExternalLink className="h-4 w-4 mr-1" /> View All Premium Materials</a>
+              <Link to="/premium-materials">
+                <ExternalLink className="h-4 w-4 mr-1" /> View All Premium Materials
+              </Link>
             </Button>
           </div>
         </div>
