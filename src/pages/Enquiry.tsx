@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Phone, Mail, MapPin, Send, Facebook, Twitter, Instagram, Linkedin, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,6 +75,14 @@ const Enquiry = () => {
       setTimeout(() => {
         console.log('Form submitted:', formData);
         
+        // Send email to khot.md@gmail.com
+        // Note: In a real application, you would want to handle this through a backend service
+        const emailData = {
+          ...formData,
+          to: 'khot.md@gmail.com'
+        };
+        console.log('Sending email:', emailData);
+        
         // Show success toast
         toast({
           title: "Enquiry Submitted Successfully",
@@ -106,8 +113,8 @@ const Enquiry = () => {
             <Phone className="h-6 w-6 text-academy-primary" />
           </div>
           <h3 className="font-semibold mb-2">Call Us</h3>
-          <p className="text-gray-700">+91 98765 43210</p>
-          <p className="text-gray-700">+91 98765 43211</p>
+          <p className="text-gray-700">+91 9049137731</p>
+          <p className="text-gray-700">+91 9890555432</p>
         </div>
         
         <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center">
@@ -115,8 +122,7 @@ const Enquiry = () => {
             <Mail className="h-6 w-6 text-academy-primary" />
           </div>
           <h3 className="font-semibold mb-2">Email Us</h3>
-          <p className="text-gray-700">info@avishkaracademy.com</p>
-          <p className="text-gray-700">admissions@avishkaracademy.com</p>
+          <p className="text-gray-700">khot.md@gmail.com</p>
         </div>
         
         <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center">
@@ -342,11 +348,11 @@ const Enquiry = () => {
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
-                <span>+91 98765 43210</span>
+                <span>+91 9049137731 / +91 9890555432</span>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
-                <span>info@avishkaracademy.com</span>
+                <span>khot.md@gmail.com</span>
               </li>
               <li className="flex items-center">
                 <Globe className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
