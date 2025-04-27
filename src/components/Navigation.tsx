@@ -1,4 +1,5 @@
-import { Home, Info, Calendar, Mail, User, Instagram, Facebook, Twitter } from 'lucide-react';
+
+import { Home, Info, Calendar, Mail, User, Instagram, Facebook } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -20,19 +21,19 @@ const Navigation = ({ onNavigate }: NavigationProps) => {
     { 
       name: 'Instagram', 
       icon: <Instagram className="h-5 w-5 transition-colors duration-300" />, 
-      url: 'https://instagram.com',
+      url: 'https://www.instagram.com/aavishkar_career_academy?igsh=aTNmODF6ZjJhZnJy',
       color: 'hover:text-pink-600' 
     },
     { 
       name: 'Facebook', 
       icon: <Facebook className="h-5 w-5 transition-colors duration-300" />, 
-      url: 'https://facebook.com',
+      url: 'https://www.facebook.com/share/19RWgCWtVW/',
       color: 'hover:text-blue-600' 
     },
     { 
-      name: 'Twitter', 
-      icon: <Twitter className="h-5 w-5 transition-colors duration-300" />, 
-      url: 'https://twitter.com',
+      name: 'Telegram', 
+      icon: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 transition-colors duration-300"><path d="M21.73 2.27a2 2 0 0 0-2.83 0l-.06.06a.8.8 0 0 1-.86.17A10 10 0 1 0 21.93 16.4a.8.8 0 0 1 .17-.86l.06-.06a2 2 0 0 0 0-2.83L21.73 12"></path><path d="m12.5 12.5 5-5"></path><path d="M16 8h0v0"></path><circle cx="12" cy="16" r="1"></circle></svg>, 
+      url: 'https://t.me/avishkar26',
       color: 'hover:text-sky-500' 
     }
   ];

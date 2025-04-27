@@ -6,28 +6,23 @@ import { Link } from 'react-router-dom';
 const FreeStudyMaterials = () => {
   const materials = [
     {
-      title: "Basic Police Bharti Guide",
-      description: "Introduction to police examination pattern and syllabus",
+      title: "चालू घडामोडी",
+      description: "Latest current affairs and news updates in Marathi",
       downloadUrl: "#",
     },
     {
-      title: "Current Affairs Monthly",
-      description: "Latest current affairs relevant to competitive exams",
+      title: "weekly टेस्ट पेपर",
+      description: "Weekly test papers to practice your knowledge",
       downloadUrl: "#",
     },
     {
-      title: "Basic Aptitude Test Series",
-      description: "Practice questions for quantitative aptitude",
+      title: "मागील वर्षाचे पेपर",
+      description: "Previous years' question papers for practice",
       downloadUrl: "#",
     },
     {
-      title: "General Knowledge Compilation",
-      description: "Comprehensive GK notes for competitive exams",
-      downloadUrl: "#",
-    },
-    {
-      title: "Previous Year Papers",
-      description: "Last 5 years solved question papers",
+      title: "maths. Formule",
+      description: "Essential mathematics formulas for competitive exams",
       downloadUrl: "#",
     }
   ];

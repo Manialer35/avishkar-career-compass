@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!session) {
     return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Admin route that checks for admin role
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, user } = useAuth();
+  
+  // For now, we're using a simple role check - this would be enhanced with proper role management
+  if (!session || user?.email !== "admin@example.com") {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -50,6 +63,7 @@ const App = () => (
                 <Route path="/enquiry" element={<Enquiry />} />
                 <Route path="/free-materials" element={<FreeStudyMaterials />} />
                 <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
+                <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

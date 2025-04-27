@@ -38,28 +38,26 @@ const Home = () => {
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+        <div className="flex flex-wrap md:flex-nowrap gap-8 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md text-center w-full md:w-1/2">
             <img
               src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK"
               alt="Mahesh Khot"
               className="w-40 h-40 mx-auto rounded-full mb-4"
             />
             <h3 className="text-xl font-semibold text-academy-primary">Mahesh Khot</h3>
-            <p className="text-gray-600">Founder</p>
             <a href="tel:+919049137731" className="text-academy-primary hover:text-academy-secondary">
               +91 9049137731
             </a>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+          <div className="bg-white p-6 rounded-lg shadow-md text-center w-full md:w-1/2">
             <img
               src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM"
               alt="Atul Madkar"
               className="w-40 h-40 mx-auto rounded-full mb-4"
             />
             <h3 className="text-xl font-semibold text-academy-primary">Atul Madkar</h3>
-            <p className="text-gray-600">Founder</p>
             <a href="tel:+919890555432" className="text-academy-primary hover:text-academy-secondary">
               +91 9890555432
             </a>
@@ -103,7 +101,6 @@ const Home = () => {
         <h3 className="text-xl font-semibold text-academy-primary mb-6">Study Materials</h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Free Materials */}
           <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-academy-primary">
             <div className="flex items-center mb-4">
               <Book className="h-6 w-6 text-academy-primary mr-2" />
@@ -141,7 +138,6 @@ const Home = () => {
             </Button>
           </div>
           
-          {/* Paid Materials */}
           <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-academy-red">
             <div className="flex items-center mb-4">
               <Book className="h-6 w-6 text-academy-red mr-2" />
@@ -176,6 +172,24 @@ const Home = () => {
                 <ExternalLink className="h-4 w-4 mr-1" /> View All Premium Materials
               </Link>
             </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-10">
+        <h3 className="text-xl font-semibold text-academy-primary mb-6">Training Videos</h3>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <p className="mb-4">Watch our training videos to get familiar with our teaching methodology and content.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
+              <p className="text-gray-500">Training video placeholder</p>
+            </div>
+            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
+              <p className="text-gray-500">Training video placeholder</p>
+            </div>
+            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
+              <p className="text-gray-500">Training video placeholder</p>
+            </div>
           </div>
         </div>
       </section>

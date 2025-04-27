@@ -8,31 +8,38 @@ const PremiumStudyMaterials = () => {
   const products = [
     {
       id: "1",
-      name: "Complete Police Bharti Package",
-      description: "Comprehensive study material with mock tests",
-      price: 1499,
-      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Police+Bharti+Package"
+      name: "Daily टेस्ट पेपर",
+      description: "Daily test papers for one year subscription",
+      price: 99,
+      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Daily+Test+Papers"
     },
     {
       id: "2",
-      name: "Advanced Test Series",
-      description: "Full-length mock tests with detailed solutions",
-      price: 999,
-      imageSrc: "https://via.placeholder.com/350x200/3b82f6/ffffff?text=Advanced+Tests"
+      name: "IMP G.S 5000",
+      description: "Important General Studies 5000 Questions",
+      price: 49,
+      imageSrc: "https://via.placeholder.com/350x200/3b82f6/ffffff?text=GS+5000"
     },
     {
       id: "3",
-      name: "Interview Preparation Kit",
-      description: "Guide for interview preparation with mock sessions",
-      price: 1299,
-      imageSrc: "https://via.placeholder.com/350x200/0284c7/ffffff?text=Interview+Kit"
+      name: "IMP G.K ONELINER",
+      description: "Important General Knowledge One-liners",
+      price: 39,
+      imageSrc: "https://via.placeholder.com/350x200/0284c7/ffffff?text=GK+Oneliner"
     },
     {
       id: "4",
-      name: "Subject Wise Study Package",
-      description: "Detailed subject wise study materials and practice tests",
-      price: 1899,
-      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Subject+Package"
+      name: "IMP मराठी व्याकरण",
+      description: "Important Marathi Grammar guide",
+      price: 29,
+      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Marathi+Grammar"
+    },
+    {
+      id: "5",
+      name: "IMP अंकगणित आणि बुद्धिमत्ता",
+      description: "Important Mathematics and Aptitude guide",
+      price: 29,
+      imageSrc: "https://via.placeholder.com/350x200/60a5fa/ffffff?text=Math+Aptitude"
     }
   ];
 

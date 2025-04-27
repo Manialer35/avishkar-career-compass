@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import GooglePayButton from './GooglePayButton';
@@ -32,7 +33,7 @@ const Product = ({ product }: { product: ProductType }) => {
 
 const ProductGrid = ({ products }: ProductGridProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {products.map(product => (
         <Product key={product.id} product={product} />
       ))}
@@ -40,5 +41,4 @@ const ProductGrid = ({ products }: ProductGridProps) => {
   );
 };
 
-export default Product;
-export { ProductGrid };
+export { Product, ProductGrid };
