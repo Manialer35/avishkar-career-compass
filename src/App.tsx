@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +16,7 @@ import Profile from "./pages/Profile";
 import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
+import React from 'react';
 
 const queryClient = new QueryClient();
 
@@ -38,7 +38,8 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   // Updated to include the new admin email
   const adminEmails = [
     "admin@example.com", 
-    "neerajmadkar35@gmail.com"
+    "neerajmadkar35@gmail.com",
+    "neerajmadkar3535@gmail.com"
   ];
   
   // Check if the user's email is in the list of admin emails
