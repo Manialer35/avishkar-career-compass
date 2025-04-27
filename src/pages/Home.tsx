@@ -1,4 +1,3 @@
-
 import ImageCarousel from '../components/ImageCarousel';
 import { Button } from '@/components/ui/button';
 import { Book, Download, ExternalLink, Mail } from 'lucide-react';
@@ -17,9 +16,9 @@ const Home = () => {
   const secondCarouselImages = [
     "https://via.placeholder.com/350x230/1e3a8a/ffffff?text=Classroom",
     "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Library",
-    "https://via.placeholder.com/350x230/60a5fa/000000?text=Computer+Lab",
-    "https://via.placeholder.com/350x230/93c5fd/000000?text=Group+Discussion",
-    "https://via.placeholder.com/350x230/0284c7/ffffff?text=Workshops",
+    "https://via.placeholder.com/60a5fa/000000?text=Computer+Lab",
+    "https://via.placeholder.com/93c5fd/000000?text=Group+Discussion",
+    "https://via.placeholder.com/0284c7/ffffff?text=Workshops",
   ];
 
   const freeMaterials = [
@@ -39,6 +38,34 @@ const Home = () => {
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
         
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+            <img
+              src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK"
+              alt="Mahesh Khot"
+              className="w-40 h-40 mx-auto rounded-full mb-4"
+            />
+            <h3 className="text-xl font-semibold text-academy-primary">Mahesh Khot</h3>
+            <p className="text-gray-600">Founder</p>
+            <a href="tel:+919049137731" className="text-academy-primary hover:text-academy-secondary">
+              +91 9049137731
+            </a>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow-md text-center">
+            <img
+              src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM"
+              alt="Atul Madkar"
+              className="w-40 h-40 mx-auto rounded-full mb-4"
+            />
+            <h3 className="text-xl font-semibold text-academy-primary">Atul Madkar</h3>
+            <p className="text-gray-600">Founder</p>
+            <a href="tel:+919890555432" className="text-academy-primary hover:text-academy-secondary">
+              +91 9890555432
+            </a>
+          </div>
+        </div>
+
         <div className="bg-white p-6 rounded-lg shadow-md">
           <p className="mb-4">
             Avishkar Career Academy is a premier coaching institute dedicated to preparing students for competitive examinations.

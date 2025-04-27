@@ -1,4 +1,3 @@
-
 import { Home, Info, Calendar, Mail, User, Instagram, Facebook, Twitter } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -91,10 +90,12 @@ const Navigation = ({ onNavigate }: NavigationProps) => {
           
           <div className="mt-4 pt-4 border-t animate-fade-in" style={{animationDelay: '0.8s'}}>
             <p className="text-sm text-gray-500">
-              Contact Us: <a href="tel:+919876543210" className="text-accent hover:underline">+91 9876543210</a>
+              Contact Us: <a href="tel:+919049137731" className="text-accent hover:underline">+91 9049137731</a>
+              <br />
+              <a href="tel:+919890555432" className="text-accent hover:underline">+91 9890555432</a>
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Email: <a href="mailto:info@avishkaracademy.com" className="text-accent hover:underline">info@avishkaracademy.com</a>
+              Email: <a href="mailto:khot.md@gmail.com" className="text-accent hover:underline">khot.md@gmail.com</a>
             </p>
           </div>
         </div>

@@ -130,8 +130,9 @@ const Enquiry = () => {
             <MapPin className="h-6 w-6 text-academy-primary" />
           </div>
           <h3 className="font-semibold mb-2">Visit Us</h3>
-          <p className="text-gray-700">123 Education Street,</p>
-          <p className="text-gray-700">City Center, State - 123456</p>
+          <p className="text-gray-700">Swargate Chowk, Near HP Petrol Pump,</p>
+          <p className="text-gray-700">Infront of Naik B Biyane,</p>
+          <p className="text-gray-700">Panna Chambers, 3rd Floor</p>
         </div>
       </div>
       
