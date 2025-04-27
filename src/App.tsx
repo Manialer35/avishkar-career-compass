@@ -35,8 +35,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, user } = useAuth();
   
-  // For now, we're using a simple role check - this would be enhanced with proper role management
-  if (!session || user?.email !== "admin@example.com") {
+  // Updated to include the new admin email
+  const adminEmails = [
+    "admin@example.com", 
+    "neerajmadkar35@gmail.com"
+  ];
+  
+  // Check if the user's email is in the list of admin emails
+  if (!session || !user?.email || !adminEmails.includes(user.email)) {
     return <Navigate to="/" replace />;
   }
 
