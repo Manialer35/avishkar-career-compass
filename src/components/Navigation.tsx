@@ -1,20 +1,27 @@
 
-import { Home, Info, Calendar, Mail, User, Instagram, Facebook } from 'lucide-react';
+import { Home, Info, Calendar, Mail, User, Instagram, Facebook, ShieldAlert, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { Badge } from './ui/badge';
 
 interface NavigationProps {
   onNavigate?: () => void;
 }
 
 const Navigation = ({ onNavigate }: NavigationProps) => {
-  const { session } = useAuth();
+  const { session, userRole } = useAuth();
+  const isAdmin = userRole?.role === 'admin';
   
   const navItems = [
     { label: 'Home', icon: <Home className="mr-2 h-5 w-5" />, path: '/' },
     { label: 'About', icon: <Info className="mr-2 h-5 w-5" />, path: '/about' },
     { label: 'Police Bharti Special Event', icon: <Calendar className="mr-2 h-5 w-5" />, path: '/event' },
     { label: 'Enquiry', icon: <Mail className="mr-2 h-5 w-5" />, path: '/enquiry' },
+  ];
+
+  const adminItems = [
+    { label: 'Admin Panel', icon: <ShieldAlert className="mr-2 h-5 w-5" />, path: '/admin' },
+    { label: 'Manage Users', icon: <Users className="mr-2 h-5 w-5" />, path: '/admin/users' },
   ];
 
   const socialLinks = [
@@ -43,7 +50,11 @@ const Navigation = ({ onNavigate }: NavigationProps) => {
       <div className="border-b pb-4 mb-4">
         <h2 className="text-xl font-bold text-accent animate-fade-in">Avishkar Career Academy</h2>
         <p className="text-sm text-gray-500">Empowering Future Competitors</p>
+        {isAdmin && (
+          <Badge variant="success" className="mt-2">Admin Access</Badge>
+        )}
       </div>
+
       <ul className="space-y-2">
         {navItems.map((item, index) => (
           <li key={item.label} style={{animationDelay: `${index * 0.1}s`}} className="animate-fade-in">
@@ -57,6 +68,30 @@ const Navigation = ({ onNavigate }: NavigationProps) => {
             </Link>
           </li>
         ))}
+        
+        {isAdmin && (
+          <>
+            <li className="mt-4 mb-2">
+              <div className="px-3">
+                <Badge variant="success" className="w-full flex justify-center py-1">
+                  Admin Controls
+                </Badge>
+              </div>
+            </li>
+            {adminItems.map((item, index) => (
+              <li key={item.label} style={{animationDelay: `${(index + navItems.length) * 0.1}s`}} className="animate-fade-in">
+                <Link
+                  to={item.path}
+                  className="flex items-center p-3 rounded-md text-gray-700 bg-gray-100 hover:bg-accent/10 hover:text-accent transition-colors"
+                  onClick={onNavigate}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            ))}
+          </>
+        )}
         
         {session && (
           <li className="animate-fade-in" style={{animationDelay: '0.4s'}}>

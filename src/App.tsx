@@ -18,12 +18,15 @@ import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
-import React, { useEffect, useState } from 'react';
-import { supabase } from "./integrations/supabase/client";
+import React from 'react';
 
-// Move ProtectedRoute outside of App component to avoid hooks being called conditionally
+// Move ProtectedRoute outside of App component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
   
   if (!session) {
     return <Navigate to="/auth" replace />;
@@ -32,20 +35,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Admin route that checks for admin role using the database
+// Admin route that checks for admin role
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, userRole } = useAuth();
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-    
-    // We can now use the userRole context from useAuth
-    setLoading(false);
-  }, [session, userRole]);
+  const { session, userRole, loading } = useAuth();
   
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;

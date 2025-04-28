@@ -11,18 +11,21 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: UserRole | null;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   session: null, 
-  userRole: null 
+  userRole: null,
+  loading: true
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -34,11 +37,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fetch user role if we have a session
         if (session?.user) {
           // Use setTimeout to avoid potential auth listener deadlock
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
+          setTimeout(async () => {
+            try {
+              const { data, error } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error("Error fetching user role:", error);
+                setUserRole(null);
+              } else {
+                setUserRole({ role: data.role });
+              }
+            } catch (error) {
+              console.error("Error in fetchUserRole:", error);
+              setUserRole(null);
+            } finally {
+              setLoading(false);
+            }
           }, 0);
         } else {
           setUserRole(null);
+          setLoading(false);
         }
       }
     );
@@ -51,6 +73,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Fetch user role if we have a session
       if (session?.user) {
         fetchUserRole(session.user.id);
+      } else {
+        setLoading(false);
       }
     });
 
@@ -74,11 +98,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
       setUserRole(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, userRole }}>
+    <AuthContext.Provider value={{ user, session, userRole, loading }}>
       {children}
     </AuthContext.Provider>
   );

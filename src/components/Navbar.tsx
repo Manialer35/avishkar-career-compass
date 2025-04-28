@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer';
@@ -12,10 +12,20 @@ import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { session, user, userRole } = useAuth();
+  const { session, user, userRole, loading } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -35,6 +45,26 @@ const Navbar = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <img
+              src="https://via.placeholder.com/40x40/ffffff/1e3a8a?text=A"
+              alt="Avishkar Academy Logo"
+              className="w-10 h-10 rounded-md"
+            />
+            <h1 className="text-xl font-bold">
+              <span className="text-white">Avishkar</span>
+              <span className="text-academy-red"> Career Academy</span>
+            </h1>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
@@ -48,6 +78,11 @@ const Navbar = () => {
             <span className="text-white">Avishkar</span>
             <span className="text-academy-red"> Career Academy</span>
           </h1>
+          {isAdmin && !isMobile && (
+            <span className="ml-2 px-2 py-0.5 bg-academy-red text-white text-xs rounded-md">
+              Admin
+            </span>
+          )}
         </div>
         
         <div className="flex items-center gap-4">
