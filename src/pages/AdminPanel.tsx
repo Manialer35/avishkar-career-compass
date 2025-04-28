@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Pencil, Trash, Plus, Save, File } from 'lucide-react';
+import { Pencil, Trash, Plus, Save, File, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface StudyMaterial {
   id: string;
@@ -94,7 +95,15 @@ const AdminPanel = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-academy-primary mb-6">Admin Panel</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-academy-primary">Admin Panel</h1>
+        <Button asChild variant="outline">
+          <Link to="/admin/users" className="flex items-center">
+            <Users size={16} className="mr-2" />
+            Manage Users
+          </Link>
+        </Button>
+      </div>
       
       <Tabs defaultValue="free" onValueChange={handleTabChange}>
         <TabsList className="mb-6">

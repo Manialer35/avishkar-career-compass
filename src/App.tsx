@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +17,9 @@ import Profile from "./pages/Profile";
 import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
-import React from 'react';
+import UsersManagement from "./pages/UsersManagement";
+import React, { useEffect, useState } from 'react';
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -31,19 +34,51 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Admin route that checks for admin role
+// Admin route that checks for admin role using the database
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Updated to include the new admin email
-  const adminEmails = [
-    "admin@example.com", 
-    "neerajmadkar35@gmail.com",
-    "neerajmadkar3535@gmail.com"
-  ];
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!session || !user) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      
+      // Check role in user_roles table
+      try {
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error checking admin role:", error);
+          setIsAdmin(false);
+        } else {
+          setIsAdmin(data.role === 'admin');
+        }
+      } catch (error) {
+        console.error("Error in admin check:", error);
+        setIsAdmin(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAdminRole();
+  }, [session, user]);
   
-  // Check if the user's email is in the list of admin emails
-  if (!session || !user?.email || !adminEmails.includes(user.email)) {
+  if (loading) {
+    // You could return a loading spinner here
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+  
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 
@@ -71,6 +106,7 @@ const App = () => (
                 <Route path="/free-materials" element={<FreeStudyMaterials />} />
                 <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
                 <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+                <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

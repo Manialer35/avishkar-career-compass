@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
-import { Menu, LogOut, User } from 'lucide-react';
+import { Menu, LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import Navigation from './Navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,9 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { session, user } = useAuth();
+  const { session, user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isAdmin = userRole?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -58,13 +59,37 @@ const Navbar = () => {
                   size="sm"
                   className="text-white hover:bg-academy-primary/80"
                 >
-                  <User className="h-5 w-5" />
+                  {isAdmin ? (
+                    <ShieldAlert className="h-5 w-5" />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">My Profile</Link>
+                  <Link to="/profile" className="cursor-pointer flex items-center">
+                    <User className="h-4 w-4 mr-2" /> My Profile
+                  </Link>
                 </DropdownMenuItem>
+                
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="cursor-pointer flex items-center">
+                        <ShieldAlert className="h-4 w-4 mr-2" /> Admin Panel
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/users" className="cursor-pointer flex items-center">
+                        <Users className="h-4 w-4 mr-2" /> Manage Users
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
                 </DropdownMenuItem>

@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
+import { Mail, Lock, UserPlus, LogIn, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
@@ -14,8 +15,32 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [authType, setAuthType] = useState<'user' | 'admin'>('user');
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Redirect based on role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.session.user.id)
+          .single();
+        
+        if (roleData && roleData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,19 +54,53 @@ const Auth = () => {
             data: {
               full_name: fullName,
             },
-            // Don't require email verification
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        navigate('/');
+        
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully.",
+        });
+
+        // Wait a moment for the trigger to create the role
+        setTimeout(async () => {
+          const { data: session } = await supabase.auth.getSession();
+          if (session.session) {
+            // Check role and redirect accordingly
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', session.session.user.id)
+              .single();
+            
+            if (roleData && roleData.role === 'admin') {
+              navigate('/admin');
+            } else {
+              navigate('/');
+            }
+          }
+        }, 1000);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error, data } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
-        navigate('/');
+
+        // Check user role and redirect accordingly
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        if (roleData && roleData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       }
     } catch (error: any) {
       toast({
@@ -62,7 +121,27 @@ const Auth = () => {
             {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+        
+        <Tabs defaultValue="user" onValueChange={(value) => setAuthType(value as 'user' | 'admin')} className="mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="user">User</TabsTrigger>
+            <TabsTrigger value="admin">Admin</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="user" className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Access student resources and manage your learning journey
+            </p>
+          </TabsContent>
+          
+          <TabsContent value="admin" className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Administrative access for content management and user administration
+            </p>
+          </TabsContent>
+        </Tabs>
+        
+        <form className="mt-4 space-y-6" onSubmit={handleAuth}>
           <div className="space-y-4">
             {isSignUp && (
               <div>
@@ -112,10 +191,13 @@ const Auth = () => {
           <div className="space-y-4">
             <Button 
               type="submit" 
-              className="w-full bg-academy-primary hover:bg-academy-primary/90"
+              className={`w-full ${authType === 'admin' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-academy-primary hover:bg-academy-primary/90'}`}
               disabled={loading}
             >
-              {isSignUp ? <UserPlus className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />}
+              {authType === 'admin' ? 
+                <ShieldAlert className="mr-2 h-4 w-4" /> : 
+                (isSignUp ? <UserPlus className="mr-2 h-4 w-4" /> : <LogIn className="mr-2 h-4 w-4" />)
+              }
               {loading ? 'Processing...' : (isSignUp ? 'Sign up' : 'Sign in')}
             </Button>
           </div>
