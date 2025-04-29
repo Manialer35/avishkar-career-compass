@@ -1,11 +1,11 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Navbar from "./components/Navbar";
+import BottomNavigation from "./components/BottomNavigation";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Event from "./pages/Event";
@@ -18,7 +18,69 @@ import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
-import React from 'react';
+import React, { useMemo } from 'react';
+import SwipeablePageContainer from "./components/SwipeablePageContainer";
+
+// Main routes for swipeable navigation
+const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile'];
+
+// App content with swipeable behavior
+const AppContent = () => {
+  const location = useLocation();
+  const { session } = useAuth();
+  
+  const isMainRoute = mainRoutes.includes(location.pathname);
+  const currentIndex = mainRoutes.indexOf(location.pathname);
+  const showBottomNav = isMainRoute || location.pathname === '/home' 
+    || location.pathname === '/free-materials' || location.pathname === '/premium-materials';
+  
+  // Filter out profile route for non-authenticated users
+  const availableRoutes = useMemo(() => {
+    if (!session) {
+      return mainRoutes.filter(route => route !== '/profile');
+    }
+    return mainRoutes;
+  }, [session]);
+  
+  const pageContent = (
+    <div className="flex-1 bg-gray-50 pb-16">
+      <Routes>
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/about" element={<About />} />
+        <Route path="/event" element={<Event />} />
+        <Route path="/enquiry" element={<Enquiry />} />
+        <Route path="/free-materials" element={<FreeStudyMaterials />} />
+        <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
+        <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+  
+  // If on one of the main routes, wrap in swipeable container
+  if (isMainRoute && currentIndex !== -1) {
+    return (
+      <>
+        <SwipeablePageContainer routes={availableRoutes} currentIndex={currentIndex}>
+          {pageContent}
+        </SwipeablePageContainer>
+        {showBottomNav && <BottomNavigation />}
+      </>
+    );
+  }
+  
+  // Otherwise render normally
+  return (
+    <>
+      {pageContent}
+      {showBottomNav && <BottomNavigation />}
+    </>
+  );
+};
 
 // Move ProtectedRoute outside of App component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -61,24 +123,9 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <div className="flex flex-col min-h-screen">
+            <div className="flex flex-col min-h-screen bg-academy-primary/5">
               <Navbar />
-              <main className="flex-1 bg-gray-50">
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                  <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/event" element={<Event />} />
-                  <Route path="/enquiry" element={<Enquiry />} />
-                  <Route path="/free-materials" element={<FreeStudyMaterials />} />
-                  <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
-                  <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-                  <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
+              <AppContent />
             </div>
           </BrowserRouter>
         </TooltipProvider>

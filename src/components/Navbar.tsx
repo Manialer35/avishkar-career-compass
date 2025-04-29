@@ -1,17 +1,14 @@
 
 import { useState, useEffect } from 'react';
-import { Menu, LogOut, User, Users, ShieldAlert } from 'lucide-react';
+import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
-import { Drawer, DrawerContent, DrawerTrigger } from './ui/drawer';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
-import Navigation from './Navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const { session, user, userRole, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
@@ -86,6 +83,17 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="bg-academy-red text-white hover:bg-academy-red/90 border-none mr-2"
+              onClick={() => navigate('/admin')}
+            >
+              <ShieldAlert className="h-4 w-4 mr-1" /> Admin Panel
+            </Button>
+          )}
+          
           {session && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -131,21 +139,6 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          
-          <Drawer open={isOpen} onOpenChange={setIsOpen}>
-            <DrawerTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-white hover:bg-academy-red"
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <Navigation onNavigate={() => setIsOpen(false)} />
-            </DrawerContent>
-          </Drawer>
         </div>
       </div>
     </header>
