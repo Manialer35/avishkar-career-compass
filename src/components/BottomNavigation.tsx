@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 const BottomNavigation = () => {
   const location = useLocation();
-  const { session } = useAuth();
+  const { session, userRole } = useAuth();
   
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -18,6 +18,9 @@ const BottomNavigation = () => {
     { path: '/enquiry', icon: <Mail className="h-5 w-5" />, label: 'Contact' },
     { path: '/profile', icon: <User className="h-5 w-5" />, label: 'Profile', requireAuth: true },
   ];
+
+  // Add admin link if user has admin role
+  const isAdmin = userRole?.role === 'admin';
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 px-2 shadow-lg z-50">
@@ -40,8 +43,24 @@ const BottomNavigation = () => {
           </Link>
         );
       })}
+      
+      {isAdmin && (
+        <Link 
+          to="/admin"
+          className={`flex flex-col items-center ${
+            isActive('/admin') 
+              ? 'text-academy-primary' 
+              : 'text-gray-500 hover:text-academy-primary'
+          }`}
+        >
+          <ShieldAlert className="h-5 w-5" />
+          <span className="text-xs mt-1">Admin</span>
+        </Link>
+      )}
     </nav>
   );
 };
+
+import { ShieldAlert } from 'lucide-react';
 
 export default BottomNavigation;
