@@ -12,13 +12,15 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole | null;
   loading: boolean;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
   user: null, 
   session: null, 
   userRole: null,
-  loading: true
+  loading: true,
+  resetPassword: async () => ({ error: new Error('Not implemented') })
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -113,8 +115,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      // Get the current domain
+      const currentUrl = window.location.origin;
+      console.log("Resetting password with redirect to:", currentUrl);
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${currentUrl}/auth`,
+      });
+      
+      return { error };
+    } catch (error) {
+      console.error("Error in resetPassword:", error);
+      return { error: error as Error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, userRole, loading }}>
+    <AuthContext.Provider value={{ user, session, userRole, loading, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

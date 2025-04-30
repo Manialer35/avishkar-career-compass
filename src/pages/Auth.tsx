@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Lock, UserPlus, LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -19,6 +19,7 @@ const Auth = () => {
   const [authType, setAuthType] = useState<'user' | 'admin'>('user');
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { resetPassword } = useAuth();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -124,9 +125,8 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
+      // Use the resetPassword function from useAuth context
+      const { error } = await resetPassword(email);
       
       if (error) throw error;
       
