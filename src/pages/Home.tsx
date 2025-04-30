@@ -38,27 +38,31 @@ const Home = () => {
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
         
-        <div className="flex flex-wrap md:flex-nowrap gap-8 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md text-center w-full md:w-1/2">
-            <img
-              src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK"
-              alt="Mahesh Khot"
-              className="w-40 h-40 mx-auto rounded-full mb-4"
-            />
-            <h3 className="text-xl font-semibold text-academy-primary">Mahesh Khot</h3>
-            <a href="tel:+919049137731" className="text-academy-primary hover:text-academy-secondary">
+        <div className="flex justify-center gap-6 mb-8">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
+            <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
+              <img
+                src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK"
+                alt="Mahesh Khot"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <h3 className="text-lg font-semibold text-academy-primary">Mahesh Khot</h3>
+            <a href="tel:+919049137731" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9049137731
             </a>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow-md text-center w-full md:w-1/2">
-            <img
-              src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM"
-              alt="Atul Madkar"
-              className="w-40 h-40 mx-auto rounded-full mb-4"
-            />
-            <h3 className="text-xl font-semibold text-academy-primary">Atul Madkar</h3>
-            <a href="tel:+919890555432" className="text-academy-primary hover:text-academy-secondary">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
+            <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
+              <img
+                src="https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM"
+                alt="Atul Madkar"
+                className="w-32 h-32 object-cover rounded-full"
+              />
+            </div>
+            <h3 className="text-lg font-semibold text-academy-primary">Atul Madkar</h3>
+            <a href="tel:+919890555432" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9890555432
             </a>
           </div>
