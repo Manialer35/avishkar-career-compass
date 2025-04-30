@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, Lock, UserPlus, LogIn, ShieldAlert } from 'lucide-react';
+import { Mail, Lock, UserPlus, LogIn, ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,6 +31,8 @@ const Auth = () => {
           .select('role')
           .eq('user_id', data.session.user.id)
           .single();
+        
+        console.log("Initial role check:", roleData);
         
         if (roleData && roleData.role === 'admin') {
           navigate('/admin');
@@ -75,6 +78,8 @@ const Auth = () => {
               .eq('user_id', session.session.user.id)
               .single();
             
+            console.log("Role after signup:", roleData);
+            
             if (roleData && roleData.role === 'admin') {
               navigate('/admin');
             } else {
@@ -96,6 +101,8 @@ const Auth = () => {
           .eq('user_id', data.user.id)
           .single();
         
+        console.log("Role after signin:", roleData);
+        
         if (roleData && roleData.role === 'admin') {
           navigate('/admin');
         } else {
@@ -112,6 +119,88 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for a link to reset your password.",
+      });
+      
+      // Return to login screen after sending reset email
+      setIsForgotPassword(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Render forgot password screen
+  if (isForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-md">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-academy-primary">
+              Reset your password
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Enter your email address and we'll send you a link to reset your password.
+            </p>
+          </div>
+          
+          <form className="mt-8 space-y-6" onSubmit={handleForgotPassword}>
+            <div>
+              <Label htmlFor="email">Email address</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1"
+                placeholder="you@example.com"
+              />
+            </div>
+            
+            <div className="space-y-4">
+              <Button 
+                type="submit" 
+                className="w-full bg-academy-primary hover:bg-academy-primary/90"
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : 'Send reset link'}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsForgotPassword(false)}
+                className="w-full"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to login
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -200,6 +289,17 @@ const Auth = () => {
               }
               {loading ? 'Processing...' : (isSignUp ? 'Sign up' : 'Sign in')}
             </Button>
+            
+            {!isSignUp && (
+              <Button
+                type="button"
+                variant="link"
+                onClick={() => setIsForgotPassword(true)}
+                className="text-academy-primary hover:text-academy-primary/90"
+              >
+                Forgot your password?
+              </Button>
+            )}
           </div>
 
           <div className="text-center">

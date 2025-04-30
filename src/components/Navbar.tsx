@@ -15,6 +15,9 @@ const Navbar = () => {
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
 
+  console.log("Navbar - userRole:", userRole);
+  console.log("Navbar - isAdmin:", isAdmin);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);

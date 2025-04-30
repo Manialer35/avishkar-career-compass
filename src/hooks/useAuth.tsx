@@ -28,27 +28,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    console.log("Setting up auth listeners");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      async (event, currentSession) => {
+        console.log("Auth state changed:", event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
         // Fetch user role if we have a session
-        if (session?.user) {
+        if (currentSession?.user) {
           // Use setTimeout to avoid potential auth listener deadlock
           setTimeout(async () => {
             try {
               const { data, error } = await supabase
                 .from('user_roles')
                 .select('role')
-                .eq('user_id', session.user.id)
+                .eq('user_id', currentSession.user.id)
                 .single();
               
               if (error) {
                 console.error("Error fetching user role:", error);
                 setUserRole(null);
               } else {
+                console.log("User role fetched:", data);
                 setUserRole({ role: data.role });
               }
             } catch (error) {
@@ -67,6 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session ? "Session found" : "No session");
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -78,10 +83,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth listeners");
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserRole = async (userId: string) => {
+    console.log("Fetching user role for:", userId);
     try {
       const { data, error } = await supabase
         .from('user_roles')
@@ -93,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error("Error fetching user role:", error);
         setUserRole(null);
       } else {
+        console.log("User role fetched:", data);
         setUserRole({ role: data.role });
       }
     } catch (error) {

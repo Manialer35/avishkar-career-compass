@@ -1,5 +1,5 @@
 
-import { Home, Info, Calendar, Mail, User } from 'lucide-react';
+import { Home, Info, Calendar, Mail, User, ShieldAlert } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -21,6 +21,9 @@ const BottomNavigation = () => {
 
   // Add admin link if user has admin role
   const isAdmin = userRole?.role === 'admin';
+  
+  console.log("BottomNavigation - userRole:", userRole);
+  console.log("BottomNavigation - isAdmin:", isAdmin);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 px-2 shadow-lg z-50">
@@ -60,7 +63,5 @@ const BottomNavigation = () => {
     </nav>
   );
 };
-
-import { ShieldAlert } from 'lucide-react';
 
 export default BottomNavigation;
