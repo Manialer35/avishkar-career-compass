@@ -38,7 +38,8 @@ const Home = () => {
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
         
-        <div className="flex justify-center gap-6 mb-8">
+        <div className="flex justify-between items-center mb-8">
+          {/* Left - Mahesh Khot */}
           <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
             <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
               <img
@@ -53,6 +54,20 @@ const Home = () => {
             </a>
           </div>
           
+          {/* Center - Academy Tagline/Logo */}
+          <div className="bg-white p-4 rounded-lg shadow-md text-center max-w-md">
+            <div className="w-40 h-40 mx-auto mb-3">
+              <img
+                src="https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP"
+                alt="Academy App"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h3 className="text-xl font-bold text-academy-primary">Empowering Dreams, Ensuring Success</h3>
+            <p className="text-sm text-gray-600 mt-2">Download our app and start your success journey today</p>
+          </div>
+          
+          {/* Right - Atul Madkar */}
           <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
             <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
               <img

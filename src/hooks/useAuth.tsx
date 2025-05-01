@@ -13,6 +13,7 @@ interface AuthContextType {
   userRole: UserRole | null;
   loading: boolean;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
+  createAdminUser: (email: string, password: string) => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -20,7 +21,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null, 
   userRole: null,
   loading: true,
-  resetPassword: async () => ({ error: new Error('Not implemented') })
+  resetPassword: async () => ({ error: new Error('Not implemented') }),
+  createAdminUser: async () => ({ error: new Error('Not implemented') })
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -117,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const resetPassword = async (email: string) => {
     try {
-      // Get the current domain
+      // Get the current deployed URL instead of using localhost
       const currentUrl = window.location.origin;
       console.log("Resetting password with redirect to:", currentUrl);
       
@@ -132,8 +134,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // New function to create an admin user directly
+  const createAdminUser = async (email: string, password: string) => {
+    try {
+      // First create the user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        }
+      });
+      
+      if (error) {
+        return { error };
+      }
+      
+      if (data?.user) {
+        // Insert admin role for this user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: 'admin'
+          });
+          
+        if (roleError) {
+          return { error: roleError };
+        }
+      }
+      
+      return { error: null };
+    } catch (error) {
+      console.error("Error creating admin user:", error);
+      return { error: error as Error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, userRole, loading, resetPassword }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      userRole, 
+      loading, 
+      resetPassword,
+      createAdminUser 
+    }}>
       {children}
     </AuthContext.Provider>
   );

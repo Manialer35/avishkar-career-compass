@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, UserPlus, UserPlusIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +9,13 @@ import { toast } from '@/hooks/use-toast';
 import useUsers from '@/hooks/useUsers';
 import UserTabs from '@/components/users/UserTabs';
 import DeleteUserDialog from '@/components/users/DeleteUserDialog';
+import { useAuth } from '@/hooks/useAuth';
+import CreateAdminForm from '@/components/users/CreateAdminForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const UsersManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { 
     users, 
     loading, 
@@ -38,13 +42,23 @@ const UsersManagement = () => {
           />
         </div>
         
-        <Button onClick={() => toast({
-          title: "Coming Soon",
-          description: "User invitation functionality will be available soon."
-        })}>
-          <UserPlus size={16} className="mr-2" />
-          Invite User
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <UserPlusIcon size={16} className="mr-2" />
+            Create Admin
+          </Button>
+          
+          <Button onClick={() => toast({
+            title: "Coming Soon",
+            description: "User invitation functionality will be available soon."
+          })}>
+            <UserPlus size={16} className="mr-2" />
+            Invite User
+          </Button>
+        </div>
       </div>
       
       <Card>
@@ -60,6 +74,15 @@ const UsersManagement = () => {
         </CardContent>
       </Card>
       
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create Admin User</DialogTitle>
+          </DialogHeader>
+          <CreateAdminForm onComplete={() => setIsCreateDialogOpen(false)} />
+        </DialogContent>
+      </Dialog>
+      
       <DeleteUserDialog 
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
@@ -68,8 +91,5 @@ const UsersManagement = () => {
     </div>
   );
 };
-
-// Import within the same file to avoid circular dependencies
-import { UserPlus } from 'lucide-react';
 
 export default UsersManagement;
