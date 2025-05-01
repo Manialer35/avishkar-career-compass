@@ -21,35 +21,44 @@ const useUsers = (searchTerm: string = '') => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // Fetch user data from auth.users via the profiles and user_roles tables
-      const { data, error } = await supabase
+      // Get user profiles and roles from database
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
           full_name,
-          created_at,
-          user_roles!inner (role)
+          created_at
         `);
 
-      if (error) {
-        throw error;
+      if (profilesError) {
+        throw profilesError;
       }
-
-      // Fetch email addresses (requires admin access via edge function in a real app)
-      // This is simplified for demo purposes
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
-      if (authError) {
-        throw authError;
+      // Get user roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+        
+      if (rolesError) {
+        throw rolesError;
+      }
+      
+      // Get user emails (via admin functions)
+      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+      
+      if (usersError) {
+        throw usersError;
       }
 
-      // Combine the data
-      const combinedData = data.map((profile: any) => {
-        const authUser = authData?.users.find((user: any) => user.id === profile.id);
+      // Combine all the data
+      const combinedData = profiles.map((profile: any) => {
+        const role = roles.find((r: any) => r.user_id === profile.id);
+        const user = users?.users.find((u: any) => u.id === profile.id);
+        
         return {
           id: profile.id,
-          email: authUser?.email || 'Email not available',
-          role: profile.user_roles.role,
+          email: user?.email || 'Email not available',
+          role: role?.role || 'user',
           full_name: profile.full_name,
           created_at: profile.created_at
         };
@@ -57,6 +66,7 @@ const useUsers = (searchTerm: string = '') => {
 
       setUsers(combinedData);
     } catch (error: any) {
+      console.error("Error fetching users:", error);
       toast({
         title: "Error fetching users",
         description: error.message,
@@ -75,7 +85,7 @@ const useUsers = (searchTerm: string = '') => {
     if (!userToDelete) return;
     
     try {
-      // Delete the user
+      // Delete the user from auth.users
       const { error } = await supabase.auth.admin.deleteUser(userToDelete.id);
       
       if (error) throw error;
@@ -117,7 +127,8 @@ const useUsers = (searchTerm: string = '') => {
     userToDelete,
     setUserToDelete,
     confirmDeleteUser,
-    handleDeleteUser
+    handleDeleteUser,
+    refreshUsers: fetchUsers
   };
 };
 

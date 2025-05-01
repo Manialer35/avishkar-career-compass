@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +21,9 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { resetPassword } = useAuth();
+
+  // List of admin emails - these will automatically be assigned admin role
+  const adminEmails = ['khot.md@gmail.com', 'neerajmadkar35@gmail.com'];
 
   // Check if user is already logged in
   useEffect(() => {
@@ -63,31 +67,30 @@ const Auth = () => {
         });
         if (error) throw error;
         
+        // If email is in admin list, manually set the role to admin
+        if (adminEmails.includes(email.toLowerCase())) {
+          // Get the newly created user
+          const { data: userData } = await supabase.auth.getUser();
+          
+          if (userData?.user) {
+            // Insert admin role for this user
+            await supabase
+              .from('user_roles')
+              .insert({
+                user_id: userData.user.id,
+                role: 'admin'
+              });
+          }
+        }
+        
         toast({
           title: "Account created",
-          description: "Your account has been created successfully.",
+          description: "Your account has been created successfully. You can now sign in.",
         });
 
-        // Wait a moment for the trigger to create the role
-        setTimeout(async () => {
-          const { data: session } = await supabase.auth.getSession();
-          if (session.session) {
-            // Check role and redirect accordingly
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.session.user.id)
-              .single();
-            
-            console.log("Role after signup:", roleData);
-            
-            if (roleData && roleData.role === 'admin') {
-              navigate('/admin');
-            } else {
-              navigate('/');
-            }
-          }
-        }, 1000);
+        // Go back to sign in screen
+        setIsSignUp(false);
+        setLoading(false);
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({
           email,
@@ -116,7 +119,6 @@ const Auth = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };

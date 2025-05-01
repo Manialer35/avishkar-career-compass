@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // New function to create an admin user directly
+  // Function to create an admin user directly
   const createAdminUser = async (email: string, password: string) => {
     try {
       // First create the user
