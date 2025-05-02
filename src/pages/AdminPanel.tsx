@@ -38,7 +38,7 @@ const AdminPanel = () => {
         </Button>
       </div>
       
-      <Tabs defaultValue="free" onValueChange={setActiveTab}>
+      <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="free">Free Materials</TabsTrigger>
           <TabsTrigger value="premium">Premium Materials</TabsTrigger>

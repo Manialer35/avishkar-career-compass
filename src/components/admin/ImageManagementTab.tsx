@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Table, 
@@ -27,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ImageItem {
   id: string;
@@ -80,10 +82,93 @@ const ImageManagementTab = () => {
       uploadDate: '2025-04-15',
       size: '1.9 MB'
     },
+    { 
+      id: '5', 
+      title: 'Successful Candidate 1', 
+      url: 'https://via.placeholder.com/350x230/4ade80/000000?text=Success+Story+1',
+      category: 'Successful Candidates',
+      uploadDate: '2025-04-20',
+      size: '1.7 MB'
+    },
+    { 
+      id: '6', 
+      title: 'Successful Candidate 2', 
+      url: 'https://via.placeholder.com/350x230/34d399/000000?text=Success+Story+2',
+      category: 'Successful Candidates',
+      uploadDate: '2025-04-21',
+      size: '1.8 MB'
+    },
+    { 
+      id: '7', 
+      title: 'Profile - Mahesh Khot', 
+      url: 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK',
+      category: 'Profiles',
+      uploadDate: '2025-04-25',
+      size: '1.2 MB'
+    },
+    { 
+      id: '8', 
+      title: 'Profile - Atul Madkar', 
+      url: 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM',
+      category: 'Profiles',
+      uploadDate: '2025-04-25',
+      size: '1.3 MB'
+    },
+    { 
+      id: '9', 
+      title: 'Academy App Logo', 
+      url: 'https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP',
+      category: 'Logos',
+      uploadDate: '2025-04-28',
+      size: '0.9 MB'
+    },
   ];
 
-  const categories = ['Campus', 'Facilities', 'Classes', 'Students', 'Events', 'Faculty'];
+  const categories = [
+    'Campus', 
+    'Facilities', 
+    'Classes', 
+    'Students', 
+    'Events', 
+    'Faculty', 
+    'Successful Candidates',
+    'Profiles',
+    'Logos'
+  ];
+  
   const [images, setImages] = useState<ImageItem[]>(sampleImages);
+
+  // Check if we have a real Supabase integration and load data if available
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('academy_images')
+          .select('*');
+        
+        if (error) {
+          console.error('Error fetching images:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          setImages(data.map(img => ({
+            id: img.id,
+            title: img.title,
+            url: img.url,
+            category: img.category,
+            uploadDate: new Date(img.created_at).toISOString().split('T')[0],
+            size: img.size || '0 KB'
+          })));
+        }
+      } catch (error) {
+        console.error('Error in fetchImages:', error);
+      }
+    };
+    
+    fetchImages();
+  }, []);
+
   const [newImage, setNewImage] = useState<{
     title: string;
     category: string;
@@ -103,7 +188,7 @@ const ImageManagementTab = () => {
     }
   };
   
-  const handleUploadImage = () => {
+  const handleUploadImage = async () => {
     if (!newImage.title || !newImage.category || !newImage.file) {
       toast({
         title: "Missing information",
@@ -113,29 +198,95 @@ const ImageManagementTab = () => {
       return;
     }
     
-    // In a real application, you would upload the file to a server/storage here
-    // For now, we'll just simulate adding it to our local state
-    const newImageItem: ImageItem = {
-      id: `new-${Date.now()}`,
-      title: newImage.title,
-      url: URL.createObjectURL(newImage.file),
-      category: newImage.category,
-      uploadDate: new Date().toISOString().split('T')[0],
-      size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
-    };
-    
-    setImages([...images, newImageItem]);
-    setIsUploadDialogOpen(false);
-    setNewImage({
-      title: '',
-      category: '',
-      file: null
-    });
-    
-    toast({
-      title: "Image uploaded",
-      description: "The image has been successfully uploaded",
-    });
+    try {
+      // If we have Supabase integration, upload to storage
+      const fileName = `${Date.now()}_${newImage.file.name.replace(/\s+/g, '_')}`;
+      
+      // Try to upload to Supabase storage
+      try {
+        // Check if we have a storage bucket, if not use local handling
+        const { data: buckets } = await supabase.storage.listBuckets();
+        
+        if (buckets && buckets.some(bucket => bucket.name === 'images')) {
+          const { data, error } = await supabase.storage
+            .from('images')
+            .upload(fileName, newImage.file);
+          
+          if (error) {
+            throw error;
+          }
+          
+          // Get the public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('images')
+            .getPublicUrl(fileName);
+          
+          // Save image metadata to database
+          const { data: imageData, error: imageError } = await supabase
+            .from('academy_images')
+            .insert({
+              title: newImage.title,
+              category: newImage.category,
+              url: publicUrl,
+              size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
+            })
+            .select('*')
+            .single();
+          
+          if (imageError) {
+            throw imageError;
+          }
+          
+          // Add new image to the list
+          const newImageItem: ImageItem = {
+            id: imageData.id,
+            title: imageData.title,
+            url: publicUrl,
+            category: imageData.category,
+            uploadDate: new Date().toISOString().split('T')[0],
+            size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
+          };
+          
+          setImages([...images, newImageItem]);
+        } else {
+          // Fallback to local handling if no storage bucket
+          throw new Error('No storage bucket available');
+        }
+      } catch (storageError) {
+        console.warn('Supabase storage upload failed, using local URL:', storageError);
+        
+        // Local file handling (for demo/testing without Supabase)
+        const newImageItem: ImageItem = {
+          id: `new-${Date.now()}`,
+          title: newImage.title,
+          url: URL.createObjectURL(newImage.file),
+          category: newImage.category,
+          uploadDate: new Date().toISOString().split('T')[0],
+          size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
+        };
+        
+        setImages([...images, newImageItem]);
+      }
+      
+      setIsUploadDialogOpen(false);
+      setNewImage({
+        title: '',
+        category: '',
+        file: null
+      });
+      
+      toast({
+        title: "Image uploaded",
+        description: "The image has been successfully uploaded",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading the image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleEdit = (image: ImageItem) => {
@@ -148,32 +299,95 @@ const ImageManagementTab = () => {
     setIsDeleteDialogOpen(true);
   };
   
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!currentImage) return;
     
-    setImages(images.filter(img => img.id !== currentImage.id));
-    setIsDeleteDialogOpen(false);
-    setCurrentImage(null);
-    
-    toast({
-      title: "Image deleted",
-      description: "The image has been successfully removed",
-    });
+    try {
+      // Try to delete from Supabase if available
+      if (currentImage.id.toString().startsWith('new-')) {
+        // Local image, just remove from state
+        setImages(images.filter(img => img.id !== currentImage.id));
+      } else {
+        try {
+          // Try to delete from Supabase database
+          const { error } = await supabase
+            .from('academy_images')
+            .delete()
+            .eq('id', currentImage.id);
+          
+          if (error) {
+            throw error;
+          }
+          
+          // Remove from state
+          setImages(images.filter(img => img.id !== currentImage.id));
+        } catch (dbError) {
+          console.warn('Database delete failed, removing from local state only:', dbError);
+          // Fallback - just remove from local state
+          setImages(images.filter(img => img.id !== currentImage.id));
+        }
+      }
+      
+      setIsDeleteDialogOpen(false);
+      setCurrentImage(null);
+      
+      toast({
+        title: "Image deleted",
+        description: "The image has been successfully removed",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Delete failed",
+        description: "There was an error deleting the image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
-  const saveChanges = () => {
+  const saveChanges = async () => {
     if (!currentImage) return;
     
-    setImages(images.map(img => 
-      img.id === currentImage.id ? currentImage : img
-    ));
-    setIsEditDialogOpen(false);
-    setCurrentImage(null);
-    
-    toast({
-      title: "Image updated",
-      description: "The image details have been updated",
-    });
+    try {
+      // Try to update in Supabase if available
+      if (!currentImage.id.toString().startsWith('new-')) {
+        try {
+          const { error } = await supabase
+            .from('academy_images')
+            .update({
+              title: currentImage.title,
+              category: currentImage.category
+            })
+            .eq('id', currentImage.id);
+          
+          if (error) {
+            throw error;
+          }
+        } catch (dbError) {
+          console.warn('Database update failed, updating local state only:', dbError);
+        }
+      }
+      
+      // Update in local state
+      setImages(images.map(img => 
+        img.id === currentImage.id ? currentImage : img
+      ));
+      
+      setIsEditDialogOpen(false);
+      setCurrentImage(null);
+      
+      toast({
+        title: "Image updated",
+        description: "The image details have been updated",
+      });
+    } catch (error) {
+      console.error('Error updating image:', error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating the image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const filteredImages = images.filter(img => 

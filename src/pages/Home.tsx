@@ -3,8 +3,9 @@ import ImageCarousel from '../components/ImageCarousel';
 import { Button } from '@/components/ui/button';
 import { Book, Download, ExternalLink, Mail, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SyllabusModal from '../components/SyllabusModal';
+import { supabase } from '@/integrations/supabase/client';
 
 const Home = () => {
   // Sample image URLs - replace with actual image URLs when available
@@ -15,6 +16,47 @@ const Home = () => {
     "https://via.placeholder.com/350x230/93c5fd/000000?text=Success+Stories",
     "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Coaching+Classes",
   ];
+
+  // Successful candidates images
+  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState([
+    "https://via.placeholder.com/350x230/4ade80/000000?text=Success+Story+1",
+    "https://via.placeholder.com/350x230/34d399/000000?text=Success+Story+2",
+    "https://via.placeholder.com/350x230/2dd4bf/000000?text=Success+Story+3",
+    "https://via.placeholder.com/350x230/22d3ee/000000?text=Success+Story+4",
+    "https://via.placeholder.com/350x230/38bdf8/000000?text=Success+Story+5",
+  ]);
+
+  // Load images from Supabase
+  useEffect(() => {
+    const fetchImagesFromCategory = async (category) => {
+      try {
+        const { data, error } = await supabase
+          .from('academy_images')
+          .select('*')
+          .eq('category', category);
+        
+        if (error) {
+          console.error(`Error fetching ${category} images:`, error);
+          return null;
+        }
+        
+        return data;
+      } catch (error) {
+        console.error(`Error in fetchImagesFromCategory for ${category}:`, error);
+        return null;
+      }
+    };
+    
+    const loadImages = async () => {
+      // Fetching successful candidates images
+      const successfulCandidates = await fetchImagesFromCategory('Successful Candidates');
+      if (successfulCandidates && successfulCandidates.length > 0) {
+        setSuccessfulCandidatesImages(successfulCandidates.map(img => img.url));
+      }
+    };
+    
+    loadImages();
+  }, []);
 
   const freeMaterials = [
     { title: "Basic Police Bharti Guide", description: "Introduction to police examination pattern and syllabus", link: "#" },
@@ -113,6 +155,16 @@ const Home = () => {
               allowFullScreen
             ></iframe>
           </div>
+        </div>
+
+        {/* Successful Candidates Carousel */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <ImageCarousel 
+            images={successfulCandidatesImages} 
+            direction="right" 
+            title="Our Successful Candidates"
+            useCarouselUI={true}
+          />
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
