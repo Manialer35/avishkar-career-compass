@@ -40,10 +40,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
+    console.log("Attempting to send email to admin:", name, email, subject);
+    
     // Send email to the admin (updated email address)
     const adminEmailResponse = await resend.emails.send({
       from: "Avishkar Academy <onboarding@resend.dev>",
-      to: ["khot.md@gmail.com"],
+      to: ["khot.md@gmail.com"], // Ensuring this is the correct email
       subject: `New Enquiry: ${subject}`,
       html: `
         <h2>New Enquiry from ${name}</h2>
@@ -55,6 +57,8 @@ const handler = async (req: Request): Promise<Response> => {
         <p>${message}</p>
       `,
     });
+
+    console.log("Admin email response:", adminEmailResponse);
     
     // Send confirmation email to the user
     const userEmailResponse = await resend.emails.send({
@@ -74,12 +78,15 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
+    console.log("User email response:", userEmailResponse);
     console.log("Emails sent successfully:", { adminEmailResponse, userEmailResponse });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Enquiry submitted successfully"
+        message: "Enquiry submitted successfully",
+        adminEmail: adminEmailResponse,
+        userEmail: userEmailResponse
       }),
       {
         status: 200,

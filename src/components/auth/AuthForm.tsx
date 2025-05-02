@@ -47,17 +47,23 @@ export const AuthForm = ({
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        console.log("Signing up user:", email);
+        
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
             },
+            // No email verification needed
             emailRedirectTo: window.location.origin,
           },
         });
+        
         if (error) throw error;
+        
+        console.log("Sign up response:", data);
         
         // If email is in admin list or admin type is selected, manually set the role to admin
         if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
@@ -75,14 +81,34 @@ export const AuthForm = ({
           }
         }
         
-        toast({
-          title: "Account created",
-          description: "Your account has been created successfully. You can now sign in.",
-        });
-
-        // Go back to sign in screen
-        setIsSignUp(false);
+        // Check if the user was signed in automatically
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData.session) {
+          toast({
+            title: "Account created",
+            description: "Your account has been created successfully. You're now signed in.",
+          });
+          
+          // Determine where to redirect based on email or authType
+          if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/');
+          }
+        } else {
+          // If not automatically signed in, go to sign in screen
+          toast({
+            title: "Account created",
+            description: "Your account has been created successfully. Please sign in.",
+          });
+          
+          setIsSignUp(false);
+        }
       } else {
+        // Handle sign in
+        console.log("Signing in user:", email);
+        
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,

@@ -74,13 +74,21 @@ const EnquiryForm = () => {
       setIsSubmitting(true);
       
       try {
+        console.log("Submitting enquiry data:", formData);
+        
         // Send the enquiry data to our Supabase Edge Function
         const { data, error } = await supabase.functions.invoke('send-enquiry', {
           body: formData
         });
         
+        console.log("Edge function response:", data, error);
+        
         if (error) {
           throw new Error(error.message);
+        }
+        
+        if (!data.success) {
+          throw new Error(data.message || "Failed to submit enquiry");
         }
         
         toast({

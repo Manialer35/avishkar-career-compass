@@ -83,6 +83,7 @@ const Auth = () => {
           data: {
             full_name: "Test Admin",
           },
+          // No email verification needed
           emailRedirectTo: window.location.origin,
         }
       });
