@@ -1,7 +1,10 @@
+
 import ImageCarousel from '../components/ImageCarousel';
 import { Button } from '@/components/ui/button';
-import { Book, Download, ExternalLink, Mail } from 'lucide-react';
+import { Book, Download, ExternalLink, Mail, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import SyllabusModal from '../components/SyllabusModal';
 
 const Home = () => {
   // Sample image URLs - replace with actual image URLs when available
@@ -11,14 +14,6 @@ const Home = () => {
     "https://via.placeholder.com/350x230/0284c7/ffffff?text=Study+Material",
     "https://via.placeholder.com/350x230/93c5fd/000000?text=Success+Stories",
     "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Coaching+Classes",
-  ];
-
-  const secondCarouselImages = [
-    "https://via.placeholder.com/350x230/1e3a8a/ffffff?text=Classroom",
-    "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Library",
-    "https://via.placeholder.com/60a5fa/000000?text=Computer+Lab",
-    "https://via.placeholder.com/93c5fd/000000?text=Group+Discussion",
-    "https://via.placeholder.com/0284c7/ffffff?text=Workshops",
   ];
 
   const freeMaterials = [
@@ -32,6 +27,10 @@ const Home = () => {
     { title: "Advanced Test Series", description: "Full-length mock tests with detailed solutions", price: "₹999", link: "#" },
     { title: "Interview Preparation Kit", description: "Guide for interview preparation with mock sessions", price: "₹1,299", link: "#" },
   ];
+
+  // State for managing syllabus modals
+  const [isBhartiModalOpen, setBhartiModalOpen] = useState(false);
+  const [isCombinedModalOpen, setCombinedModalOpen] = useState(false);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -52,6 +51,15 @@ const Home = () => {
             <a href="tel:+919049137731" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9049137731
             </a>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="mt-3 w-full text-academy-primary border-academy-primary hover:bg-academy-light"
+              onClick={() => setBhartiModalOpen(true)}
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Police Bharti Syllabus
+            </Button>
           </div>
           
           {/* Center - Academy Tagline/Logo */}
@@ -80,6 +88,30 @@ const Home = () => {
             <a href="tel:+919890555432" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9890555432
             </a>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="mt-3 w-full text-academy-primary border-academy-primary hover:bg-academy-light"
+              onClick={() => setCombinedModalOpen(true)}
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              Combined Syllabus
+            </Button>
+          </div>
+        </div>
+
+        {/* Introduction Video */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <h3 className="text-xl font-semibold text-academy-primary mb-4">Academy Introduction</h3>
+          <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg">
+            <iframe 
+              className="w-full h-96 rounded-lg"
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+              title="Academy Introduction"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
           </div>
         </div>
 
@@ -106,14 +138,6 @@ const Home = () => {
             </ul>
           </div>
         </div>
-      </section>
-
-      <section className="mb-10">
-        <h3 className="text-xl font-semibold text-academy-primary mb-4">Our Facilities</h3>
-        <ImageCarousel images={firstCarouselImages} direction="left" />
-        
-        <h3 className="text-xl font-semibold text-academy-primary mb-4 mt-8">Campus Gallery</h3>
-        <ImageCarousel images={secondCarouselImages} direction="right" />
       </section>
 
       <section className="mb-10">
@@ -196,20 +220,19 @@ const Home = () => {
       </section>
 
       <section className="mb-10">
-        <h3 className="text-xl font-semibold text-academy-primary mb-6">Training Videos</h3>
+        <h3 className="text-xl font-semibold text-academy-primary mb-4">Online Classes & Events</h3>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <p className="mb-4">Watch our training videos to get familiar with our teaching methodology and content.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
-              <p className="text-gray-500">Training video placeholder</p>
-            </div>
-            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
-              <p className="text-gray-500">Training video placeholder</p>
-            </div>
-            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-center min-h-[200px]">
-              <p className="text-gray-500">Training video placeholder</p>
-            </div>
-          </div>
+          <p className="mb-4">
+            Discover our upcoming online classes and events. Enhance your preparation with live sessions from expert instructors.
+          </p>
+          <Button 
+            className="bg-academy-primary hover:bg-academy-primary/90 text-white"
+            asChild
+          >
+            <Link to="/events">
+              View Upcoming Classes & Events
+            </Link>
+          </Button>
         </div>
       </section>
 
@@ -228,6 +251,21 @@ const Home = () => {
           </Button>
         </div>
       </section>
+      
+      {/* Syllabus Modals */}
+      <SyllabusModal 
+        isOpen={isBhartiModalOpen} 
+        onClose={() => setBhartiModalOpen(false)}
+        title="Police Bharti Syllabus"
+        syllabusType="police"
+      />
+      
+      <SyllabusModal 
+        isOpen={isCombinedModalOpen} 
+        onClose={() => setCombinedModalOpen(false)}
+        title="Combined Examination Syllabus"
+        syllabusType="combined"
+      />
     </div>
   );
 };

@@ -8,6 +8,7 @@ import FreeMaterialsTab from '@/components/admin/FreeMaterialsTab';
 import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
 import VideosTab from '@/components/admin/VideosTab';
 import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import ImageManagementTab from '@/components/admin/ImageManagementTab';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
 
 const AdminPanel = () => {
@@ -42,6 +43,7 @@ const AdminPanel = () => {
           <TabsTrigger value="free">Free Materials</TabsTrigger>
           <TabsTrigger value="premium">Premium Materials</TabsTrigger>
           <TabsTrigger value="videos">Training Videos</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
         </TabsList>
         
         <TabsContent value="free">
@@ -64,6 +66,10 @@ const AdminPanel = () => {
         
         <TabsContent value="videos">
           <VideosTab />
+        </TabsContent>
+        
+        <TabsContent value="images">
+          <ImageManagementTab />
         </TabsContent>
       </Tabs>
       

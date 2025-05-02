@@ -10,6 +10,7 @@ import BottomNavigation from "./components/BottomNavigation";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Event from "./pages/Event";
+import OnlineClasses from "./pages/OnlineClasses";
 import Enquiry from "./pages/Enquiry";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -25,7 +26,7 @@ const AppContent = () => {
   const location = useLocation();
   const { session } = useAuth();
   
-  const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile'];
+  const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events'];
   const isMainRoute = mainRoutes.includes(location.pathname);
   const showBottomNav = isMainRoute || location.pathname === '/home' 
     || location.pathname === '/free-materials' || location.pathname === '/premium-materials'
@@ -41,6 +42,7 @@ const AppContent = () => {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/about" element={<About />} />
           <Route path="/event" element={<Event />} />
+          <Route path="/events" element={<OnlineClasses />} />
           <Route path="/enquiry" element={<Enquiry />} />
           <Route path="/free-materials" element={<FreeStudyMaterials />} />
           <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
