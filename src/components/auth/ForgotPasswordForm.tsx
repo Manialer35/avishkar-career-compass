@@ -20,6 +20,16 @@ export const ForgotPasswordForm = ({ email, setEmail, onBack }: ForgotPasswordFo
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     try {
       const { error } = await resetPassword(email);

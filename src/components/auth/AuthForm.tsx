@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsContent, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, LogIn, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthFormProps {
   isSignUp: boolean;
@@ -39,6 +40,7 @@ export const AuthForm = ({
 }: AuthFormProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +59,8 @@ export const AuthForm = ({
         });
         if (error) throw error;
         
-        // If email is in admin list, manually set the role to admin
-        if (adminEmails.includes(email.toLowerCase())) {
+        // If email is in admin list or admin type is selected, manually set the role to admin
+        if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
           // Get the newly created user
           const { data: userData } = await supabase.auth.getUser();
           
@@ -80,15 +82,25 @@ export const AuthForm = ({
 
         // Go back to sign in screen
         setIsSignUp(false);
-        setLoading(false);
       } else {
-        const { error, data } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        
         if (error) throw error;
-
-        // Check user role and redirect handled in parent
+        
+        toast({
+          title: "Success",
+          description: "You have been successfully logged in",
+        });
+        
+        // Determine where to redirect based on email or authType
+        if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/');
+        }
       }
     } catch (error: any) {
       toast({
@@ -96,6 +108,7 @@ export const AuthForm = ({
         description: error.message,
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
     }
   };

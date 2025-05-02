@@ -50,18 +50,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', currentSession.user.id)
-                .single();
+                .maybeSingle(); // Use maybeSingle instead of single to prevent errors
               
               if (error) {
                 console.error("Error fetching user role:", error);
-                setUserRole(null);
-              } else {
+                // Check if email is in admin list and set role to admin
+                if (currentSession.user.email && ['khot.md@gmail.com', 'neerajmadkar35@gmail.com'].includes(currentSession.user.email)) {
+                  console.log("Setting admin role based on email");
+                  setUserRole({ role: 'admin' });
+                  
+                  // Attempt to insert the admin role if it doesn't exist
+                  const { error: insertError } = await supabase
+                    .from('user_roles')
+                    .insert({
+                      user_id: currentSession.user.id,
+                      role: 'admin'
+                    })
+                    .select()
+                    .single();
+                  
+                  if (insertError) {
+                    console.error("Error inserting admin role:", insertError);
+                  }
+                } else {
+                  setUserRole({ role: 'user' }); // Default to user role
+                }
+              } else if (data) {
                 console.log("User role fetched:", data);
                 setUserRole({ role: data.role });
+              } else {
+                // No role found, default to user
+                console.log("No role found, defaulting to user role");
+                setUserRole({ role: 'user' });
+                
+                // Insert default user role
+                const { error: insertError } = await supabase
+                  .from('user_roles')
+                  .insert({
+                    user_id: currentSession.user.id,
+                    role: 'user'
+                  })
+                  .select()
+                  .single();
+                
+                if (insertError) {
+                  console.error("Error inserting user role:", insertError);
+                }
               }
             } catch (error) {
               console.error("Error in fetchUserRole:", error);
-              setUserRole(null);
+              setUserRole({ role: 'user' }); // Default to user role on error
             } finally {
               setLoading(false);
             }
@@ -100,18 +138,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
       
       if (error) {
         console.error("Error fetching user role:", error);
-        setUserRole(null);
-      } else {
+        // Check if email is in admin list
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email && ['khot.md@gmail.com', 'neerajmadkar35@gmail.com'].includes(userData.user.email)) {
+          console.log("Setting admin role based on email");
+          setUserRole({ role: 'admin' });
+        } else {
+          setUserRole({ role: 'user' }); // Default to user role
+        }
+      } else if (data) {
         console.log("User role fetched:", data);
         setUserRole({ role: data.role });
+      } else {
+        console.log("No role found, defaulting to user");
+        setUserRole({ role: 'user' });
       }
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
-      setUserRole(null);
+      setUserRole({ role: 'user' }); // Default to user role on error
     } finally {
       setLoading(false);
     }
