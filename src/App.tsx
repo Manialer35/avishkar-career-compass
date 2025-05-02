@@ -20,6 +20,7 @@ import FreeStudyMaterials from "./pages/FreeStudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
+import { useState } from "react";
 
 // App content without swipeable behavior
 const AppContent = () => {
@@ -91,8 +92,8 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => {
-  // Move queryClient creation inside the component
-  const queryClient = new QueryClient();
+  // Create queryClient inside the component
+  const [queryClient] = useState(() => new QueryClient());
   
   return (
     <QueryClientProvider client={queryClient}>
