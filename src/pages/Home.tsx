@@ -1,4 +1,3 @@
-
 import ImageCarousel from '../components/ImageCarousel';
 import { Button } from '@/components/ui/button';
 import { Book, Download, ExternalLink, Mail, FileText } from 'lucide-react';
@@ -37,9 +36,8 @@ const Home = () => {
   useEffect(() => {
     const fetchImagesFromCategory = async (category: string) => {
       try {
-        // Use type assertion for TypeScript
         const { data, error } = await supabase
-          .from('academy_images' as any)
+          .from('academy_images')
           .select('*')
           .eq('category', category);
         
@@ -60,7 +58,8 @@ const Home = () => {
         // Fetching successful candidates images
         const successfulCandidates = await fetchImagesFromCategory('Successful Candidates');
         if (successfulCandidates && successfulCandidates.length > 0) {
-          setSuccessfulCandidatesImages(successfulCandidates.map((img: any) => img.url));
+          const urls = successfulCandidates.map((img: any) => img.url);
+          setSuccessfulCandidatesImages(urls);
         }
         
         // Fetching profile images

@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 interface ImageItem {
   id: string;
@@ -141,9 +142,8 @@ const ImageManagementTab = () => {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        // Use type assertion to tell TypeScript this is a valid table
         const { data, error } = await supabase
-          .from('academy_images' as any)
+          .from('academy_images')
           .select('*');
         
         if (error) {
@@ -152,14 +152,16 @@ const ImageManagementTab = () => {
         }
         
         if (data && data.length > 0) {
-          setImages(data.map((img: any) => ({
+          // Transform the data into our ImageItem format
+          const transformedData = data.map((img: any) => ({
             id: img.id,
             title: img.title,
             url: img.url,
             category: img.category,
             uploadDate: new Date(img.created_at).toISOString().split('T')[0],
             size: img.size || '0 KB'
-          })));
+          }));
+          setImages(transformedData);
         }
       } catch (error) {
         console.error('Error in fetchImages:', error);
@@ -221,33 +223,34 @@ const ImageManagementTab = () => {
             .from('images')
             .getPublicUrl(fileName);
           
-          // Save image metadata to database using type assertion for TypeScript
+          // Save image metadata to database
           const { data: imageData, error: imageError } = await supabase
-            .from('academy_images' as any)
+            .from('academy_images')
             .insert({
               title: newImage.title,
               category: newImage.category,
               url: publicUrl,
               size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
             })
-            .select('*')
-            .single();
+            .select();
           
           if (imageError) {
             throw imageError;
           }
           
-          // Add new image to the list
-          const newImageItem: ImageItem = {
-            id: imageData.id,
-            title: imageData.title,
-            url: publicUrl,
-            category: imageData.category,
-            uploadDate: new Date().toISOString().split('T')[0],
-            size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
-          };
-          
-          setImages([...images, newImageItem]);
+          if (imageData && imageData.length > 0) {
+            // Add new image to the list
+            const newImageItem: ImageItem = {
+              id: imageData[0].id,
+              title: imageData[0].title,
+              url: imageData[0].url,
+              category: imageData[0].category,
+              uploadDate: new Date().toISOString().split('T')[0],
+              size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
+            };
+            
+            setImages([...images, newImageItem]);
+          }
         } else {
           // Fallback to local handling if no storage bucket
           throw new Error('No storage bucket available');
@@ -309,9 +312,9 @@ const ImageManagementTab = () => {
         setImages(images.filter(img => img.id !== currentImage.id));
       } else {
         try {
-          // Try to delete from Supabase database using type assertion
+          // Try to delete from Supabase database
           const { error } = await supabase
-            .from('academy_images' as any)
+            .from('academy_images')
             .delete()
             .eq('id', currentImage.id);
           
@@ -352,9 +355,8 @@ const ImageManagementTab = () => {
       // Try to update in Supabase if available
       if (!currentImage.id.toString().startsWith('new-')) {
         try {
-          // Use type assertion for TypeScript
           const { error } = await supabase
-            .from('academy_images' as any)
+            .from('academy_images')
             .update({
               title: currentImage.title,
               category: currentImage.category
