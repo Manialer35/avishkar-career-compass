@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -48,7 +47,7 @@ const ImageManagementTab = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const { toast } = useToast();
   
-  // Sample image data - replace with actual data from backend
+  // Sample image data - to be replaced with data from Supabase
   const sampleImages: ImageItem[] = [
     { 
       id: '1', 
@@ -93,7 +92,7 @@ const ImageManagementTab = () => {
     { 
       id: '6', 
       title: 'Successful Candidate 2', 
-      url: 'https://via.placeholder.com/350x230/34d399/000000?text=Success+Story+2',
+      url: 'https://via.placeholder.com/34d399/000000?text=Success+Story+2',
       category: 'Successful Candidates',
       uploadDate: '2025-04-21',
       size: '1.8 MB'
@@ -123,7 +122,7 @@ const ImageManagementTab = () => {
       size: '0.9 MB'
     },
   ];
-
+  
   const categories = [
     'Campus', 
     'Facilities', 
@@ -142,8 +141,9 @@ const ImageManagementTab = () => {
   useEffect(() => {
     const fetchImages = async () => {
       try {
+        // Use type assertion to tell TypeScript this is a valid table
         const { data, error } = await supabase
-          .from('academy_images')
+          .from('academy_images' as any)
           .select('*');
         
         if (error) {
@@ -152,7 +152,7 @@ const ImageManagementTab = () => {
         }
         
         if (data && data.length > 0) {
-          setImages(data.map(img => ({
+          setImages(data.map((img: any) => ({
             id: img.id,
             title: img.title,
             url: img.url,
@@ -221,9 +221,9 @@ const ImageManagementTab = () => {
             .from('images')
             .getPublicUrl(fileName);
           
-          // Save image metadata to database
+          // Save image metadata to database using type assertion for TypeScript
           const { data: imageData, error: imageError } = await supabase
-            .from('academy_images')
+            .from('academy_images' as any)
             .insert({
               title: newImage.title,
               category: newImage.category,
@@ -309,9 +309,9 @@ const ImageManagementTab = () => {
         setImages(images.filter(img => img.id !== currentImage.id));
       } else {
         try {
-          // Try to delete from Supabase database
+          // Try to delete from Supabase database using type assertion
           const { error } = await supabase
-            .from('academy_images')
+            .from('academy_images' as any)
             .delete()
             .eq('id', currentImage.id);
           
@@ -352,8 +352,9 @@ const ImageManagementTab = () => {
       // Try to update in Supabase if available
       if (!currentImage.id.toString().startsWith('new-')) {
         try {
+          // Use type assertion for TypeScript
           const { error } = await supabase
-            .from('academy_images')
+            .from('academy_images' as any)
             .update({
               title: currentImage.title,
               category: currentImage.category
