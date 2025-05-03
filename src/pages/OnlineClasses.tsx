@@ -6,11 +6,13 @@ import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClassRegistrationDialog from '@/components/classes/ClassRegistrationDialog';
+import EnrollmentDialog from '@/components/classes/EnrollmentDialog';
 
 const OnlineClasses = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
   
   // Sample class/event data - replace with actual data from backend
   const upcomingClasses = [
@@ -76,7 +78,7 @@ const OnlineClasses = () => {
   
   const handleEnroll = (classItem: any) => {
     setSelectedClass(classItem);
-    // We'll handle this with a payment flow
+    setIsEnrolling(true);
   };
   
   // Helper function to format date
@@ -254,6 +256,13 @@ const OnlineClasses = () => {
       <ClassRegistrationDialog
         isOpen={isRegistering}
         onClose={() => setIsRegistering(false)}
+        classItem={selectedClass}
+      />
+
+      {/* Enrollment dialog */}
+      <EnrollmentDialog
+        isOpen={isEnrolling}
+        onClose={() => setIsEnrolling(false)}
         classItem={selectedClass}
       />
     </div>

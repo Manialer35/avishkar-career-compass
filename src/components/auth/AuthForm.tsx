@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +56,7 @@ export const AuthForm = ({
               full_name: fullName,
             },
             // No email verification needed
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth`,
           },
         });
         
@@ -81,29 +80,16 @@ export const AuthForm = ({
           }
         }
         
-        // Check if the user was signed in automatically
-        const { data: sessionData } = await supabase.auth.getSession();
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully. You're now signed in.",
+        });
         
-        if (sessionData.session) {
-          toast({
-            title: "Account created",
-            description: "Your account has been created successfully. You're now signed in.",
-          });
-          
-          // Determine where to redirect based on email or authType
-          if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
-            navigate('/admin');
-          } else {
-            navigate('/');
-          }
+        // Determine where to redirect based on email or authType
+        if (adminEmails.includes(email.toLowerCase()) || authType === 'admin') {
+          navigate('/admin');
         } else {
-          // If not automatically signed in, go to sign in screen
-          toast({
-            title: "Account created",
-            description: "Your account has been created successfully. Please sign in.",
-          });
-          
-          setIsSignUp(false);
+          navigate('/');
         }
       } else {
         // Handle sign in

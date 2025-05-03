@@ -39,6 +39,87 @@ export type Database = {
         }
         Relationships: []
       }
+      class_enrollments: {
+        Row: {
+          amount_paid: number
+          class_date: string
+          class_id: string
+          class_title: string
+          created_at: string
+          id: string
+          payment_id: string | null
+          payment_status: string | null
+          student_address: string
+          student_email: string
+          student_name: string
+          student_phone: string
+        }
+        Insert: {
+          amount_paid: number
+          class_date: string
+          class_id: string
+          class_title: string
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          student_address: string
+          student_email: string
+          student_name: string
+          student_phone: string
+        }
+        Update: {
+          amount_paid?: number
+          class_date?: string
+          class_id?: string
+          class_title?: string
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          student_address?: string
+          student_email?: string
+          student_name?: string
+          student_phone?: string
+        }
+        Relationships: []
+      }
+      class_registrations: {
+        Row: {
+          class_date: string
+          class_id: string
+          class_title: string
+          created_at: string
+          id: string
+          student_address: string
+          student_email: string
+          student_name: string
+          student_phone: string
+        }
+        Insert: {
+          class_date: string
+          class_id: string
+          class_title: string
+          created_at?: string
+          id?: string
+          student_address: string
+          student_email: string
+          student_name: string
+          student_phone: string
+        }
+        Update: {
+          class_date?: string
+          class_id?: string
+          class_title?: string
+          created_at?: string
+          id?: string
+          student_address?: string
+          student_email?: string
+          student_name?: string
+          student_phone?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -63,6 +144,42 @@ export type Database = {
           id?: string
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      training_videos: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_premium: boolean | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          video_url?: string
         }
         Relationships: []
       }

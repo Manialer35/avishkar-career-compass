@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Video, Edit, Trash, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +15,7 @@ const VideosTab = () => {
   const [loading, setLoading] = useState(true);
   
   // Fetch videos on component mount
-  useState(() => {
+  useEffect(() => {
     const fetchVideos = async () => {
       try {
         const { data, error } = await supabase
@@ -37,7 +37,7 @@ const VideosTab = () => {
     };
     
     fetchVideos();
-  });
+  }, [toast]);
   
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this video?")) return;
