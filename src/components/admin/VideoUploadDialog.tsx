@@ -1,0 +1,277 @@
+
+import { useState, useEffect } from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Video, Upload, Image } from 'lucide-react';
+
+interface VideoUploadDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (video: any) => void;
+  videoToEdit?: any;
+}
+
+const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUploadDialogProps) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    video_url: '',
+    thumbnail_url: '',
+    category: 'General',
+    is_premium: false
+  });
+  const [loading, setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const { toast } = useToast();
+  
+  // If editing, populate form with video data
+  useEffect(() => {
+    if (videoToEdit) {
+      setFormData({
+        title: videoToEdit.title || '',
+        description: videoToEdit.description || '',
+        video_url: videoToEdit.video_url || '',
+        thumbnail_url: videoToEdit.thumbnail_url || '',
+        category: videoToEdit.category || 'General',
+        is_premium: videoToEdit.is_premium || false
+      });
+    } else {
+      // Reset form when not editing
+      setFormData({
+        title: '',
+        description: '',
+        video_url: '',
+        thumbnail_url: '',
+        category: 'General',
+        is_premium: false
+      });
+      setThumbnailFile(null);
+    }
+  }, [videoToEdit, isOpen]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+  
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setThumbnailFile(e.target.files[0]);
+    }
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      let thumbnailUrl = formData.thumbnail_url;
+      
+      // Upload thumbnail if provided
+      if (thumbnailFile) {
+        const filename = `${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('videos')
+          .upload(`thumbnails/${filename}`, thumbnailFile);
+          
+        if (uploadError) throw uploadError;
+        
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(`thumbnails/${filename}`);
+          
+        thumbnailUrl = publicUrlData.publicUrl;
+      }
+      
+      if (videoToEdit) {
+        // Update existing video
+        const { data, error } = await supabase
+          .from('training_videos')
+          .update({
+            title: formData.title,
+            description: formData.description,
+            video_url: formData.video_url,
+            thumbnail_url: thumbnailUrl,
+            category: formData.category,
+            is_premium: formData.is_premium,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', videoToEdit.id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Video updated",
+          description: "The video has been successfully updated."
+        });
+        
+        onSuccess(data);
+      } else {
+        // Create new video
+        const { data, error } = await supabase
+          .from('training_videos')
+          .insert({
+            title: formData.title,
+            description: formData.description,
+            video_url: formData.video_url,
+            thumbnail_url: thumbnailUrl,
+            category: formData.category,
+            is_premium: formData.is_premium,
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        toast({
+          title: "Video added",
+          description: "The video has been successfully added."
+        });
+        
+        onSuccess(data);
+      }
+    } catch (error: any) {
+      toast({
+        title: videoToEdit ? "Error updating video" : "Error adding video",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{videoToEdit ? "Edit Video" : "Add New Video"}</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="title">Video Title</Label>
+            <Input 
+              id="title" 
+              name="title" 
+              value={formData.title} 
+              onChange={handleChange}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea 
+              id="description" 
+              name="description" 
+              value={formData.description} 
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="video_url">Video URL (YouTube, Vimeo, etc.)</Label>
+            <Input 
+              id="video_url" 
+              name="video_url"
+              value={formData.video_url} 
+              onChange={handleChange}
+              required
+              placeholder="https://www.youtube.com/embed/..."
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="thumbnail">Thumbnail Image</Label>
+            <div className="flex items-center space-x-4">
+              {(thumbnailFile || formData.thumbnail_url) && (
+                <div className="w-16 h-16 relative rounded overflow-hidden">
+                  <img 
+                    src={thumbnailFile 
+                      ? URL.createObjectURL(thumbnailFile) 
+                      : formData.thumbnail_url} 
+                    alt="Thumbnail preview" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1">
+                <Input 
+                  id="thumbnail"
+                  type="file" 
+                  onChange={handleThumbnailChange}
+                  accept="image/*"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="category">Category</Label>
+            <select 
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="w-full border rounded-md px-3 py-2"
+            >
+              <option value="General">General</option>
+              <option value="Police Bharti">Police Bharti</option>
+              <option value="Combined Exam">Combined Exam</option>
+              <option value="Current Affairs">Current Affairs</option>
+              <option value="Aptitude">Aptitude</option>
+              <option value="Interview">Interview</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Input 
+              id="is_premium"
+              name="is_premium"
+              type="checkbox"
+              checked={formData.is_premium}
+              onChange={handleChange}
+              className="w-4 h-4"
+            />
+            <Label htmlFor="is_premium">Premium Video (Paid Access Only)</Label>
+          </div>
+          
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading 
+                ? (videoToEdit ? "Updating..." : "Adding...") 
+                : (videoToEdit ? "Update Video" : "Add Video")
+              }
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default VideoUploadDialog;

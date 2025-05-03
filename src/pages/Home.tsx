@@ -125,9 +125,9 @@ const Home = () => {
       <section className="mb-10">
         <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
         
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
           {/* Left - Mahesh Khot */}
-          <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center w-full md:w-40">
             <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
               <img
                 src={profileImages.maheshKhot}
@@ -139,32 +139,16 @@ const Home = () => {
             <a href="tel:+919049137731" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9049137731
             </a>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="mt-3 w-full text-academy-primary border-academy-primary hover:bg-academy-light"
-              onClick={() => setBhartiModalOpen(true)}
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              Police Bharti Syllabus
-            </Button>
           </div>
           
-          {/* Center - Academy Tagline/Logo */}
-          <div className="bg-white p-4 rounded-lg shadow-md text-center max-w-md">
-            <div className="w-40 h-40 mx-auto mb-3">
-              <img
-                src={profileImages.academyLogo}
-                alt="Academy App"
-                className="w-full h-full object-contain"
-              />
-            </div>
+          {/* Center - Text only */}
+          <div className="text-center max-w-md w-full">
             <h3 className="text-xl font-bold text-academy-primary">Empowering Dreams, Ensuring Success</h3>
             <p className="text-sm text-gray-600 mt-2">Download our app and start your success journey today</p>
           </div>
           
           {/* Right - Atul Madkar */}
-          <div className="bg-white p-4 rounded-lg shadow-md text-center w-40">
+          <div className="bg-white p-4 rounded-lg shadow-md text-center w-full md:w-40">
             <div className="w-32 h-32 mx-auto overflow-hidden rounded-full mb-3">
               <img
                 src={profileImages.atulMadkar}
@@ -176,16 +160,28 @@ const Home = () => {
             <a href="tel:+919890555432" className="text-sm text-academy-primary hover:text-academy-secondary">
               +91 9890555432
             </a>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="mt-3 w-full text-academy-primary border-academy-primary hover:bg-academy-light"
-              onClick={() => setCombinedModalOpen(true)}
-            >
-              <FileText className="h-4 w-4 mr-1" />
-              Combined Syllabus
-            </Button>
           </div>
+        </div>
+
+        {/* Syllabus buttons moved outside boxes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <Button 
+            variant="outline" 
+            className="text-academy-primary border-academy-primary hover:bg-academy-light"
+            onClick={() => setBhartiModalOpen(true)}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Police Bharti Syllabus
+          </Button>
+            
+          <Button 
+            variant="outline"
+            className="text-academy-primary border-academy-primary hover:bg-academy-light"
+            onClick={() => setCombinedModalOpen(true)}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Combined Syllabus
+          </Button>
         </div>
 
         {/* Introduction Video */}

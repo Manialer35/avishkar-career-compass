@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send email to the admin (updated email address)
     const adminEmailResponse = await resend.emails.send({
       from: "Avishkar Academy <onboarding@resend.dev>",
-      to: ["khot.md@gmail.com"], // Ensuring this is the correct email
+      to: ["atulhmadkar@gmail.com"], // Updated email address
       subject: `New Enquiry: ${subject}`,
       html: `
         <h2>New Enquiry from ${name}</h2>
