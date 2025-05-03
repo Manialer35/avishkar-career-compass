@@ -7,11 +7,24 @@ import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import VideoUploadDialog from './VideoUploadDialog';
 
+// Define TypeScript interface for the video object
+interface TrainingVideo {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  category: string | null;
+  is_premium: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const VideosTab = () => {
   const { toast } = useToast();
-  const [videos, setVideos] = useState<any[]>([]);
+  const [videos, setVideos] = useState<TrainingVideo[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [editingVideo, setEditingVideo] = useState<any>(null);
+  const [editingVideo, setEditingVideo] = useState<TrainingVideo | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Fetch videos on component mount

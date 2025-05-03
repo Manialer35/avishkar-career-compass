@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
         console.log("Auth state changed:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -65,9 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     .insert({
                       user_id: currentSession.user.id,
                       role: 'admin'
-                    })
-                    .select()
-                    .single();
+                    });
                   
                   if (insertError) {
                     console.error("Error inserting admin role:", insertError);
@@ -89,9 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .insert({
                     user_id: currentSession.user.id,
                     role: 'user'
-                  })
-                  .select()
-                  .single();
+                  });
                 
                 if (insertError) {
                   console.error("Error inserting user role:", insertError);

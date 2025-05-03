@@ -79,35 +79,13 @@ const Auth = () => {
       const { error } = await supabase.auth.signUp({
         email: testEmail,
         password: testPassword,
-        options: {
-          data: {
-            full_name: "Test Admin",
-          },
-          // No email verification needed
-          emailRedirectTo: window.location.origin,
-        }
       });
       
       if (error) throw error;
       
-      // Get the newly created user
-      const { data: userData } = await supabase.auth.getUser();
-      
-      if (userData?.user) {
-        // Insert admin role for this user
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userData.user.id,
-            role: 'admin'
-          });
-          
-        if (roleError) throw roleError;
-      }
-      
       toast({
         title: "Test Admin Created",
-        description: `Email: ${testEmail}, Password: ${testPassword}`,
+        description: `Email: ${testEmail}, Password: ${testPassword}. Please sign in now with these credentials.`,
         duration: 10000, // Show for 10 seconds
       });
       

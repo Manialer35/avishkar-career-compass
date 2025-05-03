@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -15,11 +14,23 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Video, Upload, Image } from 'lucide-react';
 
+interface TrainingVideo {
+  id: string;
+  title: string;
+  description: string | null;
+  video_url: string;
+  thumbnail_url: string | null;
+  category: string | null;
+  is_premium: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface VideoUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (video: any) => void;
-  videoToEdit?: any;
+  onSuccess: (video: TrainingVideo) => void;
+  videoToEdit?: TrainingVideo;
 }
 
 const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUploadDialogProps) => {
@@ -84,17 +95,30 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
       
       // Upload thumbnail if provided
       if (thumbnailFile) {
+        // Create the storage bucket first if it doesn't exist
+        const bucketName = 'videos';
+        const { error: bucketError } = await supabase.storage.getBucket(bucketName).catch(() => ({
+          error: { message: 'Bucket does not exist' }
+        }));
+        
+        if (bucketError) {
+          await supabase.storage.createBucket(bucketName, {
+            public: true,
+            fileSizeLimit: 10485760, // 10MB
+          });
+        }
+        
         const filename = `${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('videos')
+          .from(bucketName)
           .upload(`thumbnails/${filename}`, thumbnailFile);
           
         if (uploadError) throw uploadError;
         
         // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from('videos')
+          .from(bucketName)
           .getPublicUrl(`thumbnails/${filename}`);
           
         thumbnailUrl = publicUrlData.publicUrl;
@@ -124,7 +148,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           description: "The video has been successfully updated."
         });
         
-        onSuccess(data);
+        onSuccess(data as TrainingVideo);
       } else {
         // Create new video
         const { data, error } = await supabase
@@ -147,7 +171,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           description: "The video has been successfully added."
         });
         
-        onSuccess(data);
+        onSuccess(data as TrainingVideo);
       }
     } catch (error: any) {
       toast({
