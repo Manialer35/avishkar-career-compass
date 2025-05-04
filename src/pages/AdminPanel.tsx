@@ -14,6 +14,7 @@ import { useAdminMaterials } from '@/hooks/useAdminMaterials';
 const AdminPanel = () => {
   const { 
     materials, 
+    loading,
     activeTab, 
     setActiveTab,
     editingMaterial,
@@ -49,6 +50,7 @@ const AdminPanel = () => {
         <TabsContent value="free">
           <FreeMaterialsTab 
             materials={materials.filter(m => !m.isPremium)} 
+            loading={loading}
             onAddNew={handleAddNew}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -58,6 +60,7 @@ const AdminPanel = () => {
         <TabsContent value="premium">
           <PremiumMaterialsTab 
             materials={materials.filter(m => m.isPremium)} 
+            loading={loading}
             onAddNew={handleAddNew}
             onEdit={handleEdit}
             onDelete={handleDelete}

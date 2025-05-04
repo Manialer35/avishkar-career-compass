@@ -1,46 +1,48 @@
+
 import { Product, ProductGrid } from '@/components/ProductPurchase';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const PremiumStudyMaterials = () => {
-  const products = [
-    {
-      id: "1",
-      name: "Daily टेस्ट पेपर",
-      description: "Daily test papers for one year subscription",
-      price: 99,
-      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Daily+Test+Papers"
-    },
-    {
-      id: "2",
-      name: "IMP G.S 5000",
-      description: "Important General Studies 5000 Questions",
-      price: 49,
-      imageSrc: "https://via.placeholder.com/350x200/3b82f6/ffffff?text=GS+5000"
-    },
-    {
-      id: "3",
-      name: "IMP G.K ONELINER",
-      description: "Important General Knowledge One-liners",
-      price: 39,
-      imageSrc: "https://via.placeholder.com/350x200/0284c7/ffffff?text=GK+Oneliner"
-    },
-    {
-      id: "4",
-      name: "IMP मराठी व्याकरण",
-      description: "Important Marathi Grammar guide",
-      price: 29,
-      imageSrc: "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=Marathi+Grammar"
-    },
-    {
-      id: "5",
-      name: "IMP अंकगणित आणि बुद्धिमत्ता",
-      description: "Important Mathematics and Aptitude guide",
-      price: 29,
-      imageSrc: "https://via.placeholder.com/350x200/60a5fa/ffffff?text=Math+Aptitude"
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPremiumMaterials();
+  }, []);
+
+  const fetchPremiumMaterials = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('study_materials')
+        .select('*')
+        .eq('ispremium', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const products: Product[] = data.map(item => ({
+          id: item.id,
+          name: item.title,
+          description: item.description,
+          price: item.price || 0,
+          imageSrc: item.thumbnailurl || "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=" + encodeURIComponent(item.title)
+        }));
+        setProducts(products);
+      }
+    } catch (error) {
+      console.error('Error fetching premium materials:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -57,7 +59,14 @@ const PremiumStudyMaterials = () => {
         </Button>
         <h1 className="text-2xl font-bold text-academy-primary">Premium Study Materials</h1>
       </div>
-      <ProductGrid products={products} />
+      
+      {loading ? (
+        <div className="text-center py-8">Loading premium materials...</div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-8">No premium study materials found</div>
+      ) : (
+        <ProductGrid products={products} />
+      )}
     </div>
   );
 };

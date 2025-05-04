@@ -1,52 +1,92 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StudyMaterial {
   id: string;
   title: string;
   description: string;
   downloadUrl: string;
+  thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
 }
 
 export const useAdminMaterials = () => {
-  const [materials, setMaterials] = useState<StudyMaterial[]>([
-    {
-      id: '1',
-      title: 'चालू घडामोडी',
-      description: 'Latest current affairs and news updates in Marathi',
-      downloadUrl: '#',
-      isPremium: false
-    },
-    {
-      id: '2',
-      title: 'Daily टेस्ट पेपर',
-      description: 'Daily test papers for one year subscription',
-      downloadUrl: '#',
-      isPremium: true,
-      price: 99
-    },
-    // Add more initial materials as needed
-  ]);
-  
+  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [newMaterial, setNewMaterial] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('free');
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('study_materials')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setMaterials(data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          downloadUrl: item.downloadurl,
+          thumbnailUrl: item.thumbnailurl || undefined,
+          isPremium: item.ispremium,
+          price: item.price || undefined
+        })));
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching materials",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEdit = (material: StudyMaterial) => {
     setEditingMaterial(material);
     setNewMaterial(false);
   };
 
-  const handleDelete = (id: string) => {
-    setMaterials(materials.filter(m => m.id !== id));
-    toast({
-      title: "Material deleted",
-      description: "The study material has been deleted successfully."
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('study_materials')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw error;
+      }
+
+      setMaterials(materials.filter(m => m.id !== id));
+      toast({
+        title: "Material deleted",
+        description: "The study material has been deleted successfully."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error deleting material",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
   };
 
   const handleAddNew = () => {
@@ -61,27 +101,75 @@ export const useAdminMaterials = () => {
     setNewMaterial(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingMaterial) return;
     
-    if (newMaterial) {
-      setMaterials([...materials, editingMaterial]);
-    } else {
-      setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
+    try {
+      const materialData = {
+        title: editingMaterial.title,
+        description: editingMaterial.description,
+        downloadurl: editingMaterial.downloadUrl,
+        thumbnailurl: editingMaterial.thumbnailUrl || null,
+        ispremium: editingMaterial.isPremium,
+        price: editingMaterial.isPremium ? editingMaterial.price : null
+      };
+
+      if (newMaterial) {
+        const { data, error } = await supabase
+          .from('study_materials')
+          .insert(materialData)
+          .select();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data && data[0]) {
+          const newItem: StudyMaterial = {
+            id: data[0].id,
+            title: data[0].title,
+            description: data[0].description,
+            downloadUrl: data[0].downloadurl,
+            thumbnailUrl: data[0].thumbnailurl || undefined,
+            isPremium: data[0].ispremium,
+            price: data[0].price || undefined
+          };
+          
+          setMaterials([newItem, ...materials]);
+        }
+      } else {
+        const { error } = await supabase
+          .from('study_materials')
+          .update(materialData)
+          .eq('id', editingMaterial.id);
+
+        if (error) {
+          throw error;
+        }
+
+        setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
+      }
+      
+      setEditingMaterial(null);
+      setNewMaterial(false);
+      
+      toast({
+        title: "Changes saved",
+        description: "The study material has been updated successfully."
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error saving material",
+        description: error.message,
+        variant: "destructive"
+      });
     }
-    
-    setEditingMaterial(null);
-    setNewMaterial(false);
-    
-    toast({
-      title: "Changes saved",
-      description: "The study material has been updated successfully."
-    });
   };
 
   return {
     materials,
     setMaterials,
+    loading,
     editingMaterial,
     setEditingMaterial,
     newMaterial,
@@ -91,6 +179,7 @@ export const useAdminMaterials = () => {
     handleEdit,
     handleDelete,
     handleAddNew,
-    handleSave
+    handleSave,
+    fetchMaterials
   };
 };

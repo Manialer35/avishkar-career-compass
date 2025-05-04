@@ -1,13 +1,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Trash, File } from 'lucide-react';
+import { Pencil, Trash, File, Image } from 'lucide-react';
 
 interface StudyMaterial {
   id: string;
   title: string;
   description: string;
   downloadUrl: string;
+  thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
 }
@@ -33,21 +34,35 @@ const MaterialCard = ({ material, onEdit, onDelete }: MaterialCardProps) => {
         </div>
       </CardHeader>
       <CardContent>
+        {material.thumbnailUrl && (
+          <div className="mb-3">
+            <img 
+              src={material.thumbnailUrl} 
+              alt={`${material.title} thumbnail`} 
+              className="w-full h-32 object-cover rounded-md"
+            />
+          </div>
+        )}
         <p className="text-gray-600 mb-2">{material.description}</p>
-        {material.isPremium ? (
-          <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          {material.isPremium ? (
             <p className="font-semibold text-academy-primary">₹{material.price}</p>
+          ) : (
+            <div></div>
+          )}
+          <div className="flex items-center gap-2">
+            {!material.thumbnailUrl && (
+              <span className="text-sm text-gray-500 flex items-center">
+                <Image size={14} className="mr-1" /> 
+                No thumbnail
+              </span>
+            )}
             <a href={material.downloadUrl} className="text-academy-primary hover:underline text-sm flex items-center">
               <File size={14} className="mr-1" /> 
               Download Link
             </a>
           </div>
-        ) : (
-          <p className="text-sm flex items-center">
-            <File size={14} className="mr-1" /> 
-            <a href={material.downloadUrl} className="text-academy-primary hover:underline">Download Link</a>
-          </p>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

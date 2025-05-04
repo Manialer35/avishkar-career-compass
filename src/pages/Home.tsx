@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSection from '../components/home/ProfileSection';
@@ -8,15 +9,23 @@ import StudyMaterialsSection from '../components/home/StudyMaterialsSection';
 import ClassesSection from '../components/home/ClassesSection';
 import EnquirySection from '../components/home/EnquirySection';
 
+interface StudyMaterial {
+  id: string;
+  title: string;
+  description: string;
+  downloadUrl: string;
+  thumbnailUrl?: string;
+  isPremium: boolean;
+  price?: number;
+}
+
 const Home = () => {
-  // Sample image URLs for first carousel - to be replaced with actual images
-  const [firstCarouselImages, setFirstCarouselImages] = useState([
-    "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Competitive+Exams",
-    "https://via.placeholder.com/350x230/1e3a8a/ffffff?text=Top+Faculty",
-    "https://via.placeholder.com/350x230/0284c7/ffffff?text=Study+Material",
-    "https://via.placeholder.com/350x230/93c5fd/000000?text=Success+Stories",
-    "https://via.placeholder.com/350x230/3b82f6/ffffff?text=Coaching+Classes",
-  ]);
+  // Store profile images
+  const [profileImages, setProfileImages] = useState({
+    maheshKhot: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK",
+    atulMadkar: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM",
+    academyLogo: "https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP"
+  });
 
   // Successful candidates images - to be loaded from database
   const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState([
@@ -27,27 +36,11 @@ const Home = () => {
     "https://via.placeholder.com/350x230/38bdf8/000000?text=Success+Story+5",
   ]);
 
-  // Store profile images
-  const [profileImages, setProfileImages] = useState({
-    maheshKhot: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK",
-    atulMadkar: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM",
-    academyLogo: "https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP"
-  });
-
   // Study materials data
-  const freeMaterials = [
-    { title: "Basic Police Bharti Guide", description: "Introduction to police examination pattern and syllabus", link: "#" },
-    { title: "Current Affairs Monthly", description: "Latest current affairs relevant to competitive exams", link: "#" },
-    { title: "Basic Aptitude Test Series", description: "Practice questions for quantitative aptitude", link: "#" },
-  ];
+  const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
+  const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
 
-  const paidMaterials = [
-    { title: "Complete Police Bharti Package", description: "Comprehensive study material with mock tests", price: "₹1,499", link: "#" },
-    { title: "Advanced Test Series", description: "Full-length mock tests with detailed solutions", price: "₹999", link: "#" },
-    { title: "Interview Preparation Kit", description: "Guide for interview preparation with mock sessions", price: "₹1,299", link: "#" },
-  ];
-
-  // Load images from Supabase
+  // Load images and study materials from Supabase
   useEffect(() => {
     const fetchImagesFromCategory = async (category: string) => {
       try {
@@ -116,7 +109,39 @@ const Home = () => {
       }
     };
     
+    const fetchStudyMaterials = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('study_materials')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(6);
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          const materials = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            downloadUrl: item.downloadurl,
+            thumbnailUrl: item.thumbnailurl,
+            isPremium: item.ispremium,
+            price: item.price
+          }));
+
+          setFreeMaterials(materials.filter(m => !m.isPremium).slice(0, 3));
+          setPaidMaterials(materials.filter(m => m.isPremium).slice(0, 3));
+        }
+      } catch (error) {
+        console.error('Error fetching study materials:', error);
+      }
+    };
+    
     loadImages();
+    fetchStudyMaterials();
   }, []);
 
   return (

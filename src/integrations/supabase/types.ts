@@ -120,6 +120,50 @@ export type Database = {
         }
         Relationships: []
       }
+      material_purchases: {
+        Row: {
+          amount: number
+          id: string
+          material_id: string | null
+          payment_id: string | null
+          payment_status: string | null
+          purchased_at: string
+          user_email: string
+          user_id: string | null
+          user_name: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          material_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          purchased_at?: string
+          user_email: string
+          user_id?: string | null
+          user_name: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          material_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          purchased_at?: string
+          user_email?: string
+          user_id?: string | null
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_purchases_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -144,6 +188,42 @@ export type Database = {
           id?: string
           updated_at?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      study_materials: {
+        Row: {
+          created_at: string
+          description: string
+          downloadurl: string
+          id: string
+          ispremium: boolean
+          price: number | null
+          thumbnailurl: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          downloadurl: string
+          id?: string
+          ispremium?: boolean
+          price?: number | null
+          thumbnailurl?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          downloadurl?: string
+          id?: string
+          ispremium?: boolean
+          price?: number | null
+          thumbnailurl?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

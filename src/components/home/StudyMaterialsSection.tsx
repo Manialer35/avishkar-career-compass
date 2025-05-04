@@ -2,20 +2,73 @@
 import { Book, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StudyMaterial {
+  id: string;
   title: string;
   description: string;
-  link: string;
-  price?: string;
+  downloadUrl: string;
+  thumbnailUrl?: string;
+  isPremium: boolean;
+  price?: number;
 }
 
 interface StudyMaterialsSectionProps {
-  freeMaterials: StudyMaterial[];
-  paidMaterials: StudyMaterial[];
+  freeMaterials?: StudyMaterial[];
+  paidMaterials?: StudyMaterial[];
 }
 
-const StudyMaterialsSection = ({ freeMaterials, paidMaterials }: StudyMaterialsSectionProps) => {
+const StudyMaterialsSection = ({ freeMaterials: propFreeMaterials, paidMaterials: propPaidMaterials }: StudyMaterialsSectionProps) => {
+  const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
+  const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (propFreeMaterials && propPaidMaterials) {
+      setFreeMaterials(propFreeMaterials);
+      setPaidMaterials(propPaidMaterials);
+      setLoading(false);
+    } else {
+      fetchMaterials();
+    }
+  }, [propFreeMaterials, propPaidMaterials]);
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('study_materials')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const materials = data.map(item => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          downloadUrl: item.downloadurl,
+          thumbnailUrl: item.thumbnailurl,
+          isPremium: item.ispremium,
+          price: item.price
+        }));
+
+        setFreeMaterials(materials.filter(m => !m.isPremium).slice(0, 3));
+        setPaidMaterials(materials.filter(m => m.isPremium).slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="mb-10">
       <h3 className="text-xl font-semibold text-academy-primary mb-6">Study Materials</h3>
@@ -28,23 +81,36 @@ const StudyMaterialsSection = ({ freeMaterials, paidMaterials }: StudyMaterialsS
           </div>
           
           <div className="space-y-4">
-            {freeMaterials.map((material, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-md">
-                <h5 className="font-semibold">{material.title}</h5>
-                <p className="text-sm text-gray-600 mt-1">{material.description}</p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="mt-2 text-academy-primary hover:text-academy-red hover:bg-gray-100"
-                  asChild
-                >
-                  <a href={material.link} className="flex items-center">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download Now
-                  </a>
-                </Button>
-              </div>
-            ))}
+            {loading ? (
+              <p className="text-center py-4 text-gray-500">Loading materials...</p>
+            ) : freeMaterials.length === 0 ? (
+              <p className="text-center py-4 text-gray-500">No free materials available</p>
+            ) : (
+              freeMaterials.map((material, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-md">
+                  {material.thumbnailUrl && (
+                    <img 
+                      src={material.thumbnailUrl}
+                      alt={material.title}
+                      className="w-full h-32 object-cover rounded-md mb-2"
+                    />
+                  )}
+                  <h5 className="font-semibold">{material.title}</h5>
+                  <p className="text-sm text-gray-600 mt-1">{material.description}</p>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-2 text-academy-primary hover:text-academy-red hover:bg-gray-100"
+                    asChild
+                  >
+                    <a href={material.downloadUrl} className="flex items-center">
+                      <Download className="h-4 w-4 mr-1" />
+                      Download Now
+                    </a>
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
           
           <Button 
@@ -65,23 +131,36 @@ const StudyMaterialsSection = ({ freeMaterials, paidMaterials }: StudyMaterialsS
           </div>
           
           <div className="space-y-4">
-            {paidMaterials.map((material, index) => (
-              <div key={index} className="p-4 bg-gray-50 rounded-md">
-                <div className="flex justify-between">
-                  <h5 className="font-semibold">{material.title}</h5>
-                  <span className="font-semibold text-academy-red">{material.price}</span>
+            {loading ? (
+              <p className="text-center py-4 text-gray-500">Loading materials...</p>
+            ) : paidMaterials.length === 0 ? (
+              <p className="text-center py-4 text-gray-500">No premium materials available</p>
+            ) : (
+              paidMaterials.map((material, index) => (
+                <div key={index} className="p-4 bg-gray-50 rounded-md">
+                  {material.thumbnailUrl && (
+                    <img 
+                      src={material.thumbnailUrl}
+                      alt={material.title}
+                      className="w-full h-32 object-cover rounded-md mb-2"
+                    />
+                  )}
+                  <div className="flex justify-between">
+                    <h5 className="font-semibold">{material.title}</h5>
+                    <span className="font-semibold text-academy-red">₹{material.price}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">{material.description}</p>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="mt-2 bg-academy-red hover:bg-academy-red/90 text-white"
+                    asChild
+                  >
+                    <Link to={`/premium-materials?materialId=${material.id}`}>Purchase Now</Link>
+                  </Button>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">{material.description}</p>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="mt-2 bg-academy-red hover:bg-academy-red/90 text-white"
-                  asChild
-                >
-                  <a href={material.link}>Purchase Now</a>
-                </Button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
           
           <Button 
