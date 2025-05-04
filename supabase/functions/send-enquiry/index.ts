@@ -1,103 +1,95 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-interface EnquiryData {
+interface EnquiryRequest {
   name: string;
   email: string;
   phone: string;
-  subject: string;
   message: string;
 }
 
-const handler = async (req: Request): Promise<Response> => {
+// List of recipients who should receive enquiry notifications
+const recipients = [
+  'neerajmadkar35@gmail.com',
+  'khot.md@gmail.com',
+  'atulhmadkar@gmail.com'
+];
+
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const enquiryData: EnquiryData = await req.json();
-    const { name, email, phone, subject, message } = enquiryData;
-    
-    // Validate required fields
-    if (!name || !email || !phone || !subject || !message) {
+    const { name, email, phone, message }: EnquiryRequest = await req.json();
+
+    // Basic validation
+    if (!name || !email || !message) {
       return new Response(
-        JSON.stringify({ 
-          error: "Missing required fields" 
-        }),
-        { 
-          status: 400, 
-          headers: { "Content-Type": "application/json", ...corsHeaders } 
+        JSON.stringify({ error: "Missing required fields" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
     }
-    
-    console.log("Attempting to send email to admin:", name, email, subject);
-    
-    // Send email to the admin (updated email address)
-    const adminEmailResponse = await resend.emails.send({
-      from: "Avishkar Academy <onboarding@resend.dev>",
-      to: ["atulhmadkar@gmail.com"], // Updated email address
-      subject: `New Enquiry: ${subject}`,
-      html: `
-        <h2>New Enquiry from ${name}</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
-        <h3>Message:</h3>
-        <p>${message}</p>
-      `,
+
+    const client = new SmtpClient();
+
+    await client.connect({
+      hostname: "smtp.gmail.com",
+      port: 465,
+      username: Deno.env.get("EMAIL_USERNAME"),
+      password: Deno.env.get("EMAIL_PASSWORD"),
+      tls: true,
     });
 
-    console.log("Admin email response:", adminEmailResponse);
-    
-    // Send confirmation email to the user
-    const userEmailResponse = await resend.emails.send({
-      from: "Avishkar Academy <onboarding@resend.dev>",
-      to: [email],
-      subject: "Thank you for your enquiry",
-      html: `
-        <h2>Thank you for contacting Avishkar Career Academy!</h2>
-        <p>Dear ${name},</p>
-        <p>We have received your enquiry regarding "${subject}".</p>
-        <p>Our team will review your message and get back to you as soon as possible.</p>
-        <p>Your message:</p>
-        <blockquote style="padding: 10px; border-left: 4px solid #ccc; margin: 15px 0; color: #555;">
-          ${message}
-        </blockquote>
-        <p>Best regards,<br>Avishkar Career Academy Team</p>
-      `,
-    });
+    const emailSubject = `New Enquiry from ${name}`;
+    const emailBody = `
+      <h2>New Enquiry Details</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+      <p><strong>Message:</strong></p>
+      <p>${message}</p>
+    `;
 
-    console.log("User email response:", userEmailResponse);
-    console.log("Emails sent successfully:", { adminEmailResponse, userEmailResponse });
+    // Send email to all recipients
+    for (const recipient of recipients) {
+      try {
+        await client.send({
+          from: Deno.env.get("EMAIL_USERNAME"),
+          to: recipient,
+          subject: emailSubject,
+          html: emailBody,
+        });
+        
+        console.log(`Email sent successfully to: ${recipient}`);
+      } catch (emailError) {
+        console.error(`Failed to send email to ${recipient}:`, emailError);
+        // Continue trying to send to other recipients
+      }
+    }
+
+    await client.close();
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Enquiry submitted successfully",
-        adminEmail: adminEmailResponse,
-        userEmail: userEmailResponse
-      }),
+      JSON.stringify({ success: true, message: "Enquiry sent successfully" }),
       {
         status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
-  } catch (error: any) {
-    console.error("Error in send-enquiry function:", error);
+  } catch (error) {
+    console.error("Error processing enquiry:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -106,6 +98,4 @@ const handler = async (req: Request): Promise<Response> => {
       }
     );
   }
-};
-
-serve(handler);
+});

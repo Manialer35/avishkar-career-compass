@@ -27,17 +27,32 @@ export const useAdminMaterials = () => {
 
   const fetchMaterials = async () => {
     try {
+      console.log("Fetching materials...");
       setLoading(true);
+      
+      // First check if the session is valid
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication error",
+          description: "Please log in again to continue",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('study_materials')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error("Error fetching materials:", error);
         throw error;
       }
 
       if (data) {
+        console.log("Materials fetched successfully:", data.length);
         setMaterials(data.map(item => ({
           id: item.id,
           title: item.title,
@@ -49,6 +64,7 @@ export const useAdminMaterials = () => {
         })));
       }
     } catch (error: any) {
+      console.error("Error in fetchMaterials:", error);
       toast({
         title: "Error fetching materials",
         description: error.message,
@@ -105,6 +121,19 @@ export const useAdminMaterials = () => {
     if (!editingMaterial) return;
     
     try {
+      console.log("Saving material:", editingMaterial);
+      
+      // First check if session is valid
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication error",
+          description: "Please log in again to continue",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const materialData = {
         title: editingMaterial.title,
         description: editingMaterial.description,
@@ -121,6 +150,7 @@ export const useAdminMaterials = () => {
           .select();
 
         if (error) {
+          console.error("Error inserting material:", error);
           throw error;
         }
 
@@ -136,6 +166,7 @@ export const useAdminMaterials = () => {
           };
           
           setMaterials([newItem, ...materials]);
+          console.log("New material saved:", newItem);
         }
       } else {
         const { error } = await supabase
@@ -144,10 +175,12 @@ export const useAdminMaterials = () => {
           .eq('id', editingMaterial.id);
 
         if (error) {
+          console.error("Error updating material:", error);
           throw error;
         }
 
         setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
+        console.log("Material updated:", editingMaterial);
       }
       
       setEditingMaterial(null);
@@ -158,6 +191,7 @@ export const useAdminMaterials = () => {
         description: "The study material has been updated successfully."
       });
     } catch (error: any) {
+      console.error("Error in handleSave:", error);
       toast({
         title: "Error saving material",
         description: error.message,

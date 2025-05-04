@@ -29,28 +29,49 @@ const VideosTab = () => {
   
   // Fetch videos on component mount
   useEffect(() => {
-    const fetchVideos = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('training_videos')
-          .select('*')
-          .order('created_at', { ascending: false });
-          
-        if (error) throw error;
-        setVideos(data || []);
-      } catch (error: any) {
+    fetchVideos();
+  }, []);
+  
+  const fetchVideos = async () => {
+    try {
+      console.log("Fetching videos...");
+      setLoading(true);
+      
+      // Check if session is valid
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         toast({
-          title: "Error fetching videos",
-          description: error.message,
+          title: "Authentication error",
+          description: "Please log in again to continue",
           variant: "destructive"
         });
-      } finally {
         setLoading(false);
+        return;
       }
-    };
-    
-    fetchVideos();
-  }, [toast]);
+      
+      const { data, error } = await supabase
+        .from('training_videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+          
+      if (error) {
+        console.error("Error fetching videos:", error);
+        throw error;
+      }
+      
+      console.log("Videos fetched successfully:", data?.length || 0);
+      setVideos(data || []);
+    } catch (error: any) {
+      console.error("Error in fetchVideos:", error);
+      toast({
+        title: "Error fetching videos",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this video?")) return;

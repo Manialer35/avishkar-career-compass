@@ -27,3 +27,6 @@ enabled = false
 name = "images"
 public = true
 
+[[storage.buckets]]
+name = "materials"
+public = true

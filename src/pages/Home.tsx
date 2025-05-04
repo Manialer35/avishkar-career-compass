@@ -44,6 +44,7 @@ const Home = () => {
   useEffect(() => {
     const fetchImagesFromCategory = async (category: string) => {
       try {
+        console.log(`Fetching images for category: ${category}`);
         const { data, error } = await supabase
           .from('academy_images')
           .select('*')
@@ -54,6 +55,7 @@ const Home = () => {
           return null;
         }
         
+        console.log(`Found ${data?.length || 0} images for ${category}:`, data);
         return data;
       } catch (error) {
         console.error(`Error in fetchImagesFromCategory for ${category}:`, error);
@@ -67,6 +69,7 @@ const Home = () => {
         const successfulCandidates = await fetchImagesFromCategory('Successful Candidates');
         if (successfulCandidates && successfulCandidates.length > 0) {
           const urls = successfulCandidates.map((img: any) => img.url);
+          console.log("Setting successful candidates images:", urls);
           setSuccessfulCandidatesImages(urls);
         }
         
@@ -76,15 +79,17 @@ const Home = () => {
           const profileMap: Record<string, string> = {};
           
           profiles.forEach((profile: any) => {
-            if (profile.title.includes('Mahesh Khot')) {
+            console.log("Processing profile:", profile);
+            if (profile.title && profile.title.toLowerCase().includes('mahesh')) {
               profileMap.maheshKhot = profile.url;
-            } else if (profile.title.includes('Atul Madkar')) {
+            } else if (profile.title && profile.title.toLowerCase().includes('atul')) {
               profileMap.atulMadkar = profile.url;
             }
           });
           
           // Update only if we found images
           if (Object.keys(profileMap).length > 0) {
+            console.log("Setting profile images:", profileMap);
             setProfileImages(prev => ({
               ...prev,
               ...profileMap
@@ -95,8 +100,10 @@ const Home = () => {
         // Fetching logo
         const logos = await fetchImagesFromCategory('Logos');
         if (logos && logos.length > 0) {
-          const academyLogo = logos.find((logo: any) => logo.title.includes('Academy App'));
+          const academyLogo = logos.find((logo: any) => 
+            logo.title && logo.title.toLowerCase().includes('academy'));
           if (academyLogo) {
+            console.log("Setting academy logo:", academyLogo.url);
             setProfileImages(prev => ({
               ...prev,
               academyLogo: academyLogo.url
