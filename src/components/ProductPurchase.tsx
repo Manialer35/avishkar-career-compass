@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import GooglePayButton from './GooglePayButton';
 
-interface ProductType {
+export interface ProductType {
   id: string;
   name: string;
   description: string;

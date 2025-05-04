@@ -1,13 +1,22 @@
 
-import { Product, ProductGrid } from '@/components/ProductPurchase';
+import { ProductGrid } from '@/components/ProductPurchase';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the interface for a product
+interface ProductType {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageSrc: string;
+}
+
 const PremiumStudyMaterials = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +37,7 @@ const PremiumStudyMaterials = () => {
       }
 
       if (data) {
-        const products: Product[] = data.map(item => ({
+        const products: ProductType[] = data.map(item => ({
           id: item.id,
           name: item.title,
           description: item.description,
