@@ -38,7 +38,7 @@ const ProfileSection = ({ profileImages }: ProfileImagesProps) => {
               <img
                 src={profileImages.atulMadkar}
                 alt="Atul Madkar"
-                className="w-24 h-24 object-cover rounded-full"
+                className="w-full h-full object-cover"
               />
             </div>
             <h3 className="text-sm font-semibold text-academy-primary">Atul Madkar</h3>

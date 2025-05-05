@@ -57,7 +57,7 @@ const Navbar = () => {
             />
             <h1 className="text-xl font-bold">
               <span className="text-white">Avishkar</span>
-              <span className="text-academy-red"> Career Academy</span>
+              <span className="text-blue-300"> Career Academy</span>
             </h1>
           </div>
         </div>
@@ -76,10 +76,10 @@ const Navbar = () => {
           />
           <h1 className="text-xl font-bold">
             <span className="text-white">Avishkar</span>
-            <span className="text-academy-red"> Career Academy</span>
+            <span className="text-blue-300"> Career Academy</span>
           </h1>
           {isAdmin && !isMobile && (
-            <span className="ml-2 px-2 py-0.5 bg-academy-red text-white text-xs rounded-md">
+            <span className="ml-2 px-2 py-0.5 bg-blue-600 text-white text-xs rounded-md">
               Admin
             </span>
           )}
@@ -90,7 +90,7 @@ const Navbar = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-academy-red text-white hover:bg-academy-red/90 border-none mr-2"
+              className="bg-blue-600 text-white hover:bg-blue-700 border-none mr-2"
               onClick={() => navigate('/admin')}
             >
               <ShieldAlert className="h-4 w-4 mr-1" /> Admin Panel
@@ -136,7 +136,7 @@ const Navbar = () => {
                 )}
                 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-blue-600">
                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>

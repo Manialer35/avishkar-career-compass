@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -91,41 +92,40 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
     setLoading(true);
     
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error("You must be logged in to upload videos");
+      }
+      
       let thumbnailUrl = formData.thumbnail_url;
       
       // Upload thumbnail if provided
       if (thumbnailFile) {
-        // Create the storage bucket first if it doesn't exist
-        const bucketName = 'videos';
-        const { error: bucketError } = await supabase.storage.getBucket(bucketName).catch(() => ({
-          error: { message: 'Bucket does not exist' }
-        }));
-        
-        if (bucketError) {
-          await supabase.storage.createBucket(bucketName, {
-            public: true,
-            fileSizeLimit: 10485760, // 10MB
-          });
-        }
+        console.log("Uploading thumbnail file...");
         
         const filename = `${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(bucketName)
+          .from('videos')
           .upload(`thumbnails/${filename}`, thumbnailFile);
           
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error(`Thumbnail upload failed: ${uploadError.message}`);
+        }
         
         // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from(bucketName)
+          .from('videos')
           .getPublicUrl(`thumbnails/${filename}`);
           
         thumbnailUrl = publicUrlData.publicUrl;
+        console.log("Thumbnail uploaded successfully:", thumbnailUrl);
       }
       
       if (videoToEdit) {
         // Update existing video
+        console.log("Updating existing video:", videoToEdit.id);
         const { data, error } = await supabase
           .from('training_videos')
           .update({
@@ -141,7 +141,10 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           .select()
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Update error:", error);
+          throw error;
+        }
         
         toast({
           title: "Video updated",
@@ -151,6 +154,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         onSuccess(data as TrainingVideo);
       } else {
         // Create new video
+        console.log("Creating new video");
         const { data, error } = await supabase
           .from('training_videos')
           .insert({
@@ -164,7 +168,10 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           .select()
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Insert error:", error);
+          throw error;
+        }
         
         toast({
           title: "Video added",
@@ -174,6 +181,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         onSuccess(data as TrainingVideo);
       }
     } catch (error: any) {
+      console.error("Video upload/edit error:", error);
       toast({
         title: videoToEdit ? "Error updating video" : "Error adding video",
         description: error.message,
@@ -208,7 +216,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
             <Textarea 
               id="description" 
               name="description" 
-              value={formData.description} 
+              value={formData.description || ''} 
               onChange={handleChange}
               rows={3}
             />
@@ -234,7 +242,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
                   <img 
                     src={thumbnailFile 
                       ? URL.createObjectURL(thumbnailFile) 
-                      : formData.thumbnail_url} 
+                      : formData.thumbnail_url || ''} 
                     alt="Thumbnail preview" 
                     className="w-full h-full object-cover"
                   />
@@ -285,7 +293,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
               {loading 
                 ? (videoToEdit ? "Updating..." : "Adding...") 
                 : (videoToEdit ? "Update Video" : "Add Video")

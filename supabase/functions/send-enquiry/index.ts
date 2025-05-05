@@ -1,100 +1,85 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface EnquiryRequest {
-  name: string;
-  email: string;
-  phone: string;
-  message: string;
-}
-
-// List of recipients who should receive enquiry notifications
-const recipients = [
-  'neerajmadkar35@gmail.com',
-  'khot.md@gmail.com',
-  'atulhmadkar@gmail.com'
-];
-
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  // Handle CORS preflight request
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { name, email, phone, message }: EnquiryRequest = await req.json();
-
-    // Basic validation
-    if (!name || !email || !message) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
+    // Get environment variables
+    const EMAIL_USERNAME = Deno.env.get("EMAIL_USERNAME") || "";
+    const EMAIL_PASSWORD = Deno.env.get("EMAIL_PASSWORD") || "";
+    
+    if (!EMAIL_USERNAME || !EMAIL_PASSWORD) {
+      throw new Error("Missing email configuration");
     }
 
     const client = new SmtpClient();
-
-    await client.connect({
+    
+    await client.connectTLS({
       hostname: "smtp.gmail.com",
       port: 465,
-      username: Deno.env.get("EMAIL_USERNAME"),
-      password: Deno.env.get("EMAIL_PASSWORD"),
-      tls: true,
+      username: EMAIL_USERNAME,
+      password: EMAIL_PASSWORD,
     });
 
-    const emailSubject = `New Enquiry from ${name}`;
-    const emailBody = `
-      <h2>New Enquiry Details</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-      <p><strong>Message:</strong></p>
-      <p>${message}</p>
-    `;
+    // Parse request body
+    const { name, email, phone, message } = await req.json();
+    
+    if (!name || !email || !phone || !message) {
+      throw new Error("Missing required fields");
+    }
 
     // Send email to all recipients
+    const recipients = ["khot.md@gmail.com", "atulhmadkar@gmail.com"];
+    
     for (const recipient of recipients) {
-      try {
-        await client.send({
-          from: Deno.env.get("EMAIL_USERNAME"),
-          to: recipient,
-          subject: emailSubject,
-          html: emailBody,
-        });
-        
-        console.log(`Email sent successfully to: ${recipient}`);
-      } catch (emailError) {
-        console.error(`Failed to send email to ${recipient}:`, emailError);
-        // Continue trying to send to other recipients
-      }
+      await client.send({
+        from: EMAIL_USERNAME,
+        to: recipient,
+        subject: `New Enquiry from ${name}`,
+        content: `
+          Name: ${name}
+          Email: ${email}
+          Phone: ${phone}
+          
+          Message:
+          ${message}
+        `,
+      });
+      
+      console.log(`Email sent successfully to ${recipient}`);
     }
 
     await client.close();
-
-    return new Response(
-      JSON.stringify({ success: true, message: "Enquiry sent successfully" }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    
+    return new Response(JSON.stringify({ success: true }), { 
+      headers: { 
+        ...corsHeaders,
+        "Content-Type": "application/json" 
+      } 
+    });
   } catch (error) {
-    console.error("Error processing enquiry:", error);
+    console.error("Error sending email:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+      JSON.stringify({ 
+        error: error.message || "Failed to send email" 
+      }), 
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
+        } 
       }
     );
   }

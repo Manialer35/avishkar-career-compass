@@ -30,3 +30,10 @@ public = true
 [[storage.buckets]]
 name = "materials"
 public = true
+
+[[storage.buckets]]
+name = "videos"
+public = true
+
+[functions.send-enquiry]
+verify_jwt = false
