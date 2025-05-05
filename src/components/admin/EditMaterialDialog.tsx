@@ -6,6 +6,14 @@ import { Save, Upload, X } from 'lucide-react';
 import { useState, ChangeEvent } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 interface StudyMaterial {
   id: string;
@@ -120,6 +128,22 @@ const EditMaterialDialog = ({
           </div>
           
           <div>
+            <label className="block text-sm font-medium mb-1">Type</label>
+            <Select 
+              value={material.isPremium ? "premium" : "free"} 
+              onValueChange={(value) => onChange('isPremium', value === "premium")}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
             <label className="block text-sm font-medium mb-1">Thumbnail</label>
             {previewUrl ? (
               <div className="relative mt-1 mb-2">
@@ -163,7 +187,7 @@ const EditMaterialDialog = ({
               <label className="block text-sm font-medium mb-1">Price (₹)</label>
               <Input 
                 type="number"
-                value={material.price} 
+                value={material.price || 0} 
                 onChange={(e) => onChange('price', parseInt(e.target.value) || 0)}
               />
             </div>

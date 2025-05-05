@@ -14,6 +14,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Video, Upload, Image } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TrainingVideo {
   id: string;
@@ -34,13 +42,22 @@ interface VideoUploadDialogProps {
   videoToEdit?: TrainingVideo;
 }
 
+const VIDEO_CATEGORIES = [
+  { value: "general", label: "General" },
+  { value: "police_bharti", label: "Police Bharti" },
+  { value: "combined_exam", label: "Combined Exam" },
+  { value: "current_affairs", label: "Current Affairs" },
+  { value: "aptitude", label: "Aptitude" },
+  { value: "interview", label: "Interview" }
+];
+
 const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUploadDialogProps) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     video_url: '',
     thumbnail_url: '',
-    category: 'General',
+    category: 'general',
     is_premium: false
   });
   const [loading, setLoading] = useState(false);
@@ -50,12 +67,18 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
   // If editing, populate form with video data
   useEffect(() => {
     if (videoToEdit) {
+      // Make sure the category has a valid value
+      const category = videoToEdit.category?.toLowerCase() || 'general';
+      const validCategory = VIDEO_CATEGORIES.some(c => c.value === category) 
+        ? category 
+        : 'general';
+        
       setFormData({
         title: videoToEdit.title || '',
         description: videoToEdit.description || '',
         video_url: videoToEdit.video_url || '',
         thumbnail_url: videoToEdit.thumbnail_url || '',
-        category: videoToEdit.category || 'General',
+        category: validCategory,
         is_premium: videoToEdit.is_premium || false
       });
     } else {
@@ -65,19 +88,26 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         description: '',
         video_url: '',
         thumbnail_url: '',
-        category: 'General',
+        category: 'general',
         is_premium: false
       });
       setThumbnailFile(null);
     }
   }, [videoToEdit, isOpen]);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
     
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
+  };
+
+  const handleSelectChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      category: value
     }));
   };
   
@@ -279,20 +309,20 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <select 
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2"
-            >
-              <option value="General">General</option>
-              <option value="Police Bharti">Police Bharti</option>
-              <option value="Combined Exam">Combined Exam</option>
-              <option value="Current Affairs">Current Affairs</option>
-              <option value="Aptitude">Aptitude</option>
-              <option value="Interview">Interview</option>
-            </select>
+            <Select value={formData.category} onValueChange={handleSelectChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {VIDEO_CATEGORIES.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="flex items-center space-x-2">
