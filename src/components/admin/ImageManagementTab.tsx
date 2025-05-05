@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -28,7 +29,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
 
 interface ImageItem {
   id: string;
@@ -46,83 +46,8 @@ const ImageManagementTab = () => {
   const [currentImage, setCurrentImage] = useState<ImageItem | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const { toast } = useToast();
-  
-  // Sample image data - to be replaced with data from Supabase
-  const sampleImages: ImageItem[] = [
-    { 
-      id: '1', 
-      title: 'Academy Campus Main Building', 
-      url: 'https://via.placeholder.com/350x230/3b82f6/ffffff?text=Campus',
-      category: 'Campus',
-      uploadDate: '2025-04-01',
-      size: '2.4 MB'
-    },
-    { 
-      id: '2', 
-      title: 'Library Facilities', 
-      url: 'https://via.placeholder.com/350x230/1e3a8a/ffffff?text=Library',
-      category: 'Facilities',
-      uploadDate: '2025-04-05',
-      size: '1.8 MB'
-    },
-    { 
-      id: '3', 
-      title: 'Classroom Session', 
-      url: 'https://via.placeholder.com/350x230/0284c7/ffffff?text=Classroom',
-      category: 'Classes',
-      uploadDate: '2025-04-10',
-      size: '2.1 MB'
-    },
-    { 
-      id: '4', 
-      title: 'Students Group Study', 
-      url: 'https://via.placeholder.com/350x230/93c5fd/000000?text=Group+Study',
-      category: 'Students',
-      uploadDate: '2025-04-15',
-      size: '1.9 MB'
-    },
-    { 
-      id: '5', 
-      title: 'Successful Candidate 1', 
-      url: 'https://via.placeholder.com/350x230/4ade80/000000?text=Success+Story+1',
-      category: 'Successful Candidates',
-      uploadDate: '2025-04-20',
-      size: '1.7 MB'
-    },
-    { 
-      id: '6', 
-      title: 'Successful Candidate 2', 
-      url: 'https://via.placeholder.com/34d399/000000?text=Success+Story+2',
-      category: 'Successful Candidates',
-      uploadDate: '2025-04-21',
-      size: '1.8 MB'
-    },
-    { 
-      id: '7', 
-      title: 'Profile - Mahesh Khot', 
-      url: 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK',
-      category: 'Profiles',
-      uploadDate: '2025-04-25',
-      size: '1.2 MB'
-    },
-    { 
-      id: '8', 
-      title: 'Profile - Atul Madkar', 
-      url: 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM',
-      category: 'Profiles',
-      uploadDate: '2025-04-25',
-      size: '1.3 MB'
-    },
-    { 
-      id: '9', 
-      title: 'Academy App Logo', 
-      url: 'https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP',
-      category: 'Logos',
-      uploadDate: '2025-04-28',
-      size: '0.9 MB'
-    },
-  ];
   
   const categories = [
     'Campus', 
@@ -136,40 +61,80 @@ const ImageManagementTab = () => {
     'Logos'
   ];
   
-  const [images, setImages] = useState<ImageItem[]>(sampleImages);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
-  // Check if we have a real Supabase integration and load data if available
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const { data, error } = await supabase
-          .from('academy_images')
-          .select('*');
+        setLoading(true);
         
-        if (error) {
-          console.error('Error fetching images:', error);
-          return;
+        // Check if bucket exists, if not create it
+        const { data: buckets } = await supabase.storage.listBuckets();
+        
+        if (!buckets || !buckets.some(bucket => bucket.name === 'images')) {
+          // Create images bucket
+          const { data, error } = await supabase.storage.createBucket('images', {
+            public: true,
+            fileSizeLimit: 10485760, // 10MB
+          });
+          
+          if (error) {
+            console.error("Error creating images bucket:", error);
+            toast({
+              title: "Error creating storage",
+              description: "Could not create images storage. Please try again.",
+              variant: "destructive",
+            });
+          } else {
+            console.log("Images bucket created successfully");
+          }
+        }
+
+        // List all files in images bucket
+        const { data: filesList, error: filesError } = await supabase
+          .storage
+          .from('images')
+          .list();
+          
+        if (filesError) {
+          console.error("Error listing images:", filesError);
+          throw filesError;
         }
         
-        if (data && data.length > 0) {
-          // Transform the data into our ImageItem format
-          const transformedData = data.map((img: any) => ({
-            id: img.id,
-            title: img.title,
-            url: img.url,
-            category: img.category,
-            uploadDate: new Date(img.created_at).toISOString().split('T')[0],
-            size: img.size || '0 KB'
-          }));
-          setImages(transformedData);
+        // Transform file data into ImageItems
+        if (filesList) {
+          const imageData: ImageItem[] = await Promise.all(
+            filesList.filter(file => !file.id.endsWith('/')).map(async file => {
+              const { data: publicUrlData } = supabase.storage
+                .from('images')
+                .getPublicUrl(file.name);
+                
+              return {
+                id: file.id,
+                title: file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
+                url: publicUrlData.publicUrl,
+                category: file.metadata?.category || 'General',
+                uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+                size: `${(file.metadata?.size || 0) / 1024 < 1024 
+                  ? `${((file.metadata?.size || 0) / 1024).toFixed(2)} KB` 
+                  : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`
+              };
+            })
+          );
+          
+          setImages(imageData);
         }
+        
       } catch (error) {
         console.error('Error in fetchImages:', error);
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchImages();
-  }, []);
+  }, [refreshTrigger, toast]);
 
   const [newImage, setNewImage] = useState<{
     title: string;
@@ -201,75 +166,35 @@ const ImageManagementTab = () => {
     }
     
     try {
-      // If we have Supabase integration, upload to storage
-      const fileName = `${Date.now()}_${newImage.file.name.replace(/\s+/g, '_')}`;
-      
-      // Try to upload to Supabase storage
-      try {
-        // Check if we have a storage bucket, if not use local handling
-        const { data: buckets } = await supabase.storage.listBuckets();
-        
-        if (buckets && buckets.some(bucket => bucket.name === 'images')) {
-          const { data, error } = await supabase.storage
-            .from('images')
-            .upload(fileName, newImage.file);
-          
-          if (error) {
-            throw error;
-          }
-          
-          // Get the public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('images')
-            .getPublicUrl(fileName);
-          
-          // Save image metadata to database
-          const { data: imageData, error: imageError } = await supabase
-            .from('academy_images')
-            .insert({
-              title: newImage.title,
-              category: newImage.category,
-              url: publicUrl,
-              size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
-            })
-            .select();
-          
-          if (imageError) {
-            throw imageError;
-          }
-          
-          if (imageData && imageData.length > 0) {
-            // Add new image to the list
-            const newImageItem: ImageItem = {
-              id: imageData[0].id,
-              title: imageData[0].title,
-              url: imageData[0].url,
-              category: imageData[0].category,
-              uploadDate: new Date().toISOString().split('T')[0],
-              size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
-            };
-            
-            setImages([...images, newImageItem]);
-          }
-        } else {
-          // Fallback to local handling if no storage bucket
-          throw new Error('No storage bucket available');
-        }
-      } catch (storageError) {
-        console.warn('Supabase storage upload failed, using local URL:', storageError);
-        
-        // Local file handling (for demo/testing without Supabase)
-        const newImageItem: ImageItem = {
-          id: `new-${Date.now()}`,
-          title: newImage.title,
-          url: URL.createObjectURL(newImage.file),
-          category: newImage.category,
-          uploadDate: new Date().toISOString().split('T')[0],
-          size: `${(newImage.file.size / (1024 * 1024)).toFixed(1)} MB`
-        };
-        
-        setImages([...images, newImageItem]);
+      setLoading(true);
+      // Check if we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("You must be logged in to upload images");
       }
+      
+      // Format file name
+      const fileName = `${Date.now()}_${newImage.title.replace(/\s+/g, '_')}.${
+        newImage.file.name.split('.').pop()
+      }`;
+      
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('images')
+        .upload(fileName, newImage.file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error("Storage upload error:", error);
+        throw error;
+      }
+      
+      toast({
+        title: "Image uploaded",
+        description: "The image has been successfully uploaded",
+      });
       
       setIsUploadDialogOpen(false);
       setNewImage({
@@ -278,17 +203,18 @@ const ImageManagementTab = () => {
         file: null
       });
       
-      toast({
-        title: "Image uploaded",
-        description: "The image has been successfully uploaded",
-      });
-    } catch (error) {
+      // Refresh images list
+      setRefreshTrigger(prev => prev + 1);
+      
+    } catch (error: any) {
       console.error('Error uploading image:', error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading the image. Please try again.",
+        description: error.message || "There was an error uploading the image. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -306,45 +232,41 @@ const ImageManagementTab = () => {
     if (!currentImage) return;
     
     try {
-      // Try to delete from Supabase if available
-      if (currentImage.id.toString().startsWith('new-')) {
-        // Local image, just remove from state
-        setImages(images.filter(img => img.id !== currentImage.id));
-      } else {
-        try {
-          // Try to delete from Supabase database
-          const { error } = await supabase
-            .from('academy_images')
-            .delete()
-            .eq('id', currentImage.id);
-          
-          if (error) {
-            throw error;
-          }
-          
-          // Remove from state
-          setImages(images.filter(img => img.id !== currentImage.id));
-        } catch (dbError) {
-          console.warn('Database delete failed, removing from local state only:', dbError);
-          // Fallback - just remove from local state
-          setImages(images.filter(img => img.id !== currentImage.id));
-        }
+      setLoading(true);
+      // Extract filename from URL
+      const urlParts = currentImage.url.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      
+      // Delete from storage
+      const { error } = await supabase.storage
+        .from('images')
+        .remove([fileName]);
+      
+      if (error) {
+        console.error("Delete error:", error);
+        throw error;
       }
       
-      setIsDeleteDialogOpen(false);
-      setCurrentImage(null);
+      // Remove from state
+      setImages(images.filter(img => img.id !== currentImage.id));
       
       toast({
         title: "Image deleted",
         description: "The image has been successfully removed",
       });
-    } catch (error) {
+      
+      setIsDeleteDialogOpen(false);
+      setCurrentImage(null);
+      
+    } catch (error: any) {
       console.error('Error deleting image:', error);
       toast({
         title: "Delete failed",
-        description: "There was an error deleting the image. Please try again.",
+        description: error.message || "There was an error deleting the image. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -352,26 +274,8 @@ const ImageManagementTab = () => {
     if (!currentImage) return;
     
     try {
-      // Try to update in Supabase if available
-      if (!currentImage.id.toString().startsWith('new-')) {
-        try {
-          const { error } = await supabase
-            .from('academy_images')
-            .update({
-              title: currentImage.title,
-              category: currentImage.category
-            })
-            .eq('id', currentImage.id);
-          
-          if (error) {
-            throw error;
-          }
-        } catch (dbError) {
-          console.warn('Database update failed, updating local state only:', dbError);
-        }
-      }
-      
-      // Update in local state
+      setLoading(true);
+      // Update in local state for now
       setImages(images.map(img => 
         img.id === currentImage.id ? currentImage : img
       ));
@@ -383,13 +287,15 @@ const ImageManagementTab = () => {
         title: "Image updated",
         description: "The image details have been updated",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating image:', error);
       toast({
         title: "Update failed",
-        description: "There was an error updating the image. Please try again.",
+        description: error.message || "There was an error updating the image. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -403,10 +309,11 @@ const ImageManagementTab = () => {
     <>
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-academy-primary">Image Management</h2>
+          <h2 className="text-xl font-semibold text-academy-primary mb-4">Image Management</h2>
           <Button 
             onClick={() => setIsUploadDialogOpen(true)}
             className="bg-academy-primary hover:bg-academy-primary/90"
+            disabled={loading}
           >
             <Plus size={16} className="mr-2" />
             Upload New Image
@@ -435,7 +342,7 @@ const ImageManagementTab = () => {
                 <SelectValue placeholder="Filter by category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all-categories">All Categories</SelectItem>
+                <SelectItem value="">All Categories</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category} value={category}>{category}</SelectItem>
                 ))}
@@ -458,7 +365,12 @@ const ImageManagementTab = () => {
               </div>
               
               <TabsContent value="grid" className="mt-0">
-                {filteredImages.length === 0 ? (
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 mt-4">Loading images...</p>
+                  </div>
+                ) : filteredImages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <Image className="h-12 w-12 text-gray-400 mb-4" />
                     <p className="text-gray-500">No images found matching your criteria</p>
@@ -471,7 +383,7 @@ const ImageManagementTab = () => {
                           <img
                             src={image.url}
                             alt={image.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-40 object-cover"
                           />
                         </div>
                         <div className="p-3">
@@ -492,7 +404,7 @@ const ImageManagementTab = () => {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                className="h-7 w-7 text-academy-primary hover:text-academy-primary hover:bg-blue-50"
                                 onClick={() => handleDelete(image)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -507,7 +419,12 @@ const ImageManagementTab = () => {
               </TabsContent>
               
               <TabsContent value="list" className="mt-0">
-                {filteredImages.length === 0 ? (
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 mt-4">Loading images...</p>
+                  </div>
+                ) : filteredImages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <Image className="h-12 w-12 text-gray-400 mb-4" />
                     <p className="text-gray-500">No images found matching your criteria</p>
@@ -555,7 +472,7 @@ const ImageManagementTab = () => {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 px-2 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  className="h-8 px-2 text-academy-primary hover:text-academy-primary hover:bg-blue-50"
                                   onClick={() => handleDelete(image)}
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
@@ -633,12 +550,21 @@ const ImageManagementTab = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={handleUploadImage}>
-              <Upload size={16} className="mr-2" />
-              Upload
+            <Button onClick={handleUploadImage} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} className="mr-2" />
+                  Upload
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -691,11 +617,11 @@ const ImageManagementTab = () => {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button onClick={saveChanges}>
-              Save Changes
+            <Button onClick={saveChanges} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
+              {loading ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -724,14 +650,16 @@ const ImageManagementTab = () => {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={loading}>
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
+              disabled={loading}
+              className="bg-academy-primary hover:bg-academy-primary/90 text-white border-none"
             >
-              Delete
+              {loading ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

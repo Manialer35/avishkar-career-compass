@@ -103,11 +103,26 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
       if (thumbnailFile) {
         console.log("Uploading thumbnail file...");
         
-        const filename = `${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
+        // Check if videos bucket exists, create if it doesn't
+        const { data: buckets } = await supabase.storage.listBuckets();
+        
+        if (!buckets || !buckets.some(bucket => bucket.name === 'videos')) {
+          // Create videos bucket
+          const { data: bucketData, error: bucketError } = await supabase.storage.createBucket('videos', {
+            public: true
+          });
+          
+          if (bucketError) {
+            console.error("Error creating videos bucket:", bucketError);
+            throw new Error(`Failed to create videos bucket: ${bucketError.message}`);
+          }
+        }
+        
+        const filename = `thumbnails/${Date.now()}_${thumbnailFile.name.replace(/\s+/g, '_')}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('videos')
-          .upload(`thumbnails/${filename}`, thumbnailFile);
+          .upload(filename, thumbnailFile);
           
         if (uploadError) {
           console.error("Storage upload error:", uploadError);
@@ -117,7 +132,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         // Get public URL
         const { data: publicUrlData } = supabase.storage
           .from('videos')
-          .getPublicUrl(`thumbnails/${filename}`);
+          .getPublicUrl(filename);
           
         thumbnailUrl = publicUrlData.publicUrl;
         console.log("Thumbnail uploaded successfully:", thumbnailUrl);
@@ -148,7 +163,8 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         
         toast({
           title: "Video updated",
-          description: "The video has been successfully updated."
+          description: "The video has been successfully updated.",
+          duration: 3000,
         });
         
         onSuccess(data as TrainingVideo);
@@ -175,7 +191,8 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         
         toast({
           title: "Video added",
-          description: "The video has been successfully added."
+          description: "The video has been successfully added.",
+          duration: 3000,
         });
         
         onSuccess(data as TrainingVideo);
@@ -185,7 +202,8 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
       toast({
         title: videoToEdit ? "Error updating video" : "Error adding video",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     } finally {
       setLoading(false);

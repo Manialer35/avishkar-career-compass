@@ -1,15 +1,80 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface ProfileImagesProps {
-  profileImages: {
-    maheshKhot: string;
-    atulMadkar: string;
-    academyLogo: string;
-  };
-}
+const ProfileSection = () => {
+  const [profileImages, setProfileImages] = useState({
+    maheshKhot: '',
+    atulMadkar: '',
+    academyLogo: ''
+  });
+  const [loading, setLoading] = useState(true);
 
-const ProfileSection = ({ profileImages }: ProfileImagesProps) => {
+  useEffect(() => {
+    const fetchProfileImages = async () => {
+      try {
+        // Check if images bucket exists
+        const { data: buckets } = await supabase.storage.listBuckets();
+        if (!buckets || !buckets.some(bucket => bucket.name === 'images')) {
+          console.log('Images bucket not found');
+          setLoading(false);
+          return;
+        }
+
+        // List all files in images bucket
+        const { data: files, error } = await supabase
+          .storage
+          .from('images')
+          .list();
+
+        if (error) {
+          console.error('Error fetching images:', error);
+          setLoading(false);
+          return;
+        }
+
+        // Look for profile images
+        let maheshImage = files?.find(file => 
+          file.name.toLowerCase().includes('mahesh') || 
+          file.name.toLowerCase().includes('khot')
+        );
+        
+        let atulImage = files?.find(file => 
+          file.name.toLowerCase().includes('atul') || 
+          file.name.toLowerCase().includes('madkar')
+        );
+        
+        let logoImage = files?.find(file => 
+          file.name.toLowerCase().includes('logo') || 
+          file.name.toLowerCase().includes('academy')
+        );
+
+        // Get public URLs
+        const images = {
+          maheshKhot: maheshImage 
+            ? supabase.storage.from('images').getPublicUrl(maheshImage.name).data.publicUrl 
+            : 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK',
+          
+          atulMadkar: atulImage 
+            ? supabase.storage.from('images').getPublicUrl(atulImage.name).data.publicUrl 
+            : 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM',
+          
+          academyLogo: logoImage 
+            ? supabase.storage.from('images').getPublicUrl(logoImage.name).data.publicUrl 
+            : 'https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY'
+        };
+
+        setProfileImages(images);
+      } catch (err) {
+        console.error('Error in fetchProfileImages:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileImages();
+  }, []);
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
@@ -20,11 +85,15 @@ const ProfileSection = ({ profileImages }: ProfileImagesProps) => {
           {/* Left - Mahesh Khot */}
           <div className="bg-white p-3 rounded-lg shadow-md text-center w-1/2">
             <div className="w-24 h-24 mx-auto overflow-hidden rounded-full mb-2">
-              <img
-                src={profileImages.maheshKhot}
-                alt="Mahesh Khot"
-                className="w-full h-full object-cover"
-              />
+              {loading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse"></div>
+              ) : (
+                <img
+                  src={profileImages.maheshKhot}
+                  alt="Mahesh Khot"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
             <h3 className="text-sm font-semibold text-academy-primary">Mahesh Khot</h3>
             <a href="tel:+919049137731" className="text-xs text-academy-primary hover:text-academy-secondary">
@@ -35,11 +104,15 @@ const ProfileSection = ({ profileImages }: ProfileImagesProps) => {
           {/* Right - Atul Madkar */}
           <div className="bg-white p-3 rounded-lg shadow-md text-center w-1/2">
             <div className="w-24 h-24 mx-auto overflow-hidden rounded-full mb-2">
-              <img
-                src={profileImages.atulMadkar}
-                alt="Atul Madkar"
-                className="w-full h-full object-cover"
-              />
+              {loading ? (
+                <div className="w-full h-full bg-gray-200 animate-pulse"></div>
+              ) : (
+                <img
+                  src={profileImages.atulMadkar}
+                  alt="Atul Madkar"
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
             <h3 className="text-sm font-semibold text-academy-primary">Atul Madkar</h3>
             <a href="tel:+919890555432" className="text-xs text-academy-primary hover:text-academy-secondary">

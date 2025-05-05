@@ -36,7 +36,7 @@ export const useAdminMaterials = () => {
         toast({
           title: "Authentication error",
           description: "Please log in again to continue",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
@@ -56,10 +56,10 @@ export const useAdminMaterials = () => {
         setMaterials(data.map(item => ({
           id: item.id,
           title: item.title,
-          description: item.description,
-          downloadUrl: item.downloadurl,
+          description: item.description || "",
+          downloadUrl: item.downloadurl || "",
           thumbnailUrl: item.thumbnailurl || undefined,
-          isPremium: item.ispremium,
+          isPremium: item.ispremium || false,
           price: item.price || undefined
         })));
       }
@@ -68,7 +68,8 @@ export const useAdminMaterials = () => {
       toast({
         title: "Error fetching materials",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -94,13 +95,15 @@ export const useAdminMaterials = () => {
       setMaterials(materials.filter(m => m.id !== id));
       toast({
         title: "Material deleted",
-        description: "The study material has been deleted successfully."
+        description: "The study material has been deleted successfully.",
+        duration: 3000,
       });
     } catch (error: any) {
       toast({
         title: "Error deleting material",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     }
   };
@@ -129,7 +132,8 @@ export const useAdminMaterials = () => {
         toast({
           title: "Authentication error",
           description: "Please log in again to continue",
-          variant: "destructive"
+          variant: "destructive",
+          duration: 3000,
         });
         return;
       }
@@ -158,10 +162,10 @@ export const useAdminMaterials = () => {
           const newItem: StudyMaterial = {
             id: data[0].id,
             title: data[0].title,
-            description: data[0].description,
-            downloadUrl: data[0].downloadurl,
+            description: data[0].description || "",
+            downloadUrl: data[0].downloadurl || "",
             thumbnailUrl: data[0].thumbnailurl || undefined,
-            isPremium: data[0].ispremium,
+            isPremium: data[0].ispremium || false,
             price: data[0].price || undefined
           };
           
@@ -188,14 +192,16 @@ export const useAdminMaterials = () => {
       
       toast({
         title: "Changes saved",
-        description: "The study material has been updated successfully."
+        description: "The study material has been updated successfully.",
+        duration: 3000,
       });
     } catch (error: any) {
       console.error("Error in handleSave:", error);
       toast({
         title: "Error saving material",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 3000,
       });
     }
   };
