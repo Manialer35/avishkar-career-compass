@@ -2,15 +2,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const ProfileSection = () => {
+interface ProfileSectionProps {
+  profileImages?: {
+    maheshKhot: string;
+    atulMadkar: string;
+    academyLogo: string;
+  };
+}
+
+const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {}) => {
   const [profileImages, setProfileImages] = useState({
-    maheshKhot: '',
-    atulMadkar: '',
-    academyLogo: ''
+    maheshKhot: propImages?.maheshKhot || '',
+    atulMadkar: propImages?.atulMadkar || '',
+    academyLogo: propImages?.academyLogo || ''
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!propImages);
 
   useEffect(() => {
+    // If profile images were provided as props, use them and skip fetching
+    if (propImages) {
+      setProfileImages(propImages);
+      setLoading(false);
+      return;
+    }
+
     const fetchProfileImages = async () => {
       try {
         // Check if images bucket exists
@@ -73,7 +88,7 @@ const ProfileSection = () => {
     };
 
     fetchProfileImages();
-  }, []);
+  }, [propImages]);
 
   return (
     <div className="mb-8">

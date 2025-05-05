@@ -3,11 +3,22 @@ import { useState, useEffect } from 'react';
 import ImageCarousel from '../ImageCarousel';
 import { supabase } from '@/integrations/supabase/client';
 
-const SuccessStoriesSection = () => {
-  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SuccessStoriesSectionProps {
+  successfulCandidatesImages?: string[];
+}
+
+const SuccessStoriesSection = ({ successfulCandidatesImages: propImages }: SuccessStoriesSectionProps = {}) => {
+  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState<string[]>(propImages || []);
+  const [loading, setLoading] = useState(!propImages || propImages.length === 0);
 
   useEffect(() => {
+    // If images were provided as props, use them and skip fetching
+    if (propImages && propImages.length > 0) {
+      setSuccessfulCandidatesImages(propImages);
+      setLoading(false);
+      return;
+    }
+
     const fetchSuccessImages = async () => {
       try {
         // Check if images bucket exists
@@ -63,7 +74,7 @@ const SuccessStoriesSection = () => {
     };
 
     fetchSuccessImages();
-  }, []);
+  }, [propImages]);
 
   return (
     <div className="mb-6">
