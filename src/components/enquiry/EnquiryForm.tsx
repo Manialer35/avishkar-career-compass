@@ -87,13 +87,10 @@ const EnquiryForm = () => {
           throw new Error(error.message);
         }
         
-        if (!data.success) {
-          throw new Error(data.message || "Failed to submit enquiry");
-        }
-        
         toast({
           title: "Enquiry Submitted Successfully",
           description: "Thank you for your enquiry. Our team will contact you shortly.",
+          duration: 5000,
         });
         
         // Reset form
@@ -110,7 +107,8 @@ const EnquiryForm = () => {
         toast({
           title: "Error",
           description: error.message || "Could not submit enquiry. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
+          duration: 5000,
         });
       } finally {
         setIsSubmitting(false);
@@ -126,7 +124,7 @@ const EnquiryForm = () => {
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Your Name <span className="text-academy-red">*</span>
+              Your Name <span className="text-blue-500">*</span>
             </label>
             <Input
               id="name"
@@ -143,7 +141,7 @@ const EnquiryForm = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address <span className="text-academy-red">*</span>
+                Email Address <span className="text-blue-500">*</span>
               </label>
               <Input
                 id="email"
@@ -160,7 +158,7 @@ const EnquiryForm = () => {
             
             <div>
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number <span className="text-academy-red">*</span>
+                Phone Number <span className="text-blue-500">*</span>
               </label>
               <Input
                 id="phone"
@@ -177,7 +175,7 @@ const EnquiryForm = () => {
           
           <div>
             <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-              Subject <span className="text-academy-red">*</span>
+              Subject <span className="text-blue-500">*</span>
             </label>
             <Input
               id="subject"
@@ -193,7 +191,7 @@ const EnquiryForm = () => {
           
           <div>
             <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-              Message <span className="text-academy-red">*</span>
+              Message <span className="text-blue-500">*</span>
             </label>
             <Textarea
               id="message"

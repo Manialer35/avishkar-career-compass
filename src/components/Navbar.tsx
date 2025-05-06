@@ -103,7 +103,7 @@ const Navbar = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="text-white hover:bg-academy-primary/80"
+                  className="text-white hover:bg-academy-primary/80 bg-pink-500 rounded-full"
                 >
                   {isAdmin ? (
                     <ShieldAlert className="h-5 w-5" />

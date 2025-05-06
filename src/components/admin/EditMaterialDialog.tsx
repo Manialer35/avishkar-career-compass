@@ -155,7 +155,7 @@ const EditMaterialDialog = ({
                 <Button 
                   variant="outline" 
                   size="icon" 
-                  className="absolute top-2 right-2 bg-white/90 rounded-full text-red-500"
+                  className="absolute top-2 right-2 bg-white/90 rounded-full text-blue-500"
                   onClick={removeThumbnail}
                 >
                   <X size={16} />
@@ -166,7 +166,7 @@ const EditMaterialDialog = ({
                 <div className="text-center">
                   <Upload className="mx-auto h-8 w-8 text-gray-400" />
                   <div className="mt-1 text-sm text-gray-500">
-                    <label htmlFor="file-upload" className="cursor-pointer text-academy-primary hover:underline">
+                    <label htmlFor="file-upload" className="cursor-pointer text-blue-500 hover:underline">
                       Upload a thumbnail
                       <Input
                         id="file-upload"

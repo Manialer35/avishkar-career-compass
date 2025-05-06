@@ -49,6 +49,7 @@ const VideosTab = () => {
         return;
       }
       
+      // Direct query without checking user_roles to avoid recursion
       const { data, error } = await supabase
         .from('training_videos')
         .select('*')
@@ -148,7 +149,7 @@ const VideosTab = () => {
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      className="text-red-500"
+                      className="text-blue-500"
                       onClick={() => handleDelete(video.id)}
                     >
                       <Trash size={16} />
