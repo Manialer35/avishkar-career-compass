@@ -23,6 +23,8 @@ interface FreeMaterialsTabProps {
 }
 
 const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: FreeMaterialsTabProps) => {
+  const freeMaterials = materials.filter(material => !material.isPremium);
+  
   return (
     <>
       <div className="flex justify-between items-center">
@@ -44,13 +46,13 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
             </div>
           ))}
         </div>
-      ) : materials.length === 0 ? (
+      ) : freeMaterials.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           No free study materials found. Click "Add New Material" to create one.
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-          {materials.map(material => (
+          {freeMaterials.map(material => (
             <MaterialCard 
               key={material.id}
               material={material}
