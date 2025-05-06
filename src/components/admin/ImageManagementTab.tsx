@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,7 +18,8 @@ import {
   Image, 
   Edit, 
   Trash2, 
-  Search 
+  Search, 
+  AlertCircle
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ImageItem {
   id: string;
@@ -37,7 +38,10 @@ interface ImageItem {
   category: string;
   uploadDate: string;
   size: string;
+  fileName: string; // Added to store the full filename
 }
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const ImageManagementTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,6 +51,7 @@ const ImageManagementTab = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
   const categories = [
@@ -68,24 +73,26 @@ const ImageManagementTab = () => {
     const fetchImages = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Check if bucket exists, if not create it
-        const { data: buckets } = await supabase.storage.listBuckets();
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        
+        if (bucketsError) {
+          console.error("Error listing buckets:", bucketsError);
+          throw bucketsError;
+        }
         
         if (!buckets || !buckets.some(bucket => bucket.name === 'images')) {
           // Create images bucket
           const { data, error } = await supabase.storage.createBucket('images', {
             public: true,
-            fileSizeLimit: 10485760, // 10MB
+            fileSizeLimit: MAX_FILE_SIZE,
           });
           
           if (error) {
             console.error("Error creating images bucket:", error);
-            toast({
-              title: "Error creating storage",
-              description: "Could not create images storage. Please try again.",
-              variant: "destructive",
-            });
+            throw error;
           } else {
             console.log("Images bucket created successfully");
           }
@@ -118,7 +125,8 @@ const ImageManagementTab = () => {
                 uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
                 size: `${(file.metadata?.size || 0) / 1024 < 1024 
                   ? `${((file.metadata?.size || 0) / 1024).toFixed(2)} KB` 
-                  : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`
+                  : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`,
+                fileName: file.name // Store the filename for operations
               };
             })
           );
@@ -126,8 +134,14 @@ const ImageManagementTab = () => {
           setImages(imageData);
         }
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error in fetchImages:', error);
+        setError(error.message || "Failed to load images");
+        toast({
+          title: "Error loading images",
+          description: error.message || "There was an error loading images. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -140,20 +154,47 @@ const ImageManagementTab = () => {
     title: string;
     category: string;
     file: File | null;
+    previewUrl: string | null; // Added for image preview
   }>({
     title: '',
     category: '',
-    file: null
+    file: null,
+    previewUrl: null
   });
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "File too large",
+          description: `The file size exceeds the maximum limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      
       setNewImage({
         ...newImage,
-        file: e.target.files[0]
+        file,
+        previewUrl
       });
     }
   };
+  
+  // Clean up object URLs to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (newImage.previewUrl) {
+        URL.revokeObjectURL(newImage.previewUrl);
+      }
+    };
+  }, [newImage.previewUrl]);
   
   const handleUploadImage = async () => {
     if (!newImage.title || !newImage.category || !newImage.file) {
@@ -178,12 +219,17 @@ const ImageManagementTab = () => {
         newImage.file.name.split('.').pop()
       }`;
       
-      // Upload to Supabase storage
+      // Upload to Supabase storage with metadata
       const { data, error } = await supabase.storage
         .from('images')
         .upload(fileName, newImage.file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: newImage.file.type,
+          metadata: {
+            category: newImage.category,
+            size: newImage.file.size.toString()
+          }
         });
       
       if (error) {
@@ -200,7 +246,8 @@ const ImageManagementTab = () => {
       setNewImage({
         title: '',
         category: '',
-        file: null
+        file: null,
+        previewUrl: null
       });
       
       // Refresh images list
@@ -233,14 +280,11 @@ const ImageManagementTab = () => {
     
     try {
       setLoading(true);
-      // Extract filename from URL
-      const urlParts = currentImage.url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
       
-      // Delete from storage
+      // Delete from storage using the stored fileName
       const { error } = await supabase.storage
         .from('images')
-        .remove([fileName]);
+        .remove([currentImage.fileName]);
       
       if (error) {
         console.error("Delete error:", error);
@@ -275,17 +319,27 @@ const ImageManagementTab = () => {
     
     try {
       setLoading(true);
-      // Update in local state for now
+      
+      // Update metadata in Supabase
+      // Note: Supabase storage currently doesn't support direct metadata updates,
+      // we would need to re-upload the file or implement a workaround with a separate
+      // database table to track image metadata.
+      
+      // For now, we'll update in local state
       setImages(images.map(img => 
         img.id === currentImage.id ? currentImage : img
       ));
+      
+      // Note: In a full implementation, you would update metadata in a database table
+      // or re-upload the file with new metadata.
       
       setIsEditDialogOpen(false);
       setCurrentImage(null);
       
       toast({
         title: "Image updated",
-        description: "The image details have been updated",
+        description: "The image details have been updated locally",
+        variant: "default",
       });
     } catch (error: any) {
       console.error('Error updating image:', error);
@@ -304,6 +358,19 @@ const ImageManagementTab = () => {
      img.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
     (selectedCategory ? img.category === selectedCategory : true)
   );
+  
+  const resetUploadForm = () => {
+    if (newImage.previewUrl) {
+      URL.revokeObjectURL(newImage.previewUrl);
+    }
+    setNewImage({
+      title: '',
+      category: '',
+      file: null,
+      previewUrl: null
+    });
+    setIsUploadDialogOpen(false);
+  };
   
   return (
     <>
@@ -351,6 +418,13 @@ const ImageManagementTab = () => {
           </div>
         </div>
         
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <Card>
           <CardContent className="p-0">
             <Tabs defaultValue="grid" className="p-4">
@@ -384,6 +458,10 @@ const ImageManagementTab = () => {
                             src={image.url}
                             alt={image.title}
                             className="w-full h-40 object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                              (e.target as HTMLImageElement).alt = 'Image loading error';
+                            }}
                           />
                         </div>
                         <div className="p-3">
@@ -451,6 +529,10 @@ const ImageManagementTab = () => {
                                   src={image.url}
                                   alt={image.title}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                                  }}
                                 />
                               </div>
                             </TableCell>
@@ -467,7 +549,7 @@ const ImageManagementTab = () => {
                                   onClick={() => handleEdit(image)}
                                 >
                                   <Edit className="h-4 w-4 mr-1" />
-                                  Edit
+                                  <span className="hidden sm:inline">Edit</span>
                                 </Button>
                                 <Button
                                   size="sm"
@@ -476,7 +558,7 @@ const ImageManagementTab = () => {
                                   onClick={() => handleDelete(image)}
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
-                                  Delete
+                                  <span className="hidden sm:inline">Delete</span>
                                 </Button>
                               </div>
                             </TableCell>
@@ -493,7 +575,10 @@ const ImageManagementTab = () => {
       </div>
       
       {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+      <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {
+        if (!open) resetUploadForm();
+        else setIsUploadDialogOpen(true);
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Upload New Image</DialogTitle>
@@ -539,6 +624,9 @@ const ImageManagementTab = () => {
                   accept="image/*"
                   onChange={handleFileChange}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB
+                </p>
                 {newImage.file && (
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
@@ -548,9 +636,27 @@ const ImageManagementTab = () => {
                 )}
               </div>
             </div>
+            
+            {/* Image Preview */}
+            {newImage.previewUrl && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <div className="text-right">
+                  <Label>Preview</Label>
+                </div>
+                <div className="col-span-3">
+                  <div className="mt-2 max-w-full overflow-hidden rounded border border-gray-200">
+                    <img 
+                      src={newImage.previewUrl} 
+                      alt="Preview" 
+                      className="max-h-48 w-auto mx-auto object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={loading}>
+            <Button variant="outline" onClick={resetUploadForm} disabled={loading}>
               Cancel
             </Button>
             <Button onClick={handleUploadImage} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
@@ -583,6 +689,10 @@ const ImageManagementTab = () => {
                   src={currentImage.url}
                   alt={currentImage.title}
                   className="max-w-full max-h-32 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                  }}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -614,6 +724,16 @@ const ImageManagementTab = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              <div className="col-span-4 mt-2">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Note: Due to storage limitations, only local details are updated. 
+                    In a production environment, metadata updates would be saved to a database.
+                  </AlertDescription>
+                </Alert>
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -641,6 +761,10 @@ const ImageManagementTab = () => {
                   src={currentImage.url}
                   alt={currentImage.title}
                   className="w-16 h-16 object-cover rounded"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                  }}
                 />
                 <div>
                   <p className="font-medium">{currentImage.title}</p>
