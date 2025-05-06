@@ -1,26 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
-  TableCell 
+  Table, TableHeader, TableRow, TableHead, TableBody, TableCell 
 } from '@/components/ui/table';
-import { 
-  Card, 
-  CardContent 
-} from '@/components/ui/card';
-import { 
-  Plus, 
-  Upload, 
-  Image, 
-  Edit, 
-  Trash2, 
-  Search, 
-  AlertCircle
-} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Plus, Upload, Image, Edit, Trash2, Search, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+// Interface definitions
 interface ImageItem {
   id: string;
   title: string;
@@ -38,7 +23,7 @@ interface ImageItem {
   category: string;
   uploadDate: string;
   size: string;
-  fileName: string; // Added to store the full filename
+  fileName: string;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -47,126 +32,135 @@ const ImageManagementTab = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentImage, setCurrentImage] = useState<ImageItem | null>(null);
+  const [currentImage, setCurrentImage] = useState(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const { toast } = useToast();
   
   const categories = [
-    'Campus', 
-    'Facilities', 
-    'Classes', 
-    'Students', 
-    'Events', 
-    'Faculty', 
-    'Successful Candidates',
-    'Profiles',
-    'Logos'
+    'Campus', 'Facilities', 'Classes', 'Students', 'Events', 
+    'Faculty', 'Successful Candidates', 'Profiles', 'Logos'
   ];
   
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [images, setImages] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Check if bucket exists, if not create it
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-        
-        if (bucketsError) {
-          console.error("Error listing buckets:", bucketsError);
-          throw bucketsError;
-        }
-        
-        if (!buckets || !buckets.some(bucket => bucket.name === 'images')) {
-          // Create images bucket
-          const { data, error } = await supabase.storage.createBucket('images', {
-            public: true,
-            fileSizeLimit: MAX_FILE_SIZE,
-          });
-          
-          if (error) {
-            console.error("Error creating images bucket:", error);
-            throw error;
-          } else {
-            console.log("Images bucket created successfully");
-          }
-        }
-
-        // List all files in images bucket
-        const { data: filesList, error: filesError } = await supabase
-          .storage
-          .from('images')
-          .list();
-          
-        if (filesError) {
-          console.error("Error listing images:", filesError);
-          throw filesError;
-        }
-        
-        // Transform file data into ImageItems
-        if (filesList) {
-          const imageData: ImageItem[] = await Promise.all(
-            filesList.filter(file => !file.id.endsWith('/')).map(async file => {
-              const { data: publicUrlData } = supabase.storage
-                .from('images')
-                .getPublicUrl(file.name);
-                
-              return {
-                id: file.id,
-                title: file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
-                url: publicUrlData.publicUrl,
-                category: file.metadata?.category || 'General',
-                uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
-                size: `${(file.metadata?.size || 0) / 1024 < 1024 
-                  ? `${((file.metadata?.size || 0) / 1024).toFixed(2)} KB` 
-                  : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`,
-                fileName: file.name // Store the filename for operations
-              };
-            })
-          );
-          
-          setImages(imageData);
-        }
-        
-      } catch (error: any) {
-        console.error('Error in fetchImages:', error);
-        setError(error.message || "Failed to load images");
-        toast({
-          title: "Error loading images",
-          description: error.message || "There was an error loading images. Please try again.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchImages();
-  }, [refreshTrigger, toast]);
-
-  const [newImage, setNewImage] = useState<{
-    title: string;
-    category: string;
-    file: File | null;
-    previewUrl: string | null; // Added for image preview
-  }>({
+  const [newImage, setNewImage] = useState({
     title: '',
     category: '',
     file: null,
     previewUrl: null
   });
+
+  // Fix 1: Enable RLS and handle bucket access properly
+  useEffect(() => {
+    const fetchImages = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    // Step 1: Get the current user session - required for RLS
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      setError("You must be logged in to access images");
+      return;
+    }
+
+    // Step 2: Check for bucket existence using our new RPC function
+    const { data: bucketExists, error: rpcError } = await supabase.rpc(
+      'check_bucket_exists', 
+      { bucket_name: 'images' }
+    );
+
+    if (rpcError) {
+      console.error("Error checking bucket:", rpcError);
+      throw rpcError;
+    }
+
+    // Step 3: If bucket doesn't exist (unlikely with our setup), handle gracefully
+    if (!bucketExists) {
+      setError("Image storage is not properly configured. Please contact an administrator.");
+      return;
+    }
+
+    // Step 4: Get images and their metadata together
+    // First, list files from storage
+    const { data: filesList, error: filesError } = await supabase
+      .storage
+      .from('images')
+      .list();
+      
+    if (filesError) {
+      console.error("Error listing images:", filesError);
+      throw filesError;
+    }
+    
+    // Step 5: Get metadata for all images
+    const { data: metadataList, error: metadataError } = await supabase
+      .from('image_metadata')
+      .select('*');
+    
+    if (metadataError) {
+      console.error("Error fetching image metadata:", metadataError);
+      // Continue anyway, we'll use basic file info
+    }
+    
+    // Step 6: Process files and combine with metadata where available
+    if (filesList) {
+      const imageData = await Promise.all(
+        filesList
+          .filter(file => !file.name.endsWith('/') && file.name)
+          .map(async file => {
+            const { data: publicUrlData } = supabase.storage
+              .from('images')
+              .getPublicUrl(file.name);
+            
+            // Find matching metadata if available
+            const metadata = metadataList?.find(m => m.object_id === file.id);
+              
+            return {
+              id: file.id,
+              title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
+              url: publicUrlData.publicUrl,
+              category: metadata?.category || file.metadata?.category || 'General',
+              description: metadata?.description || '',
+              altText: metadata?.alt_text || '',
+              uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+              size: `${(file.metadata?.size || 0) / 1024 < 1024 
+                ? `${((file.metadata?.size || 0) / 1024).toFixed(2)} KB` 
+                : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`,
+              fileName: file.name,
+              metadataId: metadata?.id
+            };
+          })
+      );
+      
+      setImages(imageData);
+    }
+    
+  } catch (error) {
+    console.error('Error in fetchImages:', error);
+    setError(error.message || "Failed to load images");
+    toast({
+      title: "Error loading images",
+      description: error.message || "There was an error loading images. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+    
+    fetchImages();
+  }, [refreshTrigger, toast]);
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
-      // Validate file size
       if (file.size > MAX_FILE_SIZE) {
         toast({
           title: "File too large",
@@ -176,7 +170,6 @@ const ImageManagementTab = () => {
         return;
       }
       
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       
       setNewImage({
@@ -187,7 +180,7 @@ const ImageManagementTab = () => {
     }
   };
   
-  // Clean up object URLs to prevent memory leaks
+  // Clean up object URLs
   useEffect(() => {
     return () => {
       if (newImage.previewUrl) {
@@ -196,6 +189,7 @@ const ImageManagementTab = () => {
     };
   }, [newImage.previewUrl]);
   
+  // Fix 2: Improved upload handling with RLS consideration
   const handleUploadImage = async () => {
     if (!newImage.title || !newImage.category || !newImage.file) {
       toast({
@@ -208,18 +202,20 @@ const ImageManagementTab = () => {
     
     try {
       setLoading(true);
-      // Check if we have a session
+      
+      // Step 1: Ensure user is logged in
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error("You must be logged in to upload images");
       }
       
-      // Format file name
-      const fileName = `${Date.now()}_${newImage.title.replace(/\s+/g, '_')}.${
-        newImage.file.name.split('.').pop()
-      }`;
+      // Step 2: Format filename to avoid conflicts
+      const timestamp = Date.now();
+      const sanitizedTitle = newImage.title.replace(/\s+/g, '_');
+      const fileExt = newImage.file.name.split('.').pop();
+      const fileName = `${timestamp}_${sanitizedTitle}.${fileExt}`;
       
-      // Upload to Supabase storage with metadata
+      // Step 3: Upload with RLS-compatible approach
       const { data, error } = await supabase.storage
         .from('images')
         .upload(fileName, newImage.file, {
@@ -228,12 +224,16 @@ const ImageManagementTab = () => {
           contentType: newImage.file.type,
           metadata: {
             category: newImage.category,
-            size: newImage.file.size.toString()
+            size: newImage.file.size.toString(),
+            userId: session.user.id // Link file to user for RLS
           }
         });
       
       if (error) {
-        console.error("Storage upload error:", error);
+        // Handle specific RLS error
+        if (error.message.includes('new row violates row-level security policy')) {
+          throw new Error("You don't have permission to upload to this storage bucket. Please contact an administrator.");
+        }
         throw error;
       }
       
@@ -250,10 +250,9 @@ const ImageManagementTab = () => {
         previewUrl: null
       });
       
-      // Refresh images list
       setRefreshTrigger(prev => prev + 1);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error uploading image:', error);
       toast({
         title: "Upload failed",
@@ -265,21 +264,18 @@ const ImageManagementTab = () => {
     }
   };
   
-  const handleEdit = (image: ImageItem) => {
-    setCurrentImage(image);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleDelete = (image: ImageItem) => {
-    setCurrentImage(image);
-    setIsDeleteDialogOpen(true);
-  };
-  
+  // Fix 3: Improved delete handling with RLS checks
   const confirmDelete = async () => {
     if (!currentImage) return;
     
     try {
       setLoading(true);
+      
+      // Check session first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("You must be logged in to delete images");
+      }
       
       // Delete from storage using the stored fileName
       const { error } = await supabase.storage
@@ -287,7 +283,9 @@ const ImageManagementTab = () => {
         .remove([currentImage.fileName]);
       
       if (error) {
-        console.error("Delete error:", error);
+        if (error.message.includes('row-level security policy')) {
+          throw new Error("You don't have permission to delete this image");
+        }
         throw error;
       }
       
@@ -302,7 +300,7 @@ const ImageManagementTab = () => {
       setIsDeleteDialogOpen(false);
       setCurrentImage(null);
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting image:', error);
       toast({
         title: "Delete failed",
@@ -314,44 +312,79 @@ const ImageManagementTab = () => {
     }
   };
   
-  const saveChanges = async () => {
-    if (!currentImage) return;
-    
-    try {
-      setLoading(true);
-      
-      // Update metadata in Supabase
-      // Note: Supabase storage currently doesn't support direct metadata updates,
-      // we would need to re-upload the file or implement a workaround with a separate
-      // database table to track image metadata.
-      
-      // For now, we'll update in local state
-      setImages(images.map(img => 
-        img.id === currentImage.id ? currentImage : img
-      ));
-      
-      // Note: In a full implementation, you would update metadata in a database table
-      // or re-upload the file with new metadata.
-      
-      setIsEditDialogOpen(false);
-      setCurrentImage(null);
-      
-      toast({
-        title: "Image updated",
-        description: "The image details have been updated locally",
-        variant: "default",
-      });
-    } catch (error: any) {
-      console.error('Error updating image:', error);
-      toast({
-        title: "Update failed",
-        description: error.message || "There was an error updating the image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleEdit = (image) => {
+    setCurrentImage(image);
+    setIsEditDialogOpen(true);
   };
+  
+  const handleDelete = (image) => {
+    setCurrentImage(image);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const saveChanges = async () => {
+  if (!currentImage) return;
+  
+  try {
+    setLoading(true);
+    
+    if (currentImage.metadataId) {
+      // Update existing metadata
+      const { error } = await supabase
+        .from('image_metadata')
+        .update({
+          title: currentImage.title,
+          category: currentImage.category,
+          description: currentImage.description || '',
+          alt_text: currentImage.altText || ''
+        })
+        .eq('id', currentImage.metadataId);
+        
+      if (error) throw error;
+    } else {
+      // Create new metadata if it doesn't exist
+      const { error } = await supabase
+        .from('image_metadata')
+        .insert({
+          object_id: currentImage.id,
+          title: currentImage.title,
+          category: currentImage.category,
+          description: currentImage.description || '',
+          alt_text: currentImage.altText || '',
+          created_by: (await supabase.auth.getSession()).data.session?.user.id
+        });
+        
+      if (error) throw error;
+    }
+    
+    // Update in local state
+    setImages(images.map(img => 
+      img.id === currentImage.id ? currentImage : img
+    ));
+    
+    setIsEditDialogOpen(false);
+    setCurrentImage(null);
+    
+    toast({
+      title: "Image updated",
+      description: "The image details have been updated successfully",
+      variant: "default",
+    });
+    
+    // Refresh to get the latest data
+    setRefreshTrigger(prev => prev + 1);
+    
+  } catch (error) {
+    console.error('Error updating image:', error);
+    toast({
+      title: "Update failed",
+      description: error.message || "There was an error updating the image. Please try again.",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
   
   const filteredImages = images.filter(img => 
     (img.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -459,8 +492,8 @@ const ImageManagementTab = () => {
                             alt={image.title}
                             className="w-full h-40 object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                              (e.target as HTMLImageElement).alt = 'Image loading error';
+                              e.target.src = '/placeholder-image.jpg';
+                              e.target.alt = 'Image loading error';
                             }}
                           />
                         </div>
@@ -530,8 +563,8 @@ const ImageManagementTab = () => {
                                   alt={image.title}
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                                    e.target.src = '/placeholder-image.jpg';
+                                    e.target.alt = 'Image loading error';
                                   }}
                                 />
                               </div>
@@ -690,8 +723,8 @@ const ImageManagementTab = () => {
                   alt={currentImage.title}
                   className="max-w-full max-h-32 object-contain"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                    e.target.src = '/placeholder-image.jpg';
+                    e.target.alt = 'Image loading error';
                   }}
                 />
               </div>
@@ -762,8 +795,8 @@ const ImageManagementTab = () => {
                   alt={currentImage.title}
                   className="w-16 h-16 object-cover rounded"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                    (e.target as HTMLImageElement).alt = 'Image loading error';
+                    e.target.src = '/placeholder-image.jpg';
+                    e.target.alt = 'Image loading error';
                   }}
                 />
                 <div>
