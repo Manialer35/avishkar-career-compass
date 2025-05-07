@@ -9,7 +9,7 @@ class AvishkarApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Initialize the ImageManager with Supabase credentials
+        // Initialize ImageManager with Supabase credentials
         val supabaseUrl = getString(R.string.supabase_url)
         val supabaseKey = getString(R.string.supabase_key)
         

@@ -22,6 +22,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <activity
+            android:name=".ui.ImageManagementActivity"
+            android:label="Image Management"
+            android:parentActivityName=".ui.HomeActivity" />
+            
+        <activity
+            android:name=".ui.ImageDetailActivity"
+            android:label="Image Details"
+            android:parentActivityName=".ui.ImageManagementActivity" />
     </application>
 
 </manifest>

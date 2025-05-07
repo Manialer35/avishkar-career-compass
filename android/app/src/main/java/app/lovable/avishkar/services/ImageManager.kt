@@ -71,7 +71,15 @@ object ImageManager {
     
     // Get images for a category (from cache if available and not expired)
     fun getImages(category: String): List<ImageItem> {
-        return imageCache[category] ?: emptyList()
+        return if (category == "All") {
+            // For "All" category, combine all cached images
+            val allImages = mutableListOf<ImageItem>()
+            imageCache.values.forEach { allImages.addAll(it) }
+            allImages
+        } else {
+            // Return specific category
+            imageCache[category] ?: emptyList()
+        }
     }
     
     // Force refresh images for a category from the server
@@ -84,7 +92,15 @@ object ImageManager {
                     imageService.fetchImagesByCategory(category)
                 }
                 
-                updateCache(category, images)
+                if (category == "All") {
+                    // Group images by category and update each category's cache
+                    val imagesByCategory = images.groupBy { it.category }
+                    imagesByCategory.forEach { (cat, imgs) ->
+                        updateCache(cat, imgs)
+                    }
+                } else {
+                    updateCache(category, images)
+                }
                 
                 withContext(Dispatchers.Main) {
                     callback(images)
@@ -92,7 +108,40 @@ object ImageManager {
             } catch (e: Exception) {
                 Log.e("ImageManager", "Failed to refresh $category images: ${e.message}")
                 withContext(Dispatchers.Main) {
-                    callback(imageCache[category] ?: emptyList())
+                    if (category == "All") {
+                        val allImages = mutableListOf<ImageItem>()
+                        imageCache.values.forEach { allImages.addAll(it) }
+                        callback(allImages)
+                    } else {
+                        callback(imageCache[category] ?: emptyList())
+                    }
+                }
+            }
+        }
+    }
+    
+    // Delete an image by its ID and filename
+    fun deleteImage(imageId: String, fileName: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Delete from Supabase storage
+                supabaseClient.storage.from("images").remove(arrayOf(fileName))
+                
+                // Update cache to remove the deleted image
+                imageCache.forEach { (category, images) ->
+                    val updatedList = images.filter { it.id != imageId }
+                    if (updatedList.size != images.size) {
+                        updateCache(category, updatedList)
+                    }
+                }
+                
+                withContext(Dispatchers.Main) {
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                Log.e("ImageManager", "Error deleting image: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    onError(e.message ?: "Unknown error occurred")
                 }
             }
         }
