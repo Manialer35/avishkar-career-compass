@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -16,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Interface definitions
+// Fixed type definitions
 interface ImageItem {
   id: string;
   title: string;
@@ -25,141 +24,128 @@ interface ImageItem {
   uploadDate: string;
   size: string;
   fileName: string;
+  description?: string;
+  altText?: string;
+  metadataId?: string;
+}
+
+interface NewImageState {
+  title: string;
+  category: string;
+  file: File | null;
+  previewUrl: string | null;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ImageManagementTab = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [currentImage, setCurrentImage] = useState(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const ImageManagementTab: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState<boolean>(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
+  const [currentImage, setCurrentImage] = useState<ImageItem | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Updated to include all categories used in Android app
   const categories = [
     'Campus', 'Facilities', 'Classes', 'Students', 'Events', 
     'Faculty', 'Successful Candidates', 'Profiles', 'Logos', 'Home'
   ];
   
-  const [images, setImages] = useState([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
-  const [newImage, setNewImage] = useState({
+  const [newImage, setNewImage] = useState<NewImageState>({
     title: '',
     category: '',
     file: null,
     previewUrl: null
   });
 
-  // Fix 1: Enable RLS and handle bucket access properly
+  // Improved fetch images function - more concise and error-resistant
   useEffect(() => {
     const fetchImages = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    
-    // Step 1: Get the current user session - required for RLS
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      setError("You must be logged in to access images");
-      return;
-    }
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Check authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setError("You must be logged in to access images");
+          return;
+        }
 
-    // Step 2: Check for bucket existence using our new RPC function
-    const { data: bucketExists, error: rpcError } = await supabase.rpc(
-      'check_bucket_exists', 
-      { bucket_name: 'images' }
-    );
-
-    if (rpcError) {
-      console.error("Error checking bucket:", rpcError);
-      throw rpcError;
-    }
-
-    // Step 3: If bucket doesn't exist (unlikely with our setup), handle gracefully
-    if (!bucketExists) {
-      setError("Image storage is not properly configured. Please contact an administrator.");
-      return;
-    }
-
-    // Step 4: Get images and their metadata together
-    // First, list files from storage
-    const { data: filesList, error: filesError } = await supabase
-      .storage
-      .from('images')
-      .list();
-      
-    if (filesError) {
-      console.error("Error listing images:", filesError);
-      throw filesError;
-    }
-    
-    // Step 5: Get metadata for all images
-    const { data: metadataList, error: metadataError } = await supabase
-      .from('image_metadata')
-      .select('*');
-    
-    if (metadataError) {
-      console.error("Error fetching image metadata:", metadataError);
-      // Continue anyway, we'll use basic file info
-    }
-    
-    // Step 6: Process files and combine with metadata where available
-    if (filesList) {
-      const imageData = await Promise.all(
-        filesList
-          .filter(file => !file.name.endsWith('/') && file.name)
-          .map(async file => {
-            const { data: publicUrlData } = supabase.storage
-              .from('images')
-              .getPublicUrl(file.name);
-            
-            // Find matching metadata if available
-            const metadata = metadataList?.find(m => m.object_id === file.id);
-              
-            return {
-              id: file.id,
-              title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
-              url: publicUrlData.publicUrl,
-              category: metadata?.category || file.metadata?.category || 'General',
-              description: metadata?.description || '',
-              altText: metadata?.alt_text || '',
-              uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
-              size: `${(file.metadata?.size || 0) / 1024 < 1024 
-                ? `${((file.metadata?.size || 0) / 1024).toFixed(2)} KB` 
-                : `${((file.metadata?.size || 0) / (1024 * 1024)).toFixed(2)} MB`}`,
-              fileName: file.name,
-              metadataId: metadata?.id
-            };
-          })
-      );
-      
-      setImages(imageData);
-    }
-    
-  } catch (error) {
-    console.error('Error in fetchImages:', error);
-    setError(error.message || "Failed to load images");
-    toast({
-      title: "Error loading images",
-      description: error.message || "There was an error loading images. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+        // Get both files and metadata in parallel for better performance
+        const [filesResponse, metadataResponse] = await Promise.all([
+          supabase.storage.from('images').list(),
+          supabase.from('image_metadata').select('*')
+        ]);
+        
+        if (filesResponse.error) {
+          throw filesResponse.error;
+        }
+        
+        // Continue even if metadata has error - we can show basic file info
+        const metadataList = metadataResponse.data || [];
+        
+        if (filesResponse.data) {
+          const imageData = await Promise.all(
+            filesResponse.data
+              .filter(file => !file.name.endsWith('/') && file.name)
+              .map(async file => {
+                const { data: publicUrlData } = supabase.storage
+                  .from('images')
+                  .getPublicUrl(file.name);
+                
+                // Find matching metadata if available
+                const metadata = metadataList.find(m => m.object_id === file.id);
+                
+                // Calculate file size in a readable format
+                const sizeInKB = (file.metadata?.size || 0) / 1024;
+                const fileSize = sizeInKB < 1024 
+                  ? `${sizeInKB.toFixed(2)} KB` 
+                  : `${(sizeInKB / 1024).toFixed(2)} MB`;
+                  
+                return {
+                  id: file.id,
+                  title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
+                  url: publicUrlData.publicUrl,
+                  category: metadata?.category || file.metadata?.category || 'General',
+                  description: metadata?.description || '',
+                  altText: metadata?.alt_text || '',
+                  uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+                  size: fileSize,
+                  fileName: file.name,
+                  metadataId: metadata?.id
+                };
+              })
+          );
+          
+          setImages(imageData);
+        }
+        
+      } catch (err) {
+        console.error('Error in fetchImages:', err);
+        setError(err.message || "Failed to load images");
+        toast({
+          title: "Error loading images",
+          description: err.message || "There was an error loading images. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
     
     fetchImages();
   }, [refreshTrigger, toast]);
   
-  const handleFileChange = (e) => {
+  // Improved file handling with proper type checking
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
@@ -191,7 +177,7 @@ const ImageManagementTab = () => {
     };
   }, [newImage.previewUrl]);
   
-  // Fix 2: Improved upload handling with RLS consideration
+  // Simplified upload with better error handling
   const handleUploadImage = async () => {
     if (!newImage.title || !newImage.category || !newImage.file) {
       toast({
@@ -205,19 +191,19 @@ const ImageManagementTab = () => {
     try {
       setLoading(true);
       
-      // Step 1: Ensure user is logged in
+      // Check authentication
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error("You must be logged in to upload images");
       }
       
-      // Step 2: Format filename to avoid conflicts
+      // Format filename
       const timestamp = Date.now();
       const sanitizedTitle = newImage.title.replace(/\s+/g, '_');
       const fileExt = newImage.file.name.split('.').pop();
       const fileName = `${timestamp}_${sanitizedTitle}.${fileExt}`;
       
-      // Step 3: Upload with RLS-compatible approach
+      // Upload file
       const { data, error } = await supabase.storage
         .from('images')
         .upload(fileName, newImage.file, {
@@ -226,32 +212,19 @@ const ImageManagementTab = () => {
           contentType: newImage.file.type,
           metadata: {
             category: newImage.category,
-            size: newImage.file.size.toString(),
-            userId: session.user.id // Link file to user for RLS
+            size: newImage.file.size.toString()
           }
         });
       
-      if (error) {
-        // Handle specific RLS error
-        if (error.message.includes('new row violates row-level security policy')) {
-          throw new Error("You don't have permission to upload to this storage bucket. Please contact an administrator.");
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       toast({
         title: "Image uploaded",
         description: "The image has been successfully uploaded",
       });
       
-      setIsUploadDialogOpen(false);
-      setNewImage({
-        title: '',
-        category: '',
-        file: null,
-        previewUrl: null
-      });
-      
+      // Reset form
+      resetUploadForm();
       setRefreshTrigger(prev => prev + 1);
       
     } catch (error) {
@@ -266,30 +239,19 @@ const ImageManagementTab = () => {
     }
   };
   
-  // Fix 3: Improved delete handling with RLS checks
+  // Simplified delete function
   const confirmDelete = async () => {
     if (!currentImage) return;
     
     try {
       setLoading(true);
       
-      // Check session first
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("You must be logged in to delete images");
-      }
-      
-      // Delete from storage using the stored fileName
+      // Delete from storage
       const { error } = await supabase.storage
         .from('images')
         .remove([currentImage.fileName]);
       
-      if (error) {
-        if (error.message.includes('row-level security policy')) {
-          throw new Error("You don't have permission to delete this image");
-        }
-        throw error;
-      }
+      if (error) throw error;
       
       // Remove from state
       setImages(images.filter(img => img.id !== currentImage.id));
@@ -314,46 +276,48 @@ const ImageManagementTab = () => {
     }
   };
   
-  const handleEdit = (image) => {
+  const handleEdit = (image: ImageItem) => {
     setCurrentImage(image);
     setIsEditDialogOpen(true);
   };
   
-  const handleDelete = (image) => {
+  const handleDelete = (image: ImageItem) => {
     setCurrentImage(image);
     setIsDeleteDialogOpen(true);
   };
   
+  // Simplified metadata update function
   const saveChanges = async () => {
     if (!currentImage) return;
     
     try {
       setLoading(true);
       
+      const metadataPayload = {
+        title: currentImage.title,
+        category: currentImage.category,
+        description: currentImage.description || '',
+        alt_text: currentImage.altText || ''
+      };
+      
       if (currentImage.metadataId) {
         // Update existing metadata
         const { error } = await supabase
           .from('image_metadata')
-          .update({
-            title: currentImage.title,
-            category: currentImage.category,
-            description: currentImage.description || '',
-            alt_text: currentImage.altText || ''
-          })
+          .update(metadataPayload)
           .eq('id', currentImage.metadataId);
           
         if (error) throw error;
       } else {
-        // Create new metadata if it doesn't exist
+        // Create new metadata
+        const { data: { session } } = await supabase.auth.getSession();
+        
         const { error } = await supabase
           .from('image_metadata')
           .insert({
+            ...metadataPayload,
             object_id: currentImage.id,
-            title: currentImage.title,
-            category: currentImage.category,
-            description: currentImage.description || '',
-            alt_text: currentImage.altText || '',
-            created_by: (await supabase.auth.getSession()).data.session?.user.id
+            created_by: session?.user.id
           });
           
         if (error) throw error;
@@ -388,6 +352,7 @@ const ImageManagementTab = () => {
     }
   };
   
+  // Filter images based on search and category
   const filteredImages = images.filter(img => 
     (img.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
      img.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
@@ -407,11 +372,33 @@ const ImageManagementTab = () => {
     setIsUploadDialogOpen(false);
   };
 
-  // Fix for TypeScript errors: Handle image load errors correctly
+  // Fixed image error handler
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const imgElement = e.currentTarget;
-    imgElement.src = '/placeholder-image.jpg';
-    imgElement.alt = 'Image loading error';
+    e.currentTarget.src = '/placeholder-image.jpg';
+    e.currentTarget.alt = 'Image loading error';
+  };
+  
+  // Component to avoid duplication in tab views
+  const LoadingOrEmptyState = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 mt-4">Loading images...</p>
+        </div>
+      );
+    }
+    
+    if (filteredImages.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Image className="h-12 w-12 text-gray-400 mb-4" />
+          <p className="text-gray-500">No images found matching your criteria</p>
+        </div>
+      );
+    }
+    
+    return null;
   };
   
   return (
@@ -480,18 +467,11 @@ const ImageManagementTab = () => {
                 </span>
               </div>
               
+              {/* Grid View */}
               <TabsContent value="grid" className="mt-0">
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-500 mt-4">Loading images...</p>
-                  </div>
-                ) : filteredImages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Image className="h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No images found matching your criteria</p>
-                  </div>
-                ) : (
+                <LoadingOrEmptyState />
+                
+                {!loading && filteredImages.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {filteredImages.map((image) => (
                       <div key={image.id} className="rounded-lg overflow-hidden border border-gray-200">
@@ -535,18 +515,11 @@ const ImageManagementTab = () => {
                 )}
               </TabsContent>
               
+              {/* List View */}
               <TabsContent value="list" className="mt-0">
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-500 mt-4">Loading images...</p>
-                  </div>
-                ) : filteredImages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <Image className="h-12 w-12 text-gray-400 mb-4" />
-                    <p className="text-gray-500">No images found matching your criteria</p>
-                  </div>
-                ) : (
+                <LoadingOrEmptyState />
+                
+                {!loading && filteredImages.length > 0 && (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -756,16 +729,6 @@ const ImageManagementTab = () => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              
-              <div className="col-span-4 mt-2">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Note: Due to storage limitations, only local details are updated. 
-                    In a production environment, metadata updates would be saved to a database.
-                  </AlertDescription>
-                </Alert>
               </div>
             </div>
           )}
