@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
+import { Resend } from "https://esm.sh/@resend/node@0.0.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,18 +23,39 @@ serve(async (req) => {
 
     console.log("Received enquiry from:", name, email);
     
-    // Instead of using SMTP directly, we'll just log the enquiry for now
-    // and return success to prevent errors while you set up proper email credentials
-    console.log("Enquiry details:", {
-      name,
-      email,
-      phone,
-      subject,
-      message
+    // Initialize Resend with API key
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    
+    if (!resend) {
+      throw new Error("Email client configuration failed");
+    }
+    
+    // Format the email with enquiry details
+    const emailContent = `
+      <h2>New Enquiry from Avishkar Academy Website</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone}</p>
+      <p><strong>Subject:</strong> ${subject || 'No subject provided'}</p>
+      <h3>Message:</h3>
+      <p>${message}</p>
+    `;
+    
+    // Send email to both recipients
+    const { data, error: sendError } = await resend.emails.send({
+      from: "Avishkar Academy <no-reply@resend.dev>",
+      to: ["khot.md@gmail.com", "neerajmadkar35@gmail.com"],
+      subject: `New Enquiry: ${subject || 'General Enquiry'}`,
+      html: emailContent,
+      reply_to: email
     });
     
-    // For now, we'll simulate a successful email sending
-    // In production, you should connect this to a proper email service
+    if (sendError) {
+      console.error("Email sending failed:", sendError);
+      throw new Error("Failed to send email notification");
+    }
+    
+    console.log("Email sent successfully:", data);
     
     return new Response(JSON.stringify({ 
       success: true,
