@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -404,6 +405,13 @@ const ImageManagementTab = () => {
     });
     setIsUploadDialogOpen(false);
   };
+
+  // Fix for TypeScript errors: Handle image load errors correctly
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const imgElement = e.currentTarget as HTMLImageElement;
+    imgElement.src = '/placeholder-image.jpg';
+    imgElement.alt = 'Image loading error';
+  };
   
   return (
     <>
@@ -491,10 +499,7 @@ const ImageManagementTab = () => {
                             src={image.url}
                             alt={image.title}
                             className="w-full h-40 object-cover"
-                            onError={(e) => {
-                              e.target.src = '/placeholder-image.jpg';
-                              e.target.alt = 'Image loading error';
-                            }}
+                            onError={handleImageError}
                           />
                         </div>
                         <div className="p-3">
@@ -562,10 +567,7 @@ const ImageManagementTab = () => {
                                   src={image.url}
                                   alt={image.title}
                                   className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.target.src = '/placeholder-image.jpg';
-                                    e.target.alt = 'Image loading error';
-                                  }}
+                                  onError={handleImageError}
                                 />
                               </div>
                             </TableCell>
@@ -722,10 +724,7 @@ const ImageManagementTab = () => {
                   src={currentImage.url}
                   alt={currentImage.title}
                   className="max-w-full max-h-32 object-contain"
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.jpg';
-                    e.target.alt = 'Image loading error';
-                  }}
+                  onError={handleImageError}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -794,10 +793,7 @@ const ImageManagementTab = () => {
                   src={currentImage.url}
                   alt={currentImage.title}
                   className="w-16 h-16 object-cover rounded"
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.jpg';
-                    e.target.alt = 'Image loading error';
-                  }}
+                  onError={handleImageError}
                 />
                 <div>
                   <p className="font-medium">{currentImage.title}</p>
