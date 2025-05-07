@@ -120,6 +120,42 @@ export type Database = {
         }
         Relationships: []
       }
+      image_metadata: {
+        Row: {
+          alt_text: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          object_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          object_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          object_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       material_purchases: {
         Row: {
           amount: number
@@ -289,6 +325,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_bucket_exists: {
+        Args: { bucket_name: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]

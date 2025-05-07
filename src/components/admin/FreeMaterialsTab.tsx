@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import MaterialCard from './MaterialCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 interface StudyMaterial {
   id: string;
@@ -27,16 +29,21 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
   
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Free Study Materials</h2>
-        <Button onClick={onAddNew}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-semibold">Free Study Materials</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Manage study materials available for free download
+          </p>
+        </div>
+        <Button onClick={onAddNew} className="whitespace-nowrap">
           <Plus size={16} className="mr-2" />
           Add New Material
         </Button>
       </div>
       
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="border rounded-lg p-4">
               <Skeleton className="h-4 w-3/4 mb-4" />
@@ -47,11 +54,14 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
           ))}
         </div>
       ) : freeMaterials.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          No free study materials found. Click "Add New Material" to create one.
-        </div>
+        <Alert variant="default" className="bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-500" />
+          <AlertDescription>
+            No free study materials found. Click "Add New Material" to create one.
+          </AlertDescription>
+        </Alert>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-4">
           {freeMaterials.map(material => (
             <MaterialCard 
               key={material.id}

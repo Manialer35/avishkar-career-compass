@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from './use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -21,11 +21,8 @@ export const useAdminMaterials = () => {
   const [activeTab, setActiveTab] = useState<string>('free');
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const fetchMaterials = async () => {
+  // Memoize fetchMaterials to avoid recreating it on each render
+  const fetchMaterials = useCallback(async () => {
     try {
       console.log("Fetching materials...");
       setLoading(true);
@@ -74,7 +71,11 @@ export const useAdminMaterials = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
 
   const handleEdit = (material: StudyMaterial) => {
     setEditingMaterial(material);
