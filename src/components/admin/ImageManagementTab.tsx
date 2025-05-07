@@ -40,9 +40,10 @@ const ImageManagementTab = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   
+  // Updated to include all categories used in Android app
   const categories = [
     'Campus', 'Facilities', 'Classes', 'Students', 'Events', 
-    'Faculty', 'Successful Candidates', 'Profiles', 'Logos'
+    'Faculty', 'Successful Candidates', 'Profiles', 'Logos', 'Home'
   ];
   
   const [images, setImages] = useState([]);
@@ -324,68 +325,68 @@ const ImageManagementTab = () => {
   };
   
   const saveChanges = async () => {
-  if (!currentImage) return;
-  
-  try {
-    setLoading(true);
+    if (!currentImage) return;
     
-    if (currentImage.metadataId) {
-      // Update existing metadata
-      const { error } = await supabase
-        .from('image_metadata')
-        .update({
-          title: currentImage.title,
-          category: currentImage.category,
-          description: currentImage.description || '',
-          alt_text: currentImage.altText || ''
-        })
-        .eq('id', currentImage.metadataId);
-        
-      if (error) throw error;
-    } else {
-      // Create new metadata if it doesn't exist
-      const { error } = await supabase
-        .from('image_metadata')
-        .insert({
-          object_id: currentImage.id,
-          title: currentImage.title,
-          category: currentImage.category,
-          description: currentImage.description || '',
-          alt_text: currentImage.altText || '',
-          created_by: (await supabase.auth.getSession()).data.session?.user.id
-        });
-        
-      if (error) throw error;
+    try {
+      setLoading(true);
+      
+      if (currentImage.metadataId) {
+        // Update existing metadata
+        const { error } = await supabase
+          .from('image_metadata')
+          .update({
+            title: currentImage.title,
+            category: currentImage.category,
+            description: currentImage.description || '',
+            alt_text: currentImage.altText || ''
+          })
+          .eq('id', currentImage.metadataId);
+          
+        if (error) throw error;
+      } else {
+        // Create new metadata if it doesn't exist
+        const { error } = await supabase
+          .from('image_metadata')
+          .insert({
+            object_id: currentImage.id,
+            title: currentImage.title,
+            category: currentImage.category,
+            description: currentImage.description || '',
+            alt_text: currentImage.altText || '',
+            created_by: (await supabase.auth.getSession()).data.session?.user.id
+          });
+          
+        if (error) throw error;
+      }
+      
+      // Update in local state
+      setImages(images.map(img => 
+        img.id === currentImage.id ? currentImage : img
+      ));
+      
+      setIsEditDialogOpen(false);
+      setCurrentImage(null);
+      
+      toast({
+        title: "Image updated",
+        description: "The image details have been updated successfully",
+        variant: "default",
+      });
+      
+      // Refresh to get the latest data
+      setRefreshTrigger(prev => prev + 1);
+      
+    } catch (error) {
+      console.error('Error updating image:', error);
+      toast({
+        title: "Update failed",
+        description: error.message || "There was an error updating the image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    // Update in local state
-    setImages(images.map(img => 
-      img.id === currentImage.id ? currentImage : img
-    ));
-    
-    setIsEditDialogOpen(false);
-    setCurrentImage(null);
-    
-    toast({
-      title: "Image updated",
-      description: "The image details have been updated successfully",
-      variant: "default",
-    });
-    
-    // Refresh to get the latest data
-    setRefreshTrigger(prev => prev + 1);
-    
-  } catch (error) {
-    console.error('Error updating image:', error);
-    toast({
-      title: "Update failed",
-      description: error.message || "There was an error updating the image. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   
   const filteredImages = images.filter(img => 
     (img.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -408,7 +409,7 @@ const ImageManagementTab = () => {
 
   // Fix for TypeScript errors: Handle image load errors correctly
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const imgElement = e.currentTarget as HTMLImageElement;
+    const imgElement = e.currentTarget;
     imgElement.src = '/placeholder-image.jpg';
     imgElement.alt = 'Image loading error';
   };
