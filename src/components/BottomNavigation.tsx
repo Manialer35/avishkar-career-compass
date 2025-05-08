@@ -1,5 +1,5 @@
 
-import { Book, Calendar, Home, Info, Mail, Video, User } from 'lucide-react';
+import { Book, Calendar, Home, Info, Mail, User } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
@@ -48,7 +48,7 @@ const BottomNavigation = () => {
         </NavLink>
 
         <NavLink
-          to="/free-materials"
+          to="/study-materials"
           className={({ isActive }) =>
             cn(
               "flex-1 flex flex-col items-center py-2 px-1",

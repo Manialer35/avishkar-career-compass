@@ -5,19 +5,8 @@ import ProfileSection from '../components/home/ProfileSection';
 import SyllabusSection from '../components/home/SyllabusSection';
 import IntroductionSection from '../components/home/IntroductionSection';
 import SuccessStoriesSection from '../components/home/SuccessStoriesSection';
-import StudyMaterialsSection from '../components/home/StudyMaterialsSection';
 import ClassesSection from '../components/home/ClassesSection';
 import EnquirySection from '../components/home/EnquirySection';
-
-interface StudyMaterial {
-  id: string;
-  title: string;
-  description: string;
-  downloadUrl: string;
-  thumbnailUrl?: string;
-  isPremium: boolean;
-  price?: number;
-}
 
 const Home = () => {
   // Store profile images
@@ -36,12 +25,7 @@ const Home = () => {
     "https://via.placeholder.com/350x230/38bdf8/000000?text=Success+Story+5",
   ]);
 
-  // Study materials data
-  const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
-  const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
-  const [materialsLoading, setMaterialsLoading] = useState(true);
-
-  // Load images and study materials from Supabase
+  // Load images from Supabase
   useEffect(() => {
     const fetchImagesFromCategory = async (category: string) => {
       try {
@@ -117,49 +101,7 @@ const Home = () => {
       }
     };
     
-    const fetchStudyMaterials = async () => {
-      try {
-        setMaterialsLoading(true);
-        console.log("Fetching study materials...");
-        const { data, error } = await supabase
-          .from('study_materials')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(8);
-        
-        if (error) {
-          console.error("Error fetching study materials:", error);
-          throw error;
-        }
-
-        if (data) {
-          console.log("Study materials fetched:", data.length);
-          const materials = data.map(item => ({
-            id: item.id,
-            title: item.title,
-            description: item.description || "",
-            downloadUrl: item.downloadurl || "",
-            thumbnailUrl: item.thumbnailurl || undefined,
-            isPremium: item.ispremium || false,
-            price: item.price
-          }));
-
-          const freeItems = materials.filter(m => !m.isPremium);
-          const paidItems = materials.filter(m => m.isPremium);
-          
-          console.log(`Free materials: ${freeItems.length}, Paid materials: ${paidItems.length}`);
-          setFreeMaterials(freeItems.slice(0, 3));
-          setPaidMaterials(paidItems.slice(0, 3));
-        }
-      } catch (error) {
-        console.error('Error fetching study materials:', error);
-      } finally {
-        setMaterialsLoading(false);
-      }
-    };
-    
     loadImages();
-    fetchStudyMaterials();
   }, []);
 
   return (
@@ -168,11 +110,6 @@ const Home = () => {
       <SyllabusSection />
       <IntroductionSection />
       <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
-      <StudyMaterialsSection 
-        freeMaterials={freeMaterials} 
-        paidMaterials={paidMaterials}
-        loading={materialsLoading} 
-      />
       <ClassesSection />
       <EnquirySection />
     </div>

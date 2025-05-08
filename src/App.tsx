@@ -16,7 +16,7 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
-import FreeStudyMaterials from "./pages/FreeStudyMaterials";
+import StudyMaterials from "./pages/StudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
@@ -30,7 +30,7 @@ const AppContent = () => {
   const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events'];
   const isMainRoute = mainRoutes.includes(location.pathname);
   const showBottomNav = isMainRoute || location.pathname === '/home' 
-    || location.pathname === '/free-materials' || location.pathname === '/premium-materials'
+    || location.pathname === '/study-materials' || location.pathname === '/premium-materials'
     || location.pathname === '/admin';
   
   return (
@@ -45,7 +45,8 @@ const AppContent = () => {
           <Route path="/event" element={<Event />} />
           <Route path="/events" element={<OnlineClasses />} />
           <Route path="/enquiry" element={<Enquiry />} />
-          <Route path="/free-materials" element={<FreeStudyMaterials />} />
+          <Route path="/study-materials" element={<StudyMaterials />} />
+          <Route path="/free-materials" element={<Navigate to="/study-materials" replace />} />
           <Route path="/premium-materials" element={<PremiumStudyMaterials />} />
           <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
           <Route path="/admin/users" element={<AdminRoute><UsersManagement /></AdminRoute>} />
