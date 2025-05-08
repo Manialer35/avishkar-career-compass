@@ -39,6 +39,7 @@ const Home = () => {
   // Study materials data
   const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
   const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(true);
 
   // Load images and study materials from Supabase
   useEffect(() => {
@@ -118,32 +119,42 @@ const Home = () => {
     
     const fetchStudyMaterials = async () => {
       try {
+        setMaterialsLoading(true);
+        console.log("Fetching study materials...");
         const { data, error } = await supabase
           .from('study_materials')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(6);
+          .limit(8);
         
         if (error) {
+          console.error("Error fetching study materials:", error);
           throw error;
         }
 
         if (data) {
+          console.log("Study materials fetched:", data.length);
           const materials = data.map(item => ({
             id: item.id,
             title: item.title,
-            description: item.description,
-            downloadUrl: item.downloadurl,
-            thumbnailUrl: item.thumbnailurl,
-            isPremium: item.ispremium,
+            description: item.description || "",
+            downloadUrl: item.downloadurl || "",
+            thumbnailUrl: item.thumbnailurl || undefined,
+            isPremium: item.ispremium || false,
             price: item.price
           }));
 
-          setFreeMaterials(materials.filter(m => !m.isPremium).slice(0, 3));
-          setPaidMaterials(materials.filter(m => m.isPremium).slice(0, 3));
+          const freeItems = materials.filter(m => !m.isPremium);
+          const paidItems = materials.filter(m => m.isPremium);
+          
+          console.log(`Free materials: ${freeItems.length}, Paid materials: ${paidItems.length}`);
+          setFreeMaterials(freeItems.slice(0, 3));
+          setPaidMaterials(paidItems.slice(0, 3));
         }
       } catch (error) {
         console.error('Error fetching study materials:', error);
+      } finally {
+        setMaterialsLoading(false);
       }
     };
     
@@ -157,7 +168,11 @@ const Home = () => {
       <SyllabusSection />
       <IntroductionSection />
       <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
-      <StudyMaterialsSection freeMaterials={freeMaterials} paidMaterials={paidMaterials} />
+      <StudyMaterialsSection 
+        freeMaterials={freeMaterials} 
+        paidMaterials={paidMaterials}
+        loading={materialsLoading} 
+      />
       <ClassesSection />
       <EnquirySection />
     </div>
