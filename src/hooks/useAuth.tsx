@@ -1,6 +1,8 @@
+
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserRole {
   role: 'admin' | 'user';
@@ -29,14 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     console.log("Setting up auth listeners");
     
-    // Set up auth state listener FIRST
+    // IMPORTANT: Set up auth state listener FIRST before checking for session
+    // This prevents auth listener deadlocks and race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
+        
+        // Update session and user state
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -88,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     role: 'user'
                   });
                 
-                if (insertError) {
+                if (insertError && !insertError.message.includes('duplicate key')) {
                   console.error("Error inserting user role:", insertError);
                 }
               }
@@ -109,6 +115,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session check:", session ? "Session found" : "No session");
+      
+      if (session?.expires_at) {
+        const expiresAt = new Date(session.expires_at * 1000);
+        const now = new Date();
+        console.log("Session expires at:", expiresAt);
+        console.log("Current time:", now);
+        console.log("Session valid:", expiresAt > now ? "Yes" : "No");
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -169,6 +184,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${currentUrl}/auth`,
       });
+      
+      if (!error) {
+        toast({
+          title: "Password reset email sent",
+          description: "Check your inbox for instructions to reset your password."
+        });
+      }
       
       return { error };
     } catch (error) {

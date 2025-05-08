@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from './use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StudyMaterial {
   id: string;
@@ -20,6 +21,7 @@ export const useAdminMaterials = () => {
   const [newMaterial, setNewMaterial] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('free');
   const { toast } = useToast();
+  const { session } = useAuth();
 
   // Memoize fetchMaterials to avoid recreating it on each render
   const fetchMaterials = useCallback(async () => {
@@ -28,11 +30,11 @@ export const useAdminMaterials = () => {
       setLoading(true);
       
       // First check if the session is valid
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        console.log("No active session, cannot fetch materials");
         toast({
-          title: "Authentication error",
-          description: "Please log in again to continue",
+          title: "Authentication Required",
+          description: "Please log in to access admin features",
           variant: "destructive",
         });
         return;
@@ -50,7 +52,7 @@ export const useAdminMaterials = () => {
 
       if (data) {
         console.log("Materials fetched successfully:", data.length);
-        setMaterials(data.map(item => ({
+        const formattedMaterials = data.map(item => ({
           id: item.id,
           title: item.title,
           description: item.description || "",
@@ -58,24 +60,30 @@ export const useAdminMaterials = () => {
           thumbnailUrl: item.thumbnailurl || undefined,
           isPremium: item.ispremium || false,
           price: item.price || undefined
-        })));
+        }));
+        
+        setMaterials(formattedMaterials);
+        console.log("Materials set:", formattedMaterials.length);
       }
     } catch (error: any) {
       console.error("Error in fetchMaterials:", error);
       toast({
         title: "Error fetching materials",
-        description: error.message,
+        description: error.message || "Could not load study materials",
         variant: "destructive",
         duration: 3000,
       });
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, session]);
 
+  // Using useEffect to fetch materials when the component mounts or session changes
   useEffect(() => {
-    fetchMaterials();
-  }, [fetchMaterials]);
+    if (session) {
+      fetchMaterials();
+    }
+  }, [fetchMaterials, session]);
 
   const handleEdit = (material: StudyMaterial) => {
     setEditingMaterial(material);
@@ -84,6 +92,15 @@ export const useAdminMaterials = () => {
 
   const handleDelete = async (id: string) => {
     try {
+      if (!session) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to delete materials",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('study_materials')
         .delete()
@@ -102,7 +119,7 @@ export const useAdminMaterials = () => {
     } catch (error: any) {
       toast({
         title: "Error deleting material",
-        description: error.message,
+        description: error.message || "Could not delete the material",
         variant: "destructive",
         duration: 3000,
       });
@@ -127,12 +144,10 @@ export const useAdminMaterials = () => {
     try {
       console.log("Saving material:", editingMaterial);
       
-      // First check if session is valid
-      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
-          title: "Authentication error",
-          description: "Please log in again to continue",
+          title: "Authentication Required",
+          description: "Please log in to save materials",
           variant: "destructive",
           duration: 3000,
         });
@@ -200,7 +215,7 @@ export const useAdminMaterials = () => {
       console.error("Error in handleSave:", error);
       toast({
         title: "Error saving material",
-        description: error.message,
+        description: error.message || "Could not save the study material",
         variant: "destructive",
         duration: 3000,
       });

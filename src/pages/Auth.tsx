@@ -6,6 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useToast } from '@/hooks/use-toast';
+import { AlertCircle, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -15,6 +17,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [authType, setAuthType] = useState<'user' | 'admin'>('user');
   const [loading, setLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -53,8 +56,20 @@ const Auth = () => {
       }
     };
     
+    // Check for query parameters indicating actions like password reset
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type');
+    
+    if (type === 'recovery') {
+      setActionMessage("You can now reset your password.");
+    }
+    
+    if (type === 'signup') {
+      setActionMessage("Your account has been created. Please check your email for verification.");
+    }
+    
     checkSession();
-  }, [navigate]);
+  }, [navigate, adminEmails]);
 
   const handleForgotPasswordClick = () => {
     setIsForgotPassword(true);
@@ -121,6 +136,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {actionMessage && (
+        <Alert className="mb-4 max-w-md">
+          <Info className="h-4 w-4" />
+          <AlertDescription>{actionMessage}</AlertDescription>
+        </Alert>
+      )}
+      
       <AuthForm
         isSignUp={isSignUp}
         setIsSignUp={setIsSignUp}
@@ -146,6 +168,19 @@ const Auth = () => {
       
       <div className="mt-4 text-sm text-gray-600">
         <p>Admin emails: {adminEmails.join(', ')}</p>
+      </div>
+      
+      <div className="mt-6 bg-blue-50 p-4 rounded-md max-w-md">
+        <h3 className="text-sm font-medium text-blue-800 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          Authentication Troubleshooting
+        </h3>
+        <ul className="mt-2 text-sm text-blue-700 list-disc pl-5 space-y-1">
+          <li>If you created an account but can't log in, check your email for verification</li>
+          <li>Try clearing your browser cache or using a private/incognito window</li>
+          <li>Make sure you're using the correct email and password combination</li>
+          <li>If problems persist, use the "Create Test Admin Account" button</li>
+        </ul>
       </div>
     </div>
   );

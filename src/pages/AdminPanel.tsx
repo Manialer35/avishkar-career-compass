@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users } from 'lucide-react';
@@ -9,6 +9,7 @@ import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
 import VideosTab from '@/components/admin/VideosTab';
 import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
 import ImageManagementTab from '@/components/admin/ImageManagementTab';
+import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
 
 const AdminPanel = () => {
@@ -45,6 +46,7 @@ const AdminPanel = () => {
           <TabsTrigger value="premium">Premium Materials</TabsTrigger>
           <TabsTrigger value="videos">Training Videos</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="registrations">Class Registrations</TabsTrigger>
         </TabsList>
         
         <TabsContent value="free">
@@ -73,6 +75,10 @@ const AdminPanel = () => {
         
         <TabsContent value="images">
           <ImageManagementTab />
+        </TabsContent>
+        
+        <TabsContent value="registrations">
+          <ClassRegistrationsTab />
         </TabsContent>
       </Tabs>
       

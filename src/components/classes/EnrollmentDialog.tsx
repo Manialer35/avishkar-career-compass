@@ -1,172 +1,216 @@
 
-import { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import PaymentModal from '@/components/PaymentModal';
 
 interface EnrollmentDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  classItem: any;
+  classTitle: string;
+  classDate: string;
+  classId: string;
+  classAmount: number;
 }
 
-const EnrollmentDialog = ({ isOpen, onClose, classItem }: EnrollmentDialogProps) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: ''
-  });
+const EnrollmentDialog = ({
+  open,
+  onClose,
+  classTitle,
+  classDate,
+  classId,
+  classAmount
+}: EnrollmentDialogProps) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const { toast } = useToast();
-  
-  if (!classItem) return null;
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Open payment modal
-    setIsPaymentModalOpen(true);
+    
+    // Form validation
+    if (!name || !email || !phone) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (classAmount > 0) {
+      // For paid classes, show payment dialog
+      setShowPayment(true);
+    } else {
+      // For free classes, register directly
+      await completeRegistration();
+    }
   };
   
-  const handlePaymentComplete = async () => {
-    setLoading(true);
-    
+  const completeRegistration = async (paymentId?: string) => {
     try {
-      // Save enrollment to database
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      const enrollment = {
+        student_name: name,
+        student_email: email,
+        student_phone: phone,
+        student_address: address,
+        class_title: classTitle,
+        class_date: classDate,
+        class_id: classId,
+        amount_paid: classAmount,
+        payment_status: paymentId ? 'completed' : 'waived',
+        payment_id: paymentId
+      };
+      
+      // Record both in class_enrollments for enrolled students
+      const { error: enrollmentError } = await supabase
         .from('class_enrollments')
+        .insert(enrollment);
+      
+      if (enrollmentError) throw enrollmentError;
+      
+      // Also record in class_registrations for tracking
+      const { error: registrationError } = await supabase
+        .from('class_registrations')
         .insert({
-          class_id: classItem.id,
-          class_title: classItem.title,
-          class_date: classItem.date,
-          amount_paid: classItem.price,
-          student_name: formData.name,
-          student_email: formData.email,
-          student_phone: formData.phone,
-          student_address: formData.address
+          student_name: name,
+          student_email: email,
+          student_phone: phone,
+          student_address: address,
+          class_title: classTitle,
+          class_date: classDate,
+          class_id: classId
         });
       
-      if (error) throw error;
+      if (registrationError) throw registrationError;
       
       toast({
-        title: "Enrollment Successful!",
-        description: `You've been enrolled for ${classItem.title}. Check your email for details.`
+        title: "Success!",
+        description: `You have successfully enrolled in ${classTitle}`,
       });
       
       onClose();
+      
+      // Reset form
+      setName('');
+      setEmail('');
+      setPhone('');
+      setAddress('');
     } catch (error: any) {
+      console.error('Error submitting enrollment:', error);
       toast({
-        title: "Enrollment Failed",
+        title: "Error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
   
+  const handlePaymentComplete = () => {
+    // Generate a mock payment ID for demo purposes
+    const mockPaymentId = `pay_${Date.now()}`;
+    completeRegistration(mockPaymentId);
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={open && !showPayment} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Enroll for Class</DialogTitle>
-            <DialogDescription>
-              Fill out this form to enroll for "{classItem.title}" on {new Date(classItem.date).toLocaleDateString()}
-            </DialogDescription>
+            <DialogTitle className="text-xl font-semibold">
+              Enroll in {classTitle}
+            </DialogTitle>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                name="name" 
-                value={formData.name} 
-                onChange={handleChange}
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Name *
+              </label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
                 required
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input 
-                id="email" 
-                name="email" 
-                type="email" 
-                value={formData.email} 
-                onChange={handleChange}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
                 required
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input 
-                id="phone" 
-                name="phone" 
-                value={formData.phone} 
-                onChange={handleChange}
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number *
+              </label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
                 required
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
-              <Input 
-                id="address" 
-                name="address" 
-                value={formData.address} 
-                onChange={handleChange}
-                required
+            <div>
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                Address
+              </label>
+              <Textarea
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter your address"
+                rows={2}
               />
             </div>
             
-            <div className="bg-gray-50 p-3 rounded-md mt-4">
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Class Fee:</span>
-                <span className="font-semibold text-academy-red">₹{classItem.price}</span>
-              </div>
-            </div>
-            
-            <DialogFooter className="pt-4">
+            <div className="pt-2 flex justify-between">
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>
-                Proceed to Payment
+                {loading ? 'Processing...' : classAmount > 0 ? 'Proceed to Payment' : 'Enroll Now'}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
       
-      <PaymentModal 
-        open={isPaymentModalOpen} 
-        onClose={() => setIsPaymentModalOpen(false)}
-        amount={classItem?.price || 0}
-        productName={classItem?.title || ""}
+      <PaymentModal
+        open={showPayment}
+        onClose={() => setShowPayment(false)}
+        amount={classAmount}
+        productName={classTitle}
         onPaymentComplete={handlePaymentComplete}
+        customerDetails={{
+          name,
+          email,
+          phone
+        }}
       />
     </>
   );
