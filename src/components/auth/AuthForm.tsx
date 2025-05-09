@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +38,7 @@ export const AuthForm = ({
 }: AuthFormProps) => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [verificationRequired, setVerificationRequired] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -46,6 +46,7 @@ export const AuthForm = ({
     e.preventDefault();
     
     setErrorMessage(null);
+    setVerificationRequired(false);
     
     // Simple validation
     if (!email || !password) {
@@ -79,6 +80,7 @@ export const AuthForm = ({
             data: {
               full_name: fullName,
             },
+            // Important: Only set emailRedirectTo if you want to force email verification
             emailRedirectTo: window.location.origin + '/auth',
           },
         });
@@ -90,14 +92,36 @@ export const AuthForm = ({
         
         if (data?.user) {
           console.log("User created successfully:", data.user.id);
-          toast({
-            title: "Account created successfully!",
-            description: "Please check your email for verification instructions, then sign in.",
-          });
           
-          // Auto-switch to sign in mode
-          setIsSignUp(false);
-          setPassword("");
+          // Check if email confirmation is needed
+          if (data.session) {
+            // No email confirmation needed - user can login right away
+            toast({
+              title: "Account created successfully!",
+              description: "You have been automatically logged in.",
+            });
+            
+            // Check if user is an admin
+            const isAdmin = adminEmails.includes(email);
+            
+            // Redirect based on role
+            if (isAdmin) {
+              navigate('/admin');
+            } else {
+              navigate('/');
+            }
+          } else {
+            // Email confirmation is needed
+            setVerificationRequired(true);
+            toast({
+              title: "Account created successfully!",
+              description: "Please check your email for verification instructions, then sign in.",
+            });
+            
+            // Auto-switch to sign in mode
+            setIsSignUp(false);
+            setPassword("");
+          }
         }
       } else {
         // Signing in an existing user
@@ -112,7 +136,20 @@ export const AuthForm = ({
           
           // Special handling for invalid login credentials
           if (error.message.includes('Invalid login')) {
-            setErrorMessage("Invalid email or password. Please try again.");
+            // Check if user exists but email is not confirmed
+            const { data: userData } = await supabase.auth.signInWithOtp({
+              email,
+              options: {
+                shouldCreateUser: false,
+              }
+            });
+            
+            if (userData) {
+              setErrorMessage("Please verify your email address before signing in. Check your inbox for a verification link.");
+              setVerificationRequired(true);
+            } else {
+              setErrorMessage("Invalid email or password. Please try again.");
+            }
           } else {
             setErrorMessage(error.message);
           }
@@ -146,6 +183,39 @@ export const AuthForm = ({
     }
   };
 
+  // Function to resend verification email
+  const resendVerificationEmail = async () => {
+    if (!email) {
+      setErrorMessage("Please enter your email address");
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + '/auth',
+        },
+      });
+      
+      if (error) {
+        setErrorMessage(error.message);
+      } else {
+        toast({
+          title: "Verification email sent",
+          description: "Please check your inbox for the verification link.",
+        });
+      }
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to send verification email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
       <div className="text-center mb-6">
@@ -163,6 +233,24 @@ export const AuthForm = ({
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
+      {verificationRequired && !isSignUp && (
+        <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+          <AlertCircle className="h-4 w-4 text-yellow-500" />
+          <AlertDescription className="flex flex-col space-y-2">
+            <span>Please verify your email before signing in.</span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={resendVerificationEmail}
+              disabled={loading}
+              className="self-start text-xs"
+            >
+              Resend verification email
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -257,6 +345,7 @@ export const AuthForm = ({
             onClick={() => {
               setIsSignUp(!isSignUp);
               setErrorMessage(null);
+              setVerificationRequired(false);
             }}
             className="text-academy-primary hover:underline font-medium"
           >
