@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +14,8 @@ interface AuthContextType {
   loading: boolean;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   createAdminUser: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
+  ensureUserRole: (userId: string, role?: 'admin' | 'user') => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -23,8 +24,16 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   loading: true,
   resetPassword: async () => ({ error: new Error('Not implemented') }),
-  createAdminUser: async () => ({ error: new Error('Not implemented') })
+  createAdminUser: async () => ({ error: new Error('Not implemented') }),
+  signOut: async () => {},
+  ensureUserRole: async () => {}
 });
+
+// Admin emails list
+const ADMIN_EMAILS = [
+  'khot.md@gmail.com', 
+  'neerajmadkar35@gmail.com'
+];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -33,77 +42,170 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Helper function to ensure user role exists
+  const ensureUserRole = async (userId: string, role?: 'admin' | 'user') => {
+    console.log("Ensuring user role exists for:", userId);
+    
+    try {
+      // Check if role exists already
+      const { data: existingRole, error: roleCheckError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (roleCheckError) {
+        console.error("Error checking user role:", roleCheckError);
+        return;
+      }
+      
+      // If role exists, no need to create one
+      if (existingRole) {
+        console.log("User role already exists:", existingRole);
+        setUserRole({ role: existingRole.role });
+        return;
+      }
+      
+      // Get the user's email to check if they should be an admin
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("Error getting user data:", userError);
+        return;
+      }
+      
+      // If role is explicitly provided, use that
+      // Otherwise, determine role based on email
+      const roleToAssign = role || 
+        (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email) ? 'admin' : 'user');
+      
+      console.log(`Assigning role '${roleToAssign}' to user ${userId}`);
+      
+      // Create user role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, role: roleToAssign });
+        
+      if (insertError) {
+        console.error("Error creating user role:", insertError);
+        
+        // If the error is a duplicate key error, that's fine
+        if (!insertError.message.includes('duplicate key')) {
+          throw insertError;
+        }
+      }
+      
+      setUserRole({ role: roleToAssign });
+      console.log("Role assigned successfully");
+    } catch (error) {
+      console.error("Error in ensureUserRole:", error);
+      // Default to user role on error
+      setUserRole({ role: 'user' });
+    }
+  };
+
+  // Handle sign-out
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setUserRole(null);
+  };
+
+  // Fetch user role
+  const fetchUserRole = async (userId: string) => {
+    console.log("Fetching user role for:", userId);
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        // Check if the error is related to missing tables
+        if (error.message.includes('does not exist')) {
+          console.error("user_roles table may not exist. User needs to set up database schema.");
+          toast({
+            title: "Database setup issue",
+            description: "The user_roles table may not exist. Please check your database setup.",
+            variant: "destructive"
+          });
+        }
+        
+        // Check if email is in admin list
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
+          console.log("Setting admin role based on email");
+          setUserRole({ role: 'admin' });
+          
+          // Try to ensure role exists
+          await ensureUserRole(userId, 'admin');
+        } else {
+          setUserRole({ role: 'user' });
+          
+          // Try to ensure role exists
+          await ensureUserRole(userId, 'user');
+        }
+      } else if (data) {
+        console.log("User role fetched:", data);
+        setUserRole({ role: data.role });
+      } else {
+        console.log("No role found, defaulting to user");
+        setUserRole({ role: 'user' });
+        
+        // Ensure user role exists
+        await ensureUserRole(userId);
+      }
+    } catch (error) {
+      console.error("Error in fetchUserRole:", error);
+      setUserRole({ role: 'user' }); // Default to user role on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth listeners");
     
     // IMPORTANT: Set up auth state listener FIRST before checking for session
     // This prevents auth listener deadlocks and race conditions
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event);
         
         // Update session and user state
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        if (event === 'SIGNED_IN') {
+          toast({
+            title: "Signed in successfully",
+            description: "Welcome back!"
+          });
+        } else if (event === 'SIGNED_OUT') {
+          toast({
+            title: "Signed out",
+            description: "You have been signed out."
+          });
+        } else if (event === 'PASSWORD_RECOVERY') {
+          toast({
+            title: "Password recovery requested",
+            description: "Check your email for password reset instructions."
+          });
+        } else if (event === 'USER_UPDATED') {
+          toast({
+            title: "Account updated",
+            description: "Your account has been updated successfully."
+          });
+        }
+        
         // Fetch user role if we have a session
         if (currentSession?.user) {
           // Use setTimeout to avoid potential auth listener deadlock
-          setTimeout(async () => {
-            try {
-              const { data, error } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', currentSession.user.id)
-                .maybeSingle(); // Use maybeSingle instead of single to prevent errors
-              
-              if (error) {
-                console.error("Error fetching user role:", error);
-                // Check if email is in admin list and set role to admin
-                if (currentSession.user.email && ['khot.md@gmail.com', 'neerajmadkar35@gmail.com'].includes(currentSession.user.email)) {
-                  console.log("Setting admin role based on email");
-                  setUserRole({ role: 'admin' });
-                  
-                  // Attempt to insert the admin role if it doesn't exist
-                  const { error: insertError } = await supabase
-                    .from('user_roles')
-                    .insert({
-                      user_id: currentSession.user.id,
-                      role: 'admin'
-                    });
-                  
-                  if (insertError) {
-                    console.error("Error inserting admin role:", insertError);
-                  }
-                } else {
-                  setUserRole({ role: 'user' }); // Default to user role
-                }
-              } else if (data) {
-                console.log("User role fetched:", data);
-                setUserRole({ role: data.role });
-              } else {
-                // No role found, default to user
-                console.log("No role found, defaulting to user role");
-                setUserRole({ role: 'user' });
-                
-                // Insert default user role
-                const { error: insertError } = await supabase
-                  .from('user_roles')
-                  .insert({
-                    user_id: currentSession.user.id,
-                    role: 'user'
-                  });
-                
-                if (insertError && !insertError.message.includes('duplicate key')) {
-                  console.error("Error inserting user role:", insertError);
-                }
-              }
-            } catch (error) {
-              console.error("Error in fetchUserRole:", error);
-              setUserRole({ role: 'user' }); // Default to user role on error
-            } finally {
-              setLoading(false);
-            }
+          setTimeout(() => {
+            fetchUserRole(currentSession.user.id);
           }, 0);
         } else {
           setUserRole(null);
@@ -140,40 +242,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
-
-  const fetchUserRole = async (userId: string) => {
-    console.log("Fetching user role for:", userId);
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle(); // Use maybeSingle instead of single
-      
-      if (error) {
-        console.error("Error fetching user role:", error);
-        // Check if email is in admin list
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user?.email && ['khot.md@gmail.com', 'neerajmadkar35@gmail.com'].includes(userData.user.email)) {
-          console.log("Setting admin role based on email");
-          setUserRole({ role: 'admin' });
-        } else {
-          setUserRole({ role: 'user' }); // Default to user role
-        }
-      } else if (data) {
-        console.log("User role fetched:", data);
-        setUserRole({ role: data.role });
-      } else {
-        console.log("No role found, defaulting to user");
-        setUserRole({ role: 'user' });
-      }
-    } catch (error) {
-      console.error("Error in fetchUserRole:", error);
-      setUserRole({ role: 'user' }); // Default to user role on error
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const resetPassword = async (email: string) => {
     try {
@@ -217,16 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data?.user) {
         // Insert admin role for this user
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: 'admin'
-          });
-          
-        if (roleError) {
-          return { error: roleError };
-        }
+        await ensureUserRole(data.user.id, 'admin');
       }
       
       return { error: null };
@@ -243,7 +302,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userRole, 
       loading, 
       resetPassword,
-      createAdminUser 
+      createAdminUser,
+      signOut,
+      ensureUserRole
     }}>
       {children}
     </AuthContext.Provider>
