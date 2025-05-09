@@ -101,35 +101,17 @@ export const AuthForm = ({
           return;
         }
         
-        // Replace the existing user role creation logic with this improved version
-        // in the handleAuth function after successful user creation
+        // Replace the user role creation logic in handleAuth function
+        // after successful user creation with this code:
         
         if (data?.user) {
           console.log("User created successfully:", data.user.id);
           
-          // Create user role using upsert instead of insert
-          try {
-            const { error: roleError } = await supabase
-              .from('user_roles')
-              .upsert(
-                {
-                  user_id: data.user.id,
-                  role: adminEmails.includes(email) ? 'admin' : 'user'
-                },
-                {
-                  onConflict: 'user_id',
-                  ignoreDuplicates: true // This is crucial for avoiding the duplicate key error
-                }
-              );
-              
-            if (roleError) {
-              console.error("Error creating user role:", roleError);
-              // We continue regardless of role creation errors
-            }
-          } catch (roleError) {
-            console.error("Exception in role creation:", roleError);
-            // Continue with signup process even if role creation fails
-          }
+          // DO NOT try to create the role here anymore
+          // Let the AuthProvider handle it through the auth state change event
+          
+          // The AuthProvider will detect the new user and assign the role
+          // This eliminates the race condition between the two components
           
           // Check if email confirmation is needed
           if (data.session) {
