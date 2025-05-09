@@ -72,56 +72,100 @@ export const AuthForm = ({
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'} user: ${email}`);
       
       if (isSignUp) {
-        // Creating a new user
-        const { data, error } = await supabase.auth.signUp({
+        // First check if the user already exists to provide better feedback
+        const { data: existingUser } = await supabase.auth.signInWithOtp({
           email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
-            },
-            // Important: Only set emailRedirectTo if you want to force email verification
-            emailRedirectTo: window.location.origin + '/auth',
-          },
+          options: { shouldCreateUser: false }
         });
         
-        if (error) {
-          console.error("Signup error:", error);
-          throw error;
+        if (existingUser) {
+          setErrorMessage("An account with this email already exists. Please try signing in instead.");
+          setIsSignUp(false);
+          setLoading(false);
+          return;
         }
-        
-        if (data?.user) {
-          console.log("User created successfully:", data.user.id);
+      
+        // Creating a new user - use try/catch specifically for database errors
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+              },
+              // Important: Only set emailRedirectTo if you want to force email verification
+              emailRedirectTo: window.location.origin + '/auth',
+            },
+          });
           
-          // Check if email confirmation is needed
-          if (data.session) {
-            // No email confirmation needed - user can login right away
-            toast({
-              title: "Account created successfully!",
-              description: "You have been automatically logged in.",
-            });
+          if (error) {
+            console.error("Signup error:", error);
             
-            // Check if user is an admin
-            const isAdmin = adminEmails.includes(email);
-            
-            // Redirect based on role
-            if (isAdmin) {
-              navigate('/admin');
+            // Check for specific database-related errors
+            if (error.message.includes('database') || error.message.includes('Database')) {
+              setErrorMessage("Database error creating user. Please try again or contact support. Error: " + error.message);
             } else {
-              navigate('/');
+              throw error;
             }
-          } else {
-            // Email confirmation is needed
-            setVerificationRequired(true);
-            toast({
-              title: "Account created successfully!",
-              description: "Please check your email for verification instructions, then sign in.",
-            });
-            
-            // Auto-switch to sign in mode
-            setIsSignUp(false);
-            setPassword("");
+            return;
           }
+          
+          if (data?.user) {
+            console.log("User created successfully:", data.user.id);
+            
+            // Manually create user role to ensure it exists
+            try {
+              // Try to insert user role
+              const { error: roleError } = await supabase
+                .from('user_roles')
+                .insert({
+                  user_id: data.user.id,
+                  role: adminEmails.includes(email) ? 'admin' : 'user'
+                });
+                
+              if (roleError && !roleError.message.includes('duplicate')) {
+                console.error("Error creating user role:", roleError);
+                // Continue with the signup process even if role creation fails
+              }
+            } catch (roleError) {
+              console.error("Exception in role creation:", roleError);
+              // Continue with the signup process even if role creation fails
+            }
+            
+            // Check if email confirmation is needed
+            if (data.session) {
+              // No email confirmation needed - user can login right away
+              toast({
+                title: "Account created successfully!",
+                description: "You have been automatically logged in.",
+              });
+              
+              // Check if user is an admin
+              const isAdmin = adminEmails.includes(email);
+              
+              // Redirect based on role
+              if (isAdmin) {
+                navigate('/admin');
+              } else {
+                navigate('/');
+              }
+            } else {
+              // Email confirmation is needed
+              setVerificationRequired(true);
+              toast({
+                title: "Account created successfully!",
+                description: "Please check your email for verification instructions, then sign in.",
+              });
+              
+              // Auto-switch to sign in mode
+              setIsSignUp(false);
+              setPassword("");
+            }
+          }
+        } catch (dbError: any) {
+          console.error("Database error during signup:", dbError);
+          setErrorMessage(`Database error: ${dbError.message || "Unknown database error"}`);
         }
       } else {
         // Signing in an existing user
