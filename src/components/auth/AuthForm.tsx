@@ -66,21 +66,21 @@ export const AuthForm = ({
       setErrorMessage("Password must be at least 6 characters");
       return;
     }
-
+  
     try {
       setLoading(true);
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'} user: ${email}`);
       
       if (isSignUp) {
         // For sign up, attempt to create the user directly
-        // Supabase will handle duplicates with proper error messages
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
-              role: adminEmails.includes(email) ? 'admin' : 'user', // Store role in metadata
+              // Store role info in auth metadata, but don't rely on it for permissions
+              initial_role: adminEmails.includes(email) ? 'admin' : 'user',
             },
             emailRedirectTo: window.location.origin + '/auth',
           },
@@ -101,17 +101,11 @@ export const AuthForm = ({
           return;
         }
         
-        // Replace the user role creation logic in handleAuth function
-        // after successful user creation with this code:
-        
         if (data?.user) {
           console.log("User created successfully:", data.user.id);
           
-          // DO NOT try to create the role here anymore
-          // Let the AuthProvider handle it through the auth state change event
-          
-          // The AuthProvider will detect the new user and assign the role
-          // This eliminates the race condition between the two components
+          // CRITICAL CHANGE: DO NOT create user roles here
+          // Let the AuthProvider handle it exclusively through its auth state change listener
           
           // Check if email confirmation is needed
           if (data.session) {
