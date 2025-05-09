@@ -72,17 +72,34 @@ export const AuthForm = ({
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'} user: ${email}`);
       
       if (isSignUp) {
-        // First check if the user already exists to provide better feedback
-        const { data: existingUser } = await supabase.auth.signInWithOtp({
-          email,
-          options: { shouldCreateUser: false }
-        });
-        
-        if (existingUser) {
-          setErrorMessage("An account with this email already exists. Please try signing in instead.");
-          setIsSignUp(false);
-          setLoading(false);
-          return;
+        // MODIFIED: Alternative approach to check if user exists without OTP
+        try {
+          // Try to sign in with a dummy password - this will fail, but tell us if user exists
+          const { error: checkError } = await supabase.auth.signInWithPassword({
+            email,
+            password: "dummy-password-for-checking-123456", // This will intentionally fail
+          });
+          
+          // Check error message to determine if user exists
+          if (checkError) {
+            // If we get invalid login credentials, it means the user exists
+            // If we get email not confirmed, it also means user exists
+            if (checkError.message.includes("Invalid login credentials") || 
+                checkError.message.includes("Email not confirmed")) {
+              setErrorMessage("An account with this email already exists. Please try signing in instead.");
+              setIsSignUp(false);
+              setLoading(false);
+              return;
+            }
+            
+            // If we get other errors, check if they indicate user doesn't exist
+            if (!checkError.message.includes("user not found")) {
+              console.log("User check error:", checkError);
+            }
+          }
+        } catch (checkError) {
+          console.error("Error during user existence check:", checkError);
+          // Continue with signup attempt even if check fails
         }
       
         // Creating a new user - use try/catch specifically for database errors
@@ -178,24 +195,13 @@ export const AuthForm = ({
         if (error) {
           console.error("Login error:", error);
           
-          // Special handling for invalid login credentials
-          if (error.message.includes('Invalid login')) {
-            // Check if user exists but email is not confirmed
-            const { data: userData } = await supabase.auth.signInWithOtp({
-              email,
-              options: {
-                shouldCreateUser: false,
-              }
-            });
-            
-            if (userData) {
-              setErrorMessage("Please verify your email address before signing in. Check your inbox for a verification link.");
-              setVerificationRequired(true);
-            } else {
-              setErrorMessage("Invalid email or password. Please try again.");
-            }
+          // Handle email not confirmed error
+          if (error.message.includes('Email not confirmed')) {
+            setErrorMessage("Please verify your email address before signing in. Check your inbox for a verification link.");
+            setVerificationRequired(true);
           } else {
-            setErrorMessage(error.message);
+            // Handle other login errors
+            setErrorMessage("Invalid email or password. Please try again.");
           }
           return;
         }
