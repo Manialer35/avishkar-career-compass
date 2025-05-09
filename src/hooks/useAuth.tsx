@@ -62,16 +62,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update the ensureUserRole function with better transaction handling
+  // Completely rewritten ensureUserRole function with transaction safety
   const ensureUserRole = async (userId: string, role?: 'admin' | 'user') => {
     console.log("Ensuring user role exists for:", userId);
     
     if (!userId) {
       console.error("Cannot ensure role for empty userId");
+      setUserRole({ role: 'user' }); // Default for safety
       return;
     }
     
     try {
+      // First, check if a role already exists to avoid unnecessary operations
+      const { data: existingRole, error: checkError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (!checkError && existingRole) {
+        console.log("User role already exists:", existingRole);
+        setUserRole({ role: existingRole.role });
+        return;
+      }
+      
+      // If no existing role or there was an error checking, proceed with role determination
       // Get the user's email to check if they should be an admin
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
@@ -81,15 +96,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // If role is explicitly provided, use that
-      // Otherwise, determine role based on email
+      // Determine the role to assign
       const roleToAssign = role || 
         (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email) ? 'admin' : 'user');
       
       console.log(`Assigning role '${roleToAssign}' to user ${userId}`);
       
-      // Use upsert with onConflict to handle duplicates properly
-      const { data, error: upsertError } = await supabase
+      // Try an RPC call if available (most reliable way to handle this in PostgreSQL)
+      try {
+        // This assumes you have a stored procedure like:
+        // CREATE OR REPLACE FUNCTION ensure_user_role(p_user_id TEXT, p_role TEXT)
+        // RETURNS VOID AS $$
+        // BEGIN
+        //   INSERT INTO user_roles (user_id, role)
+        //   VALUES (p_user_id, p_role)
+        //   ON CONFLICT (user_id) DO UPDATE SET role = p_role;
+        // END;
+        // $$ LANGUAGE plpgsql;
+        
+        // Check if RPC is available in your project
+        const hasRpcFunction = true; // Change to false if you don't have an RPC function
+        
+        if (hasRpcFunction) {
+          const { error: rpcError } = await supabase.rpc('ensure_user_role', {
+            p_user_id: userId,
+            p_role: roleToAssign
+          });
+          
+          if (rpcError) {
+            console.error("RPC error creating role:", rpcError);
+            throw rpcError; // Move to fallback
+          } else {
+            console.log("Role created via RPC successfully");
+            setUserRole({ role: roleToAssign });
+            return;
+          }
+        }
+      } catch (rpcError) {
+        console.log("RPC approach failed, falling back to upsert");
+      }
+      
+      // Fallback to upsert with explicit parameters
+      const { error: upsertError } = await supabase
         .from('user_roles')
         .upsert({ 
           user_id: userId, 
@@ -97,32 +145,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, {
           onConflict: 'user_id',
           ignoreDuplicates: true
-        })
-        .select('role')
-        .single();
+        });
         
       if (upsertError) {
         console.error("Error upserting user role:", upsertError);
         
-        // As a fallback, try to get the role if it exists
-        const { data: existingRole, error: fetchError } = await supabase
+        // Try a simple insert with ON CONFLICT DO NOTHING as last resort
+        try {
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({ 
+              user_id: userId, 
+              role: roleToAssign 
+            })
+            .onConflict('user_id')
+            .ignore();
+            
+          if (insertError) {
+            console.error("Final insert attempt failed:", insertError);
+          }
+        } catch (finalError) {
+          console.error("Final attempt error:", finalError);
+        }
+      }
+      
+      // After all attempts, check what's actually in the database
+      try {
+        const { data: finalRole, error: finalCheckError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
           .maybeSingle();
-        
-        if (!fetchError && existingRole) {
-          console.log("Retrieved existing role:", existingRole);
-          setUserRole({ role: existingRole.role });
+          
+        if (!finalCheckError && finalRole) {
+          console.log("Final role check result:", finalRole);
+          setUserRole({ role: finalRole.role });
         } else {
           // Default to the determined role if we can't fetch it
           setUserRole({ role: roleToAssign });
         }
-      } else if (data) {
-        console.log("Role upserted successfully:", data);
-        setUserRole({ role: data.role });
-      } else {
-        // This shouldn't happen, but just in case
+      } catch (finalCheckError) {
+        console.error("Final role check failed:", finalCheckError);
         setUserRole({ role: roleToAssign });
       }
     } catch (error) {
@@ -140,9 +203,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserRole(null);
   };
 
-  // Fetch user role
+  // Update the fetchUserRole function to be more robust
   const fetchUserRole = async (userId: string) => {
     console.log("Fetching user role for:", userId);
+    
+    if (!userId) {
+      console.error("Cannot fetch role for empty userId");
+      setUserRole({ role: 'user' });
+      setLoading(false);
+      return;
+    }
+    
     try {
       // First check directly from the database
       const { data, error } = await supabase
@@ -151,62 +222,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', userId)
         .maybeSingle();
       
-      if (error) {
-        console.error("Error fetching user role:", error);
-        
-        // Check if the error is related to missing tables
-        if (error.message.includes('does not exist')) {
-          console.error("user_roles table may not exist. User needs to set up database schema.");
-          toast({
-            title: "Database setup issue",
-            description: "The user_roles table may not exist. Please check your database setup.",
-            variant: "destructive"
-          });
-        }
-        
-        // Get current user for email check
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
-            console.log("Setting admin role based on email");
-            setUserRole({ role: 'admin' });
-            
-            // Try to ensure role exists
-            await ensureUserRole(userId, 'admin');
-          } else {
-            console.log("Setting user role based on default");
-            setUserRole({ role: 'user' });
-            
-            // Try to ensure role exists
-            await ensureUserRole(userId, 'user');
-          }
-        } catch (userError) {
-          console.error("Error getting user for role check:", userError);
-          setUserRole({ role: 'user' });
-        }
-      } else if (data) {
+      if (!error && data) {
         console.log("User role fetched:", data);
         setUserRole({ role: data.role });
-      } else {
-        console.log("No role found, checking email for admin status");
+        setLoading(false);
+        return;
+      }
+      
+      // If no role found or there was an error, determine the role based on email
+      console.log("No role found or error, checking email");
+      
+      try {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
         
-        // No role found, check if email is in admin list
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
-            console.log("Setting admin role based on email");
-            setUserRole({ role: 'admin' });
-          } else {
-            console.log("Setting default user role");
-            setUserRole({ role: 'user' });
-          }
-          
-          // Ensure user role exists in database
-          await ensureUserRole(userId);
-        } catch (userError) {
-          console.error("Error getting user for role check:", userError);
-          setUserRole({ role: 'user' });
+        if (userError) {
+          throw userError;
         }
+        
+        if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
+          console.log("Setting admin role based on email");
+          setUserRole({ role: 'admin' });
+          
+          // Try to ensure the role exists in database
+          await ensureUserRole(userId, 'admin');
+        } else {
+          console.log("Setting default user role");
+          setUserRole({ role: 'user' });
+          
+          // Try to ensure the role exists in database
+          await ensureUserRole(userId, 'user');
+        }
+      } catch (userError) {
+        console.error("Error getting user for role check:", userError);
+        setUserRole({ role: 'user' });
       }
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
