@@ -114,22 +114,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log(`Assigning role '${roleToAssign}' to user ${userId}`);
       
-      // Create user role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: roleToAssign });
-        
-      if (insertError) {
-        console.error("Error creating user role:", insertError);
-        
-        // If the error is a duplicate key error, that's fine
-        if (!insertError.message.includes('duplicate key')) {
+      try {
+        // Use upsert with onConflict to handle duplicates properly
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .upsert({ 
+            user_id: userId, 
+            role: roleToAssign 
+          }, {
+            onConflict: 'user_id',
+            ignoreDuplicates: true
+          });
+          
+        if (insertError) {
+          console.error("Error creating user role:", insertError);
           throw insertError;
         }
+        
+        setUserRole({ role: roleToAssign });
+        console.log("Role assigned successfully");
+      } catch (insertErr) {
+        // If there's still an error, try a different approach
+        console.error("Error with upsert, trying select then insert:", insertErr);
+        
+        // Double-check if the role now exists (race condition handling)
+        const { data: recheckedRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (recheckedRole) {
+          // Role was created in parallel, use it
+          setUserRole({ role: recheckedRole.role });
+          return;
+        }
+        
+        // Set the role in state even if we can't save to database
+        setUserRole({ role: roleToAssign });
       }
-      
-      setUserRole({ role: roleToAssign });
-      console.log("Role assigned successfully");
     } catch (error) {
       console.error("Error in ensureUserRole:", error);
       // Default to user role on error
@@ -239,11 +262,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Signed in successfully",
             description: "Welcome back!"
           });
+          
+          // Wait a bit before fetching user role to ensure auth is fully processed
+          if (currentSession?.user) {
+            setTimeout(() => {
+              fetchUserRole(currentSession.user.id);
+            }, 300);
+          } else {
+            setUserRole(null);
+            setLoading(false);
+          }
         } else if (event === 'SIGNED_OUT') {
           toast({
             title: "Signed out",
             description: "You have been signed out successfully."
           });
+          setUserRole(null);
+          setLoading(false);
         } else if (event === 'PASSWORD_RECOVERY') {
           toast({
             title: "Password recovery requested",
@@ -254,23 +289,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Account updated",
             description: "Your account has been updated successfully."
           });
+          
+          // Re-fetch user role on update
+          if (currentSession?.user) {
+            setTimeout(() => {
+              fetchUserRole(currentSession.user.id);
+            }, 300);
+          }
         } else if (event === 'USER_DELETED') {
           toast({
             title: "Account deleted",
             description: "Your account has been deleted."
           });
+          setUserRole(null);
+          setLoading(false);
         } else if (event === 'TOKEN_REFRESHED') {
           console.log("Auth token refreshed");
-        }
-        
-        // Fetch user role if we have a session
-        if (currentSession?.user) {
-          // Use setTimeout to avoid potential auth listener deadlock
-          setTimeout(() => {
-            fetchUserRole(currentSession.user.id);
-          }, 0);
         } else {
-          setUserRole(null);
+          // For other events, set loading to false if not otherwise handled
           setLoading(false);
         }
       }
@@ -350,6 +386,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
+          data: {
+            role: 'admin', // Store role in metadata
+          },
           emailRedirectTo: window.location.origin,
         }
       });
@@ -365,8 +404,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (data?.user) {
-        // Insert admin role for this user
-        await ensureUserRole(data.user.id, 'admin');
+        try {
+          // Use upsert to avoid duplicate key errors
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .upsert({
+              user_id: data.user.id,
+              role: 'admin'
+            }, {
+              onConflict: 'user_id',
+              ignoreDuplicates: true
+            });
+            
+          if (roleError) {
+            console.error("Error setting admin role:", roleError);
+            // Continue even if this fails
+          }
+        } catch (roleError) {
+          console.error("Exception setting admin role:", roleError);
+          // Continue even if this fails
+        }
         
         toast({
           title: "Admin user created",
