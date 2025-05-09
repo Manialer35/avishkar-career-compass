@@ -16,6 +16,7 @@ interface AuthContextType {
   createAdminUser: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   ensureUserRole: (userId: string, role?: 'admin' | 'user') => Promise<void>;
+  checkEmailVerificationStatus: (userId: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({ 
@@ -26,7 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   resetPassword: async () => ({ error: new Error('Not implemented') }),
   createAdminUser: async () => ({ error: new Error('Not implemented') }),
   signOut: async () => {},
-  ensureUserRole: async () => {}
+  ensureUserRole: async () => {},
+  checkEmailVerificationStatus: async () => false
 });
 
 // Admin emails list
@@ -42,6 +44,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Check email verification status
+  const checkEmailVerificationStatus = async (userId: string): Promise<boolean> => {
+    try {
+      const { data: userData, error } = await supabase.auth.getUser();
+      
+      if (error || !userData?.user) {
+        console.error("Error getting user data:", error);
+        return false;
+      }
+      
+      // In Supabase, email verified status is available on the user object
+      return !!userData.user.email_confirmed_at;
+    } catch (error) {
+      console.error("Error checking email verification status:", error);
+      return false;
+    }
+  };
+
   // Helper function to ensure user role exists
   const ensureUserRole = async (userId: string, role?: 'admin' | 'user') => {
     console.log("Ensuring user role exists for:", userId);
@@ -56,6 +76,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (roleCheckError) {
         console.error("Error checking user role:", roleCheckError);
+        
+        // Check if table doesn't exist
+        if (roleCheckError.message.includes('does not exist')) {
+          toast({
+            title: "Database setup issue",
+            description: "The user_roles table may not exist. Please check your database setup.",
+            variant: "destructive"
+          });
+        }
+        
+        // Default to user role on error, unless specified otherwise
+        setUserRole({ role: role || 'user' });
         return;
       }
       
@@ -71,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (userError) {
         console.error("Error getting user data:", userError);
+        setUserRole({ role: role || 'user' });
         return;
       }
       
@@ -100,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Error in ensureUserRole:", error);
       // Default to user role on error
-      setUserRole({ role: 'user' });
+      setUserRole({ role: role || 'user' });
     }
   };
 
@@ -116,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserRole = async (userId: string) => {
     console.log("Fetching user role for:", userId);
     try {
+      // First check directly from the database
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -124,6 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Error fetching user role:", error);
+        
         // Check if the error is related to missing tables
         if (error.message.includes('does not exist')) {
           console.error("user_roles table may not exist. User needs to set up database schema.");
@@ -134,29 +169,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
         
-        // Check if email is in admin list
-        const { data: userData } = await supabase.auth.getUser();
-        if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
-          console.log("Setting admin role based on email");
-          setUserRole({ role: 'admin' });
-          
-          // Try to ensure role exists
-          await ensureUserRole(userId, 'admin');
-        } else {
+        // Get current user for email check
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
+            console.log("Setting admin role based on email");
+            setUserRole({ role: 'admin' });
+            
+            // Try to ensure role exists
+            await ensureUserRole(userId, 'admin');
+          } else {
+            console.log("Setting user role based on default");
+            setUserRole({ role: 'user' });
+            
+            // Try to ensure role exists
+            await ensureUserRole(userId, 'user');
+          }
+        } catch (userError) {
+          console.error("Error getting user for role check:", userError);
           setUserRole({ role: 'user' });
-          
-          // Try to ensure role exists
-          await ensureUserRole(userId, 'user');
         }
       } else if (data) {
         console.log("User role fetched:", data);
         setUserRole({ role: data.role });
       } else {
-        console.log("No role found, defaulting to user");
-        setUserRole({ role: 'user' });
+        console.log("No role found, checking email for admin status");
         
-        // Ensure user role exists
-        await ensureUserRole(userId);
+        // No role found, check if email is in admin list
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
+            console.log("Setting admin role based on email");
+            setUserRole({ role: 'admin' });
+          } else {
+            console.log("Setting default user role");
+            setUserRole({ role: 'user' });
+          }
+          
+          // Ensure user role exists in database
+          await ensureUserRole(userId);
+        } catch (userError) {
+          console.error("Error getting user for role check:", userError);
+          setUserRole({ role: 'user' });
+        }
       }
     } catch (error) {
       console.error("Error in fetchUserRole:", error);
@@ -169,8 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("Setting up auth listeners");
     
-    // IMPORTANT: Set up auth state listener FIRST before checking for session
-    // This prevents auth listener deadlocks and race conditions
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log("Auth state changed:", event);
@@ -179,6 +233,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
+        // Handle specific auth events with better user feedback
         if (event === 'SIGNED_IN') {
           toast({
             title: "Signed in successfully",
@@ -187,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else if (event === 'SIGNED_OUT') {
           toast({
             title: "Signed out",
-            description: "You have been signed out."
+            description: "You have been signed out successfully."
           });
         } else if (event === 'PASSWORD_RECOVERY') {
           toast({
@@ -199,6 +254,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             title: "Account updated",
             description: "Your account has been updated successfully."
           });
+        } else if (event === 'USER_DELETED') {
+          toast({
+            title: "Account deleted",
+            description: "Your account has been deleted."
+          });
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log("Auth token refreshed");
         }
         
         // Fetch user role if we have a session
@@ -214,7 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Initial session check:", session ? "Session found" : "No session");
       
@@ -256,13 +318,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!error) {
         toast({
           title: "Password reset email sent",
-          description: "Check your inbox for instructions to reset your password."
+          description: "Check your inbox for instructions to reset your password. Be sure to check your spam folder if you don't see it.",
+          duration: 6000
+        });
+      } else {
+        console.error("Password reset error:", error);
+        toast({
+          title: "Password reset failed",
+          description: error.message || "Failed to send reset email",
+          variant: "destructive"
         });
       }
       
       return { error };
     } catch (error) {
       console.error("Error in resetPassword:", error);
+      toast({
+        title: "Password reset failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
       return { error: error as Error };
     }
   };
@@ -280,17 +355,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Error creating admin user:", error);
+        toast({
+          title: "Admin user creation failed",
+          description: error.message,
+          variant: "destructive"
+        });
         return { error };
       }
       
       if (data?.user) {
         // Insert admin role for this user
         await ensureUserRole(data.user.id, 'admin');
+        
+        toast({
+          title: "Admin user created",
+          description: "The new admin account has been created successfully."
+        });
       }
       
       return { error: null };
     } catch (error) {
       console.error("Error creating admin user:", error);
+      toast({
+        title: "Admin user creation failed",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
       return { error: error as Error };
     }
   };
@@ -304,7 +395,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetPassword,
       createAdminUser,
       signOut,
-      ensureUserRole
+      ensureUserRole,
+      checkEmailVerificationStatus
     }}>
       {children}
     </AuthContext.Provider>
