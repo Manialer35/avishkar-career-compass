@@ -62,42 +62,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Helper function to ensure user role exists
+  // Update the ensureUserRole function with better transaction handling
   const ensureUserRole = async (userId: string, role?: 'admin' | 'user') => {
     console.log("Ensuring user role exists for:", userId);
     
+    if (!userId) {
+      console.error("Cannot ensure role for empty userId");
+      return;
+    }
+    
     try {
-      // Check if role exists already
-      const { data: existingRole, error: roleCheckError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-        
-      if (roleCheckError) {
-        console.error("Error checking user role:", roleCheckError);
-        
-        // Check if table doesn't exist
-        if (roleCheckError.message.includes('does not exist')) {
-          toast({
-            title: "Database setup issue",
-            description: "The user_roles table may not exist. Please check your database setup.",
-            variant: "destructive"
-          });
-        }
-        
-        // Default to user role on error, unless specified otherwise
-        setUserRole({ role: role || 'user' });
-        return;
-      }
-      
-      // If role exists, no need to create one
-      if (existingRole) {
-        console.log("User role already exists:", existingRole);
-        setUserRole({ role: existingRole.role });
-        return;
-      }
-      
       // Get the user's email to check if they should be an admin
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
@@ -114,43 +88,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log(`Assigning role '${roleToAssign}' to user ${userId}`);
       
-      try {
-        // Use upsert with onConflict to handle duplicates properly
-        const { error: insertError } = await supabase
-          .from('user_roles')
-          .upsert({ 
-            user_id: userId, 
-            role: roleToAssign 
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: true
-          });
-          
-        if (insertError) {
-          console.error("Error creating user role:", insertError);
-          throw insertError;
-        }
+      // Use upsert with onConflict to handle duplicates properly
+      const { data, error: upsertError } = await supabase
+        .from('user_roles')
+        .upsert({ 
+          user_id: userId, 
+          role: roleToAssign 
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: true
+        })
+        .select('role')
+        .single();
         
-        setUserRole({ role: roleToAssign });
-        console.log("Role assigned successfully");
-      } catch (insertErr) {
-        // If there's still an error, try a different approach
-        console.error("Error with upsert, trying select then insert:", insertErr);
+      if (upsertError) {
+        console.error("Error upserting user role:", upsertError);
         
-        // Double-check if the role now exists (race condition handling)
-        const { data: recheckedRole } = await supabase
+        // As a fallback, try to get the role if it exists
+        const { data: existingRole, error: fetchError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', userId)
           .maybeSingle();
         
-        if (recheckedRole) {
-          // Role was created in parallel, use it
-          setUserRole({ role: recheckedRole.role });
-          return;
+        if (!fetchError && existingRole) {
+          console.log("Retrieved existing role:", existingRole);
+          setUserRole({ role: existingRole.role });
+        } else {
+          // Default to the determined role if we can't fetch it
+          setUserRole({ role: roleToAssign });
         }
-        
-        // Set the role in state even if we can't save to database
+      } else if (data) {
+        console.log("Role upserted successfully:", data);
+        setUserRole({ role: data.role });
+      } else {
+        // This shouldn't happen, but just in case
         setUserRole({ role: roleToAssign });
       }
     } catch (error) {
