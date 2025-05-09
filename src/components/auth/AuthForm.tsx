@@ -80,6 +80,7 @@ export const AuthForm = ({
           options: {
             data: {
               full_name: fullName,
+              role: adminEmails.includes(email) ? 'admin' : 'user', // Store role in metadata
             },
             emailRedirectTo: window.location.origin + '/auth',
           },
@@ -93,7 +94,7 @@ export const AuthForm = ({
             setErrorMessage("An account with this email already exists. Please try signing in instead.");
             setIsSignUp(false);
           } else if (error.message.includes('database') || error.message.includes('Database')) {
-            setErrorMessage("Database error creating user. Please try again or contact support. Error: " + error.message);
+            setErrorMessage("Database error creating user. Please try again or contact support.");
           } else {
             setErrorMessage(error.message || "Error creating account");
           }
@@ -103,21 +104,31 @@ export const AuthForm = ({
         if (data?.user) {
           console.log("User created successfully:", data.user.id);
           
-          // Create user role
+          // Create user role - but don't fail signup if this doesn't work
           try {
-            const { error: roleError } = await supabase
+            const { error: checkError } = await supabase
               .from('user_roles')
-              .insert({
-                user_id: data.user.id,
-                role: adminEmails.includes(email) ? 'admin' : 'user'
-              });
-              
-            if (roleError && !roleError.message.includes('duplicate')) {
-              console.error("Error creating user role:", roleError);
-              // Continue with signup process even if role creation fails
+              .select('user_id')
+              .eq('user_id', data.user.id)
+              .single();
+            
+            // Only create the role if it doesn't exist yet
+            if (checkError && checkError.code === 'PGRST116') { // Record not found
+              const { error: roleError } = await supabase
+                .from('user_roles')
+                .insert({
+                  user_id: data.user.id,
+                  role: adminEmails.includes(email) ? 'admin' : 'user'
+                });
+                
+              if (roleError) {
+                console.error("Error creating user role:", roleError);
+                // Ignore duplicate key errors - they just mean the role was already created
+              }
             }
           } catch (roleError) {
             console.error("Exception in role creation:", roleError);
+            // Continue with signup process even if role creation fails
           }
           
           // Check if email confirmation is needed
