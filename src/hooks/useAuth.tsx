@@ -59,31 +59,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     try {
+      // First try to get existing role
       const { data: existingRole } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
       if (existingRole) {
         setUserRole({ role: existingRole.role });
         return;
       }
+      
+      // Determine role to assign
       const { data: userData } = await supabase.auth.getUser();
       const roleToAssign = role || (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email) ? 'admin' : 'user');
 
-      const hasRpcFunction = true;
-      if (hasRpcFunction) {
+      // Try using the RPC function first
+      try {
         const { error: rpcError } = await supabase.rpc('ensure_user_role', {
           p_user_id: userId,
           p_role: roleToAssign
         });
+        
         if (!rpcError) {
           setUserRole({ role: roleToAssign });
           return;
         }
+      } catch (rpcError) {
+        console.error("RPC error:", rpcError);
+        // Fall through to direct insert if RPC fails
       }
 
-      const { error: upsertError } = await supabase.from('user_roles').upsert({ user_id: userId, role: roleToAssign }, { onConflict: 'user_id', ignoreDuplicates: true });
+      // Fall back to direct table insert if RPC fails
+      const { error: upsertError } = await supabase
+        .from('user_roles')
+        .upsert(
+          { user_id: userId, role: roleToAssign },
+          { onConflict: 'user_id' }
+        );
+      
       if (!upsertError) {
         setUserRole({ role: roleToAssign });
+      } else {
+        console.error("Upsert error:", upsertError);
+        // Still set the role in memory even if DB operation failed
+        setUserRole({ role: roleToAssign });
       }
-    } catch {
+    } catch (error) {
+      console.error("Error in ensureUserRole:", error);
+      // Set default role in memory
       setUserRole({ role: role || 'user' });
     }
   };
@@ -102,12 +122,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     try {
-      const { data, error } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
+      // Try to get role from database
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
       if (!error && data) {
         setUserRole({ role: data.role });
         setLoading(false);
         return;
       }
+      
+      // Determine role based on email if no role found
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user?.email && ADMIN_EMAILS.includes(userData.user.email)) {
         setUserRole({ role: 'admin' });
@@ -116,7 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUserRole({ role: 'user' });
         await ensureUserRole(userId, 'user');
       }
-    } catch {
+    } catch (error) {
+      console.error("Error in fetchUserRole:", error);
       setUserRole({ role: 'user' });
     } finally {
       setLoading(false);
@@ -124,10 +153,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("Auth state changed:", event);
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      
       if (event === 'SIGNED_IN' && currentSession?.user) {
+        // Slight delay to ensure auth is fully processed
         setTimeout(() => fetchUserRole(currentSession.user.id), 300);
       } else if (event === 'SIGNED_OUT') {
         setUserRole(null);
@@ -137,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -150,23 +185,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetPassword = async (email: string) => {
     try {
       const currentUrl = window.location.origin;
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${currentUrl}/auth` });
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${currentUrl}/auth`
+      });
       return { error };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
-  const signup = async (email: string, password: string) => {
-    try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      return result.user;
-    } catch (error: any) {
-      console.error("Signup Error:", error);
-      throw new Error(error.message || "Database error creating user. Please try again or contact support.");
-    }
-  };
-
+  // FIXED: Removed the problematic signup function that used Firebase
 
   const createAdminUser = async (email: string, password: string) => {
     try {
@@ -178,9 +206,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailRedirectTo: window.location.origin,
         }
       });
-      if (data?.user) {
-        await supabase.from('user_roles').upsert({ user_id: data.user.id, role: 'admin' }, { onConflict: 'user_id', ignoreDuplicates: true });
+      
+      if (error) {
+        return { error };
       }
+      
+      if (data?.user) {
+        // Ensure the user has admin role in the database
+        await supabase
+          .from('user_roles')
+          .upsert(
+            { user_id: data.user.id, role: 'admin' },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          );
+      }
+      
       return { error: null };
     } catch (error) {
       return { error: error as Error };
