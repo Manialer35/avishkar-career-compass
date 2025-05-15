@@ -87,7 +87,12 @@ export const AuthForm = ({
         });
         
         if (error) {
-          console.error("Signup error:", error);
+          console.error("Signup error details:", {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint
+          });
           
           // Check if this is a duplicate email error
           if (error.message.includes('email already')) {
