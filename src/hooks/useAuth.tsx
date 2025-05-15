@@ -157,6 +157,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signup = async (email: string, password: string) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      return result.user;
+    } catch (error: any) {
+      console.error("Signup Error:", error);
+      throw new Error(error.message || "Database error creating user. Please try again or contact support.");
+    }
+  };
+
+
   const createAdminUser = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({
