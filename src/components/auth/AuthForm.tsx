@@ -72,14 +72,13 @@ export const AuthForm = ({
       console.log(`Attempting to ${isSignUp ? 'sign up' : 'sign in'} user: ${email}`);
       
       if (isSignUp) {
-        // For sign up, attempt to create the user directly
+        // For sign up
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               full_name: fullName,
-              // Store role info in auth metadata, but don't rely on it for permissions
               initial_role: adminEmails.includes(email) ? 'admin' : 'user',
             },
             emailRedirectTo: window.location.origin + '/auth',
@@ -99,7 +98,8 @@ export const AuthForm = ({
             setErrorMessage("An account with this email already exists. Please try signing in instead.");
             setIsSignUp(false);
           } else if (error.message.includes('database') || error.message.includes('Database')) {
-            setErrorMessage("Database error creating user. Please try again or contact support.");
+            // More specific database error handling
+            setErrorMessage(`Database error: ${error.message}. Please try again or contact support.`);
           } else {
             setErrorMessage(error.message || "Error creating account");
           }
@@ -108,9 +108,6 @@ export const AuthForm = ({
         
         if (data?.user) {
           console.log("User created successfully:", data.user.id);
-          
-          // CRITICAL CHANGE: DO NOT create user roles here
-          // Let the AuthProvider handle it exclusively through its auth state change listener
           
           // Check if email confirmation is needed
           if (data.session) {
@@ -188,7 +185,8 @@ export const AuthForm = ({
       }
     } catch (error: any) {
       console.error("Auth error:", error);
-      setErrorMessage(error.message || "An unexpected error occurred");
+      // More detailed error handling
+      setErrorMessage(error.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -202,13 +200,6 @@ export const AuthForm = ({
     }
     
     setLoading(true);
-
-    try {
-      await signup(email, password);
-      // Navigate or show success
-    } catch (error: any) {
-      setError(error.message); // Display this in your UI
-    }
     
     try {
       const { error } = await supabase.auth.resend({
