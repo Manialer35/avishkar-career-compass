@@ -202,6 +202,13 @@ export const AuthForm = ({
     }
     
     setLoading(true);
+
+    try {
+      await signup(email, password);
+      // Navigate or show success
+    } catch (error: any) {
+      setError(error.message); // Display this in your UI
+    }
     
     try {
       const { error } = await supabase.auth.resend({
