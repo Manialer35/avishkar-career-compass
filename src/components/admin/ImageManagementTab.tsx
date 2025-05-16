@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell 
-} from '@/components/ui/table';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Upload, Image, Edit, Trash2, Search, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -12,10 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
-// Fixed type definitions
+// Types
 interface ImageItem {
   id: string;
   title: string;
@@ -29,24 +27,19 @@ interface ImageItem {
   metadataId?: string;
 }
 
-interface NewImageState {
-  title: string;
-  category: string;
-  file: File | null;
-  previewUrl: string | null;
-}
-
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ImageManagementTab: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState<boolean>(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
-  const [currentImage, setCurrentImage] = useState<ImageItem | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+const ImageManagementTab = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentImage, setCurrentImage] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [images, setImages] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { toast } = useToast();
   
   const categories = [
@@ -54,17 +47,14 @@ const ImageManagementTab: React.FC = () => {
     'Faculty', 'Successful Candidates', 'Profiles', 'Logos', 'Home'
   ];
   
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-
-  const [newImage, setNewImage] = useState<NewImageState>({
+  const [newImage, setNewImage] = useState({
     title: '',
     category: '',
     file: null,
     previewUrl: null
   });
 
-  // Improved fetch images function - more concise and error-resistant
+  // Fix: Change the fetch function to load from all Supabase buckets, not just 'images'
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -73,47 +63,59 @@ const ImageManagementTab: React.FC = () => {
         
         // Check authentication
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (!session) {
           setError("You must be logged in to access images");
           return;
         }
 
-        // Get both files and metadata in parallel for better performance
-        const [filesResponse, metadataResponse] = await Promise.all([
-          supabase.storage.from('images').list(),
-          supabase.from('image_metadata').select('*')
-        ]);
+        // Get all available buckets first
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
         
-        if (filesResponse.error) {
-          throw filesResponse.error;
-        }
+        if (bucketsError) throw bucketsError;
         
-        // Continue even if metadata has error - we can show basic file info
-        const metadataList = metadataResponse.data || [];
+        // Fetch files from all buckets
+        const allImages = [];
         
-        if (filesResponse.data) {
-          const imageData = await Promise.all(
-            filesResponse.data
-              .filter(file => !file.name.endsWith('/') && file.name)
+        for (const bucket of buckets) {
+          const { data: files, error: filesError } = await supabase.storage.from(bucket.name).list();
+          
+          if (filesError) {
+            console.warn(`Error listing files from bucket ${bucket.name}:`, filesError);
+            continue;
+          }
+          
+          if (!files || files.length === 0) continue;
+          
+          // Get metadata
+          const { data: metadataList } = await supabase.from('image_metadata').select('*');
+          
+          // Process each file
+          const bucketImages = await Promise.all(
+            files
+              .filter(file => !file.name.endsWith('/') && 
+                     file.name && 
+                     /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name))
               .map(async file => {
+                // Get public URL
                 const { data: publicUrlData } = supabase.storage
-                  .from('images')
+                  .from(bucket.name)
                   .getPublicUrl(file.name);
                 
-                // Find matching metadata if available
-                const metadata = metadataList.find(m => m.object_id === file.id);
+                // Find matching metadata
+                const metadata = metadataList?.find(m => m.object_id === file.id);
                 
-                // Calculate file size in a readable format
-                const sizeInKB = (file.metadata?.size || 0) / 1024;
-                const fileSize = sizeInKB < 1024 
-                  ? `${sizeInKB.toFixed(2)} KB` 
-                  : `${(sizeInKB / 1024).toFixed(2)} MB`;
+                // Calculate file size
+                const fileSize = file.metadata?.size ? 
+                  (file.metadata.size < 1024 * 1024 ? 
+                    `${(file.metadata.size / 1024).toFixed(2)} KB` : 
+                    `${(file.metadata.size / (1024 * 1024)).toFixed(2)} MB`) : 
+                  'Unknown';
                   
                 return {
                   id: file.id,
                   title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
                   url: publicUrlData.publicUrl,
+                  bucket: bucket.name,
                   category: metadata?.category || file.metadata?.category || 'General',
                   description: metadata?.description || '',
                   altText: metadata?.alt_text || '',
@@ -125,8 +127,10 @@ const ImageManagementTab: React.FC = () => {
               })
           );
           
-          setImages(imageData);
+          allImages.push(...bucketImages);
         }
+        
+        setImages(allImages);
         
       } catch (err) {
         console.error('Error in fetchImages:', err);
@@ -144,8 +148,8 @@ const ImageManagementTab: React.FC = () => {
     fetchImages();
   }, [refreshTrigger, toast]);
   
-  // Improved file handling with proper type checking
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection
+  const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
@@ -158,17 +162,15 @@ const ImageManagementTab: React.FC = () => {
         return;
       }
       
-      const previewUrl = URL.createObjectURL(file);
-      
       setNewImage({
         ...newImage,
         file,
-        previewUrl
+        previewUrl: URL.createObjectURL(file)
       });
     }
   };
   
-  // Clean up object URLs
+  // Cleanup object URLs
   useEffect(() => {
     return () => {
       if (newImage.previewUrl) {
@@ -177,7 +179,7 @@ const ImageManagementTab: React.FC = () => {
     };
   }, [newImage.previewUrl]);
   
-  // Simplified upload with better error handling
+  // Upload image
   const handleUploadImage = async () => {
     if (!newImage.title || !newImage.category || !newImage.file) {
       toast({
@@ -191,7 +193,6 @@ const ImageManagementTab: React.FC = () => {
     try {
       setLoading(true);
       
-      // Check authentication
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         throw new Error("You must be logged in to upload images");
@@ -205,25 +206,26 @@ const ImageManagementTab: React.FC = () => {
       
       // Upload file
       const { data, error } = await supabase.storage
-        .from('images')
+        .from('images') // Default bucket for new uploads
         .upload(fileName, newImage.file, {
           cacheControl: '3600',
           upsert: false,
-          contentType: newImage.file.type,
-          metadata: {
-            category: newImage.category,
-            size: newImage.file.size.toString()
-          }
+          contentType: newImage.file.type
         });
       
       if (error) throw error;
       
-      toast({
-        title: "Image uploaded",
-        description: "The image has been successfully uploaded",
-      });
+      // Add metadata
+      if (data) {
+        await supabase.from('image_metadata').insert({
+          title: newImage.title,
+          category: newImage.category,
+          object_id: data.id,
+          created_by: session.user.id
+        });
+      }
       
-      // Reset form
+      toast({ title: "Image uploaded", description: "The image has been successfully uploaded" });
       resetUploadForm();
       setRefreshTrigger(prev => prev + 1);
       
@@ -239,7 +241,7 @@ const ImageManagementTab: React.FC = () => {
     }
   };
   
-  // Simplified delete function
+  // Delete image
   const confirmDelete = async () => {
     if (!currentImage) return;
     
@@ -248,24 +250,22 @@ const ImageManagementTab: React.FC = () => {
       
       // Delete from storage
       const { error } = await supabase.storage
-        .from('images')
+        .from(currentImage.bucket || 'images')
         .remove([currentImage.fileName]);
       
       if (error) throw error;
       
-      // Remove from state
+      // Remove metadata if exists
+      if (currentImage.metadataId) {
+        await supabase.from('image_metadata').delete().eq('id', currentImage.metadataId);
+      }
+      
       setImages(images.filter(img => img.id !== currentImage.id));
-      
-      toast({
-        title: "Image deleted",
-        description: "The image has been successfully removed",
-      });
-      
+      toast({ title: "Image deleted", description: "The image has been successfully removed" });
       setIsDeleteDialogOpen(false);
       setCurrentImage(null);
       
     } catch (error) {
-      console.error('Error deleting image:', error);
       toast({
         title: "Delete failed",
         description: error.message || "There was an error deleting the image. Please try again.",
@@ -276,17 +276,7 @@ const ImageManagementTab: React.FC = () => {
     }
   };
   
-  const handleEdit = (image: ImageItem) => {
-    setCurrentImage(image);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleDelete = (image: ImageItem) => {
-    setCurrentImage(image);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  // Simplified metadata update function
+  // Save image changes
   const saveChanges = async () => {
     if (!currentImage) return;
     
@@ -301,47 +291,28 @@ const ImageManagementTab: React.FC = () => {
       };
       
       if (currentImage.metadataId) {
-        // Update existing metadata
-        const { error } = await supabase
+        await supabase
           .from('image_metadata')
           .update(metadataPayload)
           .eq('id', currentImage.metadataId);
-          
-        if (error) throw error;
       } else {
-        // Create new metadata
         const { data: { session } } = await supabase.auth.getSession();
-        
-        const { error } = await supabase
+        await supabase
           .from('image_metadata')
           .insert({
             ...metadataPayload,
             object_id: currentImage.id,
             created_by: session?.user.id
           });
-          
-        if (error) throw error;
       }
       
-      // Update in local state
-      setImages(images.map(img => 
-        img.id === currentImage.id ? currentImage : img
-      ));
-      
+      setImages(images.map(img => img.id === currentImage.id ? currentImage : img));
       setIsEditDialogOpen(false);
       setCurrentImage(null);
-      
-      toast({
-        title: "Image updated",
-        description: "The image details have been updated successfully",
-        variant: "default",
-      });
-      
-      // Refresh to get the latest data
+      toast({ title: "Image updated", description: "The image details have been updated successfully" });
       setRefreshTrigger(prev => prev + 1);
       
     } catch (error) {
-      console.error('Error updating image:', error);
       toast({
         title: "Update failed",
         description: error.message || "There was an error updating the image. Please try again.",
@@ -352,38 +323,35 @@ const ImageManagementTab: React.FC = () => {
     }
   };
   
-  // Filter images based on search and category
-  const filteredImages = images.filter(img => 
-    (img.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-     img.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
-    (selectedCategory ? img.category === selectedCategory : true)
-  );
-  
+  // Reset upload form
   const resetUploadForm = () => {
     if (newImage.previewUrl) {
       URL.revokeObjectURL(newImage.previewUrl);
     }
-    setNewImage({
-      title: '',
-      category: '',
-      file: null,
-      previewUrl: null
-    });
+    setNewImage({ title: '', category: '', file: null, previewUrl: null });
     setIsUploadDialogOpen(false);
   };
 
-  // Fixed image error handler
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  // Handle image error
+  const handleImageError = (e) => {
     e.currentTarget.src = '/placeholder-image.jpg';
-    e.currentTarget.alt = 'Image loading error';
   };
   
-  // Component to avoid duplication in tab views
+  // Filter images
+  const filteredImages = useMemo(() => {
+    return images.filter(img => 
+      (img.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+       img.category.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (selectedCategory ? img.category === selectedCategory : true)
+    );
+  }, [images, searchQuery, selectedCategory]);
+  
+  // Loading or empty state component
   const LoadingOrEmptyState = () => {
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="w-12 h-12 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="w-8 h-8 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-500 mt-4">Loading images...</p>
         </div>
       );
@@ -391,8 +359,8 @@ const ImageManagementTab: React.FC = () => {
     
     if (filteredImages.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Image className="h-12 w-12 text-gray-400 mb-4" />
+        <div className="flex flex-col items-center justify-center py-8">
+          <Image className="h-8 w-8 text-gray-400 mb-2" />
           <p className="text-gray-500">No images found matching your criteria</p>
         </div>
       );
@@ -405,7 +373,7 @@ const ImageManagementTab: React.FC = () => {
     <>
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-academy-primary mb-4">Image Management</h2>
+          <h2 className="text-xl font-semibold text-academy-primary">Image Management</h2>
           <Button 
             onClick={() => setIsUploadDialogOpen(true)}
             className="bg-academy-primary hover:bg-academy-primary/90"
@@ -416,12 +384,7 @@ const ImageManagementTab: React.FC = () => {
           </Button>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <p className="mb-4">
-            Manage all images used throughout the application. Upload new images, edit image details,
-            or remove images that are no longer needed.
-          </p>
-          
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-grow">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
@@ -448,7 +411,7 @@ const ImageManagementTab: React.FC = () => {
         </div>
         
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -475,7 +438,7 @@ const ImageManagementTab: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {filteredImages.map((image) => (
                       <div key={image.id} className="rounded-lg overflow-hidden border border-gray-200">
-                        <div className="aspect-w-16 aspect-h-9">
+                        <div>
                           <img
                             src={image.url}
                             alt={image.title}
@@ -494,15 +457,21 @@ const ImageManagementTab: React.FC = () => {
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7"
-                                onClick={() => handleEdit(image)}
+                                onClick={() => {
+                                  setCurrentImage(image);
+                                  setIsEditDialogOpen(true);
+                                }}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-7 w-7 text-academy-primary hover:text-academy-primary hover:bg-blue-50"
-                                onClick={() => handleDelete(image)}
+                                className="h-7 w-7 text-academy-primary hover:text-academy-primary"
+                                onClick={() => {
+                                  setCurrentImage(image);
+                                  setIsDeleteDialogOpen(true);
+                                }}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -528,7 +497,6 @@ const ImageManagementTab: React.FC = () => {
                           <TableHead>Title</TableHead>
                           <TableHead>Category</TableHead>
                           <TableHead>Upload Date</TableHead>
-                          <TableHead>Size</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -548,26 +516,30 @@ const ImageManagementTab: React.FC = () => {
                             <TableCell className="font-medium">{image.title}</TableCell>
                             <TableCell><Badge variant="secondary">{image.category}</Badge></TableCell>
                             <TableCell>{image.uploadDate}</TableCell>
-                            <TableCell>{image.size}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end space-x-2">
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 px-2"
-                                  onClick={() => handleEdit(image)}
+                                  onClick={() => {
+                                    setCurrentImage(image);
+                                    setIsEditDialogOpen(true);
+                                  }}
                                 >
                                   <Edit className="h-4 w-4 mr-1" />
-                                  <span className="hidden sm:inline">Edit</span>
+                                  Edit
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-8 px-2 text-academy-primary hover:text-academy-primary hover:bg-blue-50"
-                                  onClick={() => handleDelete(image)}
+                                  className="text-academy-primary"
+                                  onClick={() => {
+                                    setCurrentImage(image);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4 mr-1" />
-                                  <span className="hidden sm:inline">Delete</span>
+                                  Delete
                                 </Button>
                               </div>
                             </TableCell>
@@ -584,19 +556,14 @@ const ImageManagementTab: React.FC = () => {
       </div>
       
       {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={(open) => {
-        if (!open) resetUploadForm();
-        else setIsUploadDialogOpen(true);
-      }}>
+      <Dialog open={isUploadDialogOpen} onOpenChange={(open) => !open && resetUploadForm()}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Upload New Image</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                Title
-              </Label>
+              <Label htmlFor="title" className="text-right">Title</Label>
               <Input
                 id="title"
                 value={newImage.title}
@@ -605,9 +572,7 @@ const ImageManagementTab: React.FC = () => {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                Category
-              </Label>
+              <Label htmlFor="category" className="text-right">Category</Label>
               <Select 
                 value={newImage.category} 
                 onValueChange={value => setNewImage({...newImage, category: value})}
@@ -623,9 +588,7 @@ const ImageManagementTab: React.FC = () => {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="file" className="text-right">
-                Image
-              </Label>
+              <Label htmlFor="file" className="text-right">Image</Label>
               <div className="col-span-3">
                 <Input
                   id="file"
@@ -636,24 +599,16 @@ const ImageManagementTab: React.FC = () => {
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB
                 </p>
-                {newImage.file && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      {newImage.file.name} ({(newImage.file.size / (1024 * 1024)).toFixed(2)} MB)
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
             
-            {/* Image Preview */}
             {newImage.previewUrl && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <div className="text-right">
                   <Label>Preview</Label>
                 </div>
                 <div className="col-span-3">
-                  <div className="mt-2 max-w-full overflow-hidden rounded border border-gray-200">
+                  <div className="max-w-full overflow-hidden rounded border border-gray-200">
                     <img 
                       src={newImage.previewUrl} 
                       alt="Preview" 
@@ -669,17 +624,7 @@ const ImageManagementTab: React.FC = () => {
               Cancel
             </Button>
             <Button onClick={handleUploadImage} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload size={16} className="mr-2" />
-                  Upload
-                </>
-              )}
+              {loading ? "Uploading..." : "Upload"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -702,9 +647,7 @@ const ImageManagementTab: React.FC = () => {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-title" className="text-right">
-                  Title
-                </Label>
+                <Label htmlFor="edit-title" className="text-right">Title</Label>
                 <Input
                   id="edit-title"
                   value={currentImage.title}
@@ -713,9 +656,7 @@ const ImageManagementTab: React.FC = () => {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-category" className="text-right">
-                  Category
-                </Label>
+                <Label htmlFor="edit-category" className="text-right">Category</Label>
                 <Select 
                   value={currentImage.category} 
                   onValueChange={value => setCurrentImage({...currentImage, category: value})}
@@ -774,7 +715,6 @@ const ImageManagementTab: React.FC = () => {
               variant="destructive"
               onClick={confirmDelete}
               disabled={loading}
-              className="bg-academy-primary hover:bg-academy-primary/90 text-white border-none"
             >
               {loading ? "Deleting..." : "Delete"}
             </Button>
