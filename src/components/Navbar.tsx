@@ -101,9 +101,9 @@ const Navbar = () => {
             <DropdownMenu open={open} onOpenChange={setOpen}>
               <DropdownMenuTrigger asChild>
                 <Button 
-                  variant="ghost" 
+                  variant="secondary" 
                   size="sm"
-                  className="text-white hover:bg-academy-primary/80 bg-pink-500 rounded-full"
+                  className="text-white hover:bg-pink-600 bg-pink-500 rounded-full w-10 h-10 flex items-center justify-center shadow-md"
                 >
                   {isAdmin ? (
                     <ShieldAlert className="h-5 w-5" />
