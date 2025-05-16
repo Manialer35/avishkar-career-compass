@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
@@ -11,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 const Navbar = () => {
   const { session, user, userRole, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
@@ -98,7 +98,7 @@ const Navbar = () => {
           )}
           
           {session && (
-            <DropdownMenu>
+            <DropdownMenu open={open} onOpenChange={setOpen}>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
@@ -113,30 +113,36 @@ const Navbar = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer flex items-center">
-                    <User className="h-4 w-4 mr-2" /> My Profile
-                  </Link>
+                <DropdownMenuItem onSelect={(e) => {
+                  e.preventDefault();
+                  navigate('/profile');
+                }} className="cursor-pointer flex items-center">
+                  <User className="h-4 w-4 mr-2" /> My Profile
                 </DropdownMenuItem>
                 
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="cursor-pointer flex items-center">
-                        <ShieldAlert className="h-4 w-4 mr-2" /> Admin Panel
-                      </Link>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      navigate('/admin');
+                    }} className="cursor-pointer flex items-center">
+                      <ShieldAlert className="h-4 w-4 mr-2" /> Admin Panel
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin/users" className="cursor-pointer flex items-center">
-                        <Users className="h-4 w-4 mr-2" /> Manage Users
-                      </Link>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      navigate('/admin/users');
+                    }} className="cursor-pointer flex items-center">
+                      <Users className="h-4 w-4 mr-2" /> Manage Users
                     </DropdownMenuItem>
                   </>
                 )}
                 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-blue-600">
+                <DropdownMenuItem onSelect={(e) => {
+                  e.preventDefault();
+                  handleLogout();
+                }} className="cursor-pointer text-blue-600">
                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
