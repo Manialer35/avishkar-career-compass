@@ -1,4 +1,32 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// Debug function to check image URL accessibility
+  const checkImageUrl = useCallback(async (url) => {
+    try {
+      console.log(`Checking image URL: ${url}`);
+      const response = await fetch(url, { method: 'HEAD' });
+      console.log(`Image URL check result: ${url} - Status: ${response.status}`);
+      return response.ok;
+    } catch (error) {
+      console.error(`Error checking image URL ${url}:`, error);
+      return false;
+    }
+  }, []);
+  
+  // Verify image URLs after loading
+  useEffect(() => {
+    const verifyImages = async () => {
+      if (images.length > 0) {
+        console.log("Verifying image URLs...");
+        for (const image of images) {
+          const isAccessible = await checkImageUrl(image.url);
+          if (!isAccessible) {
+            console.warn(`Image URL not accessible: ${image.url}`);
+          }
+        }
+      }
+    };
+    
+    verifyImages();
+  }, [images, checkImageUrl]);import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -69,53 +97,61 @@ const ImageManagementTab = () => {
           return;
         }
 
-        // Get all images from the 'images' bucket (simplified approach)
+        console.log("Attempting to fetch images from storage...");
+        
+        // First check if the images bucket exists
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        
+        if (bucketsError) {
+          console.error("Error listing buckets:", bucketsError);
+          throw bucketsError;
+        }
+        
+        console.log("Available buckets:", buckets);
+        
+        // Find the images bucket
+        const imagesBucket = buckets.find(b => b.name === 'images');
+        
+        if (!imagesBucket) {
+          console.warn("No 'images' bucket found. Available buckets:", buckets.map(b => b.name));
+          // Try using the first available bucket instead
+          if (buckets.length > 0) {
+            console.log(`Using '${buckets[0].name}' bucket instead`);
+            const { data: files, error: filesError } = await supabase.storage.from(buckets[0].name).list();
+            
+            if (filesError) {
+              console.error(`Error listing files from bucket ${buckets[0].name}:`, filesError);
+              throw filesError;
+            }
+            
+            console.log(`Files in '${buckets[0].name}' bucket:`, files);
+            
+            // Process files from this bucket
+            await processFiles(files, buckets[0].name);
+          } else {
+            setError("No storage buckets available");
+          }
+          return;
+        }
+        
+        // Get all images from the 'images' bucket
         const { data: files, error: filesError } = await supabase.storage.from('images').list();
         
-        if (filesError) throw filesError;
+        if (filesError) {
+          console.error("Error listing files from 'images' bucket:", filesError);
+          throw filesError;
+        }
         
-        // Get metadata
-        const { data: metadataList } = await supabase.from('image_metadata').select('*');
+        console.log("Files in 'images' bucket:", files);
         
-        // Process each file
-        const imagesList = await Promise.all(
-          (files || [])
-            .filter(file => !file.name.endsWith('/') && 
-                   file.name && 
-                   /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name))
-            .map(async file => {
-              // Get public URL
-              const { data: publicUrlData } = supabase.storage
-                .from('images')
-                .getPublicUrl(file.name);
-              
-              // Find matching metadata
-              const metadata = metadataList?.find(m => m.object_id === file.id);
-              
-              // Calculate file size
-              const fileSize = file.metadata?.size ? 
-                (file.metadata.size < 1024 * 1024 ? 
-                  `${(file.metadata.size / 1024).toFixed(2)} KB` : 
-                  `${(file.metadata.size / (1024 * 1024)).toFixed(2)} MB`) : 
-                'Unknown';
-                
-              return {
-                id: file.id,
-                title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
-                url: publicUrlData.publicUrl,
-                bucket: 'images',
-                category: metadata?.category || file.metadata?.category || 'General',
-                description: metadata?.description || '',
-                altText: metadata?.alt_text || '',
-                uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
-                size: fileSize,
-                fileName: file.name,
-                metadataId: metadata?.id
-              };
-            })
-        );
+        if (!files || files.length === 0) {
+          console.log("No files found in the 'images' bucket");
+          setImages([]);
+          return;
+        }
         
-        setImages(imagesList);
+        // Process files from the images bucket
+        await processFiles(files, 'images');
         
       } catch (err) {
         console.error('Error in fetchImages:', err);
@@ -127,6 +163,77 @@ const ImageManagementTab = () => {
         });
       } finally {
         setLoading(false);
+      }
+    };
+    
+    // Process files helper function
+    const processFiles = async (files, bucketName) => {
+      try {
+        // Get metadata
+        const { data: metadataList, error: metadataError } = await supabase.from('image_metadata').select('*');
+        
+        if (metadataError) {
+          console.error("Error fetching metadata:", metadataError);
+        }
+        
+        console.log("Metadata retrieved:", metadataList);
+        
+        // Filter image files
+        const imageFiles = files.filter(file => 
+          !file.name.endsWith('/') && 
+          file.name && 
+          /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name)
+        );
+        
+        console.log("Image files filtered:", imageFiles);
+        
+        if (imageFiles.length === 0) {
+          console.log("No image files found after filtering");
+          setImages([]);
+          return;
+        }
+        
+        // Process each file
+        const imagesList = await Promise.all(
+          imageFiles.map(async file => {
+            // Get public URL with full path
+            const { data: publicUrlData } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(file.name);
+            
+            console.log(`Public URL for ${file.name}:`, publicUrlData);
+            
+            // Find matching metadata
+            const metadata = metadataList?.find(m => m.object_id === file.id);
+            
+            // Calculate file size
+            const fileSize = file.metadata?.size ? 
+              (file.metadata.size < 1024 * 1024 ? 
+                `${(file.metadata.size / 1024).toFixed(2)} KB` : 
+                `${(file.metadata.size / (1024 * 1024)).toFixed(2)} MB`) : 
+              'Unknown';
+              
+            return {
+              id: file.id || `temp-${Date.now()}-${file.name}`,
+              title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
+              url: publicUrlData.publicUrl,
+              bucket: bucketName,
+              category: metadata?.category || file.metadata?.category || 'General',
+              description: metadata?.description || '',
+              altText: metadata?.alt_text || '',
+              uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+              size: fileSize,
+              fileName: file.name,
+              metadataId: metadata?.id
+            };
+          })
+        );
+        
+        console.log("Processed images:", imagesList);
+        setImages(imagesList);
+      } catch (error) {
+        console.error("Error processing files:", error);
+        throw error;
       }
     };
     
@@ -183,11 +290,30 @@ const ImageManagementTab = () => {
         throw new Error("You must be logged in to upload images");
       }
       
+      // First check if the images bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const imagesBucket = buckets.find(b => b.name === 'images');
+      
+      // Create the bucket if it doesn't exist
+      if (!imagesBucket) {
+        console.log("Images bucket not found, creating it...");
+        const { error: createBucketError } = await supabase.storage.createBucket('images', {
+          public: true
+        });
+        
+        if (createBucketError) {
+          console.error("Error creating images bucket:", createBucketError);
+          throw createBucketError;
+        }
+      }
+      
       // Format filename
       const timestamp = Date.now();
       const sanitizedTitle = newImage.title.replace(/\s+/g, '_');
       const fileExt = newImage.file.name.split('.').pop();
       const fileName = `${timestamp}_${sanitizedTitle}.${fileExt}`;
+      
+      console.log("Uploading file:", fileName);
       
       // Upload file
       const { data, error } = await supabase.storage
@@ -198,18 +324,33 @@ const ImageManagementTab = () => {
           contentType: newImage.file.type
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Upload error:", error);
+        throw error;
+      }
+      
+      console.log("Upload successful, data:", data);
       
       // Add metadata
       if (data) {
-        await supabase.from('image_metadata').insert({
+        const metadataPayload = {
           title: newImage.title,
           category: newImage.category,
           object_id: data.id,
           description: '',
           alt_text: '',
           created_by: session.user.id
-        });
+        };
+        
+        console.log("Adding metadata:", metadataPayload);
+        
+        const { error: metadataError } = await supabase
+          .from('image_metadata')
+          .insert(metadataPayload);
+          
+        if (metadataError) {
+          console.error("Metadata insert error:", metadataError);
+        }
       }
       
       toast({ title: "Image uploaded", description: "The image has been successfully uploaded" });
@@ -321,7 +462,10 @@ const ImageManagementTab = () => {
 
   // Handle image error
   const handleImageError = (e) => {
+    console.error("Image failed to load:", e.currentTarget.src);
     e.currentTarget.src = '/placeholder-image.jpg';
+    // Add a data attribute to track failed images
+    e.currentTarget.setAttribute('data-load-failed', 'true');
   };
   
   // Filter images
@@ -590,6 +734,7 @@ const ImageManagementTab = () => {
                             alt={image.title}
                             className="w-full h-40 object-cover"
                             onError={handleImageError}
+                            onLoad={() => console.log("Image loaded successfully:", image.url)}
                           />
                         </div>
                         <div className="p-3">
@@ -668,6 +813,7 @@ const ImageManagementTab = () => {
                                   alt={image.title}
                                   className="w-full h-full object-cover"
                                   onError={handleImageError}
+                                  onLoad={() => console.log("Image loaded successfully:", image.url)}
                                 />
                               </div>
                             </TableCell>
