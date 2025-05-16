@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,58 +27,43 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
 
     const fetchProfileImages = async () => {
       try {
-        // Check if images bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets();
-        if (!buckets || !buckets.some(bucket => bucket.name === 'images')) {
-          console.log('Images bucket not found');
+        // Fetch profile images directly from the database table
+        const { data: profileData, error: profileError } = await supabase
+          .from('academy_images')
+          .select('*')
+          .in('category', ['Profiles', 'Logos']);
+
+        if (profileError) {
+          console.error('Error fetching profile images:', profileError);
           setLoading(false);
           return;
         }
 
-        // List all files in images bucket
-        const { data: files, error } = await supabase
-          .storage
-          .from('images')
-          .list();
+        if (profileData && profileData.length > 0) {
+          // Find images based on title matching
+          const maheshImage = profileData.find(img => 
+            img.title?.toLowerCase().includes('mahesh') || 
+            img.title?.toLowerCase().includes('khot')
+          );
+          
+          const atulImage = profileData.find(img => 
+            img.title?.toLowerCase().includes('atul') || 
+            img.title?.toLowerCase().includes('madkar')
+          );
+          
+          const logoImage = profileData.find(img => 
+            img.title?.toLowerCase().includes('logo') || 
+            img.title?.toLowerCase().includes('academy')
+          );
 
-        if (error) {
-          console.error('Error fetching images:', error);
-          setLoading(false);
-          return;
+          const images = {
+            maheshKhot: maheshImage?.url || '/placeholder-profile.png',
+            atulMadkar: atulImage?.url || '/placeholder-profile.png',
+            academyLogo: logoImage?.url || '/placeholder-logo.png'
+          };
+
+          setProfileImages(images);
         }
-
-        // Look for profile images
-        let maheshImage = files?.find(file => 
-          file.name.toLowerCase().includes('mahesh') || 
-          file.name.toLowerCase().includes('khot')
-        );
-        
-        let atulImage = files?.find(file => 
-          file.name.toLowerCase().includes('atul') || 
-          file.name.toLowerCase().includes('madkar')
-        );
-        
-        let logoImage = files?.find(file => 
-          file.name.toLowerCase().includes('logo') || 
-          file.name.toLowerCase().includes('academy')
-        );
-
-        // Get public URLs
-        const images = {
-          maheshKhot: maheshImage 
-            ? supabase.storage.from('images').getPublicUrl(maheshImage.name).data.publicUrl 
-            : 'https://drive.google.com/file/d/1-97xrSTl-6oa0hfnDIPVSE8bKESSs5e3/view?usp=drive_link',
-          
-          atulMadkar: atulImage 
-            ? supabase.storage.from('images').getPublicUrl(atulImage.name).data.publicUrl 
-            : 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM',
-          
-          academyLogo: logoImage 
-            ? supabase.storage.from('images').getPublicUrl(logoImage.name).data.publicUrl 
-            : 'https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY'
-        };
-
-        setProfileImages(images);
       } catch (err) {
         console.error('Error in fetchProfileImages:', err);
       } finally {
@@ -107,6 +91,10 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
                   src={profileImages.maheshKhot}
                   alt="Mahesh Khot"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    (e.target as HTMLImageElement).src = '/placeholder-profile.png';
+                  }}
                 />
               )}
             </div>
@@ -126,6 +114,10 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
                   src={profileImages.atulMadkar}
                   alt="Atul Madkar"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    (e.target as HTMLImageElement).src = '/placeholder-profile.png';
+                  }}
                 />
               )}
             </div>
