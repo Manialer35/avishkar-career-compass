@@ -1,32 +1,4 @@
-// Debug function to check image URL accessibility
-  const checkImageUrl = useCallback(async (url) => {
-    try {
-      console.log(`Checking image URL: ${url}`);
-      const response = await fetch(url, { method: 'HEAD' });
-      console.log(`Image URL check result: ${url} - Status: ${response.status}`);
-      return response.ok;
-    } catch (error) {
-      console.error(`Error checking image URL ${url}:`, error);
-      return false;
-    }
-  }, []);
-  
-  // Verify image URLs after loading
-  useEffect(() => {
-    const verifyImages = async () => {
-      if (images.length > 0) {
-        console.log("Verifying image URLs...");
-        for (const image of images) {
-          const isAccessible = await checkImageUrl(image.url);
-          if (!isAccessible) {
-            console.warn(`Image URL not accessible: ${image.url}`);
-          }
-        }
-      }
-    };
-    
-    verifyImages();
-  }, [images, checkImageUrl]);import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
