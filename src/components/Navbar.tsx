@@ -16,6 +16,9 @@ const Navbar = () => {
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
 
+  // Convert Google Drive link to direct image URL
+  const logoUrl = "https://drive.google.com/uc?export=view&id=18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm";
+
   console.log("Navbar - userRole:", userRole);
   console.log("Navbar - isAdmin:", isAdmin);
 
@@ -94,9 +97,13 @@ const Navbar = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <img
-              src="https://drive.google.com/file/d/18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm/view?usp=drive_link"
+              src={logoUrl}
               alt="Avishkar Academy Logo"
-              className="w-10 h-10 rounded-md"
+              className="w-10 h-10 rounded-md object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/fallback-logo.png"; // Fallback image if Google Drive fails
+                console.log("Logo failed to load, using fallback");
+              }}
             />
             <h1 className="text-xl font-bold">
               <span className="text-white">Avishkar</span>
@@ -113,9 +120,13 @@ const Navbar = () => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center gap-2">
           <img
-            src="https://drive.google.com/file/d/18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm/view?usp=drive_link"
+            src={logoUrl}
             alt="Avishkar Academy Logo"
-            className="w-10 h-10 rounded-md"
+            className="w-10 h-10 rounded-md object-cover"
+            onError={(e) => {
+              e.currentTarget.src = "/fallback-logo.png"; // Fallback image if Google Drive fails
+              console.log("Logo failed to load, using fallback");
+            }}
           />
           <h1 className="text-xl font-bold">
             <span className="text-white">Avishkar</span>
