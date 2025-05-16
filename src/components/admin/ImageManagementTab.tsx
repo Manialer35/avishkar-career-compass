@@ -60,23 +60,15 @@ const AndroidImageManagementTab = () => {
         .select('*')
         .order('created_at', { ascending: false });
       
-      // Also get Android-specific images from storage
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketToUse = buckets?.find(b => b.name === 'images') || (buckets?.[0] || { name: 'images' });
-      
-      // Get all files from storage
-      const { data: storageFiles, error: storageError } = await supabase.storage
-        .from(bucketToUse.name)
-        .list();
-        
-      if (storageError) {
-        console.warn("Storage error:", storageError);
-        // Continue with DB images only
+      if (dbError) {
+        console.warn("Database error:", dbError);
+        // We'll continue with an empty array for dbImages
       }
       
+      // Initialize array to store all images
       let allImages = [];
       
-      // Process database images
+      // Process database images if available
       if (dbImages && !dbError) {
         allImages = dbImages.map(img => ({
           id: img.id,
@@ -85,45 +77,72 @@ const AndroidImageManagementTab = () => {
           category: img.category || 'General',
           storage_path: img.storage_path,
           fileName: img.filename || '',
-          bucket: bucketToUse.name,
+          bucket: 'images', // Default bucket name
           uploadDate: new Date(img.created_at).toISOString().split('T')[0],
           inDatabase: true
         }));
       }
       
-      // Add any storage images not in the database
-      if (storageFiles) {
-        // Filter for image files
-        const imageFiles = storageFiles.filter(file => 
-          !file.name.endsWith('/') && 
-          /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name)
-        );
+      // Safely access storage
+      try {
+        // First try to check available buckets
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
         
-        for (const file of imageFiles) {
-          // Skip if already in database
-          if (allImages.some(img => img.storage_path === file.name || 
-                                    img.fileName === file.name)) {
-            continue;
-          }
+        if (bucketError) {
+          console.warn("Error listing buckets:", bucketError);
+          // Skip storage operations if we can't access buckets
+        } else {
+          // Find appropriate bucket - default to 'images' or first available
+          const bucketToUse = buckets?.find(b => b.name === 'images') || 
+                             (buckets && buckets.length > 0 ? buckets[0] : { name: 'images' });
           
-          // Get public URL
-          const { data: publicUrlData } = supabase.storage
+          // Get files from the bucket
+          const { data: storageFiles, error: storageError } = await supabase.storage
             .from(bucketToUse.name)
-            .getPublicUrl(file.name);
+            .list('', { sortBy: { column: 'name', order: 'asc' } });
           
-          // Add to images array
-          allImages.push({
-            id: `storage-${file.id || file.name}`,
-            title: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
-            url: publicUrlData.publicUrl,
-            category: 'Android App', // Default for untagged storage files
-            fileName: file.name,
-            storage_path: file.name,
-            bucket: bucketToUse.name,
-            uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
-            inDatabase: false
-          });
+          if (storageError) {
+            console.warn("Storage error:", storageError);
+            // Continue with DB images only
+          } else if (storageFiles) {
+            // Filter for image files
+            const imageFiles = storageFiles.filter(file => 
+              file && !file.name.endsWith('/') && 
+              /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name)
+            );
+            
+            for (const file of imageFiles) {
+              // Skip if already in database
+              if (allImages.some(img => img.storage_path === file.name || 
+                                      img.fileName === file.name)) {
+                continue;
+              }
+              
+              // Get public URL
+              const { data: publicUrlData } = supabase.storage
+                .from(bucketToUse.name)
+                .getPublicUrl(file.name);
+              
+              // Add to images array if we got a URL
+              if (publicUrlData && publicUrlData.publicUrl) {
+                allImages.push({
+                  id: `storage-${file.id || file.name}`,
+                  title: file.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' '),
+                  url: publicUrlData.publicUrl,
+                  category: 'Android App', // Default for untagged storage files
+                  fileName: file.name,
+                  storage_path: file.name,
+                  bucket: bucketToUse.name,
+                  uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+                  inDatabase: false
+                });
+              }
+            }
+          }
         }
+      } catch (storageErr) {
+        console.error("Error accessing storage:", storageErr);
+        // We'll continue with database images only
       }
       
       setImages(allImages);
@@ -183,13 +202,24 @@ const AndroidImageManagementTab = () => {
       const fileExt = newImage.file.name.split('.').pop();
       const fileName = `${timestamp}_${sanitizedTitle}.${fileExt}`;
       
-      // Get available buckets
-      const { data: buckets } = await supabase.storage.listBuckets();
-      const bucketToUse = buckets.find(b => b.name === 'images') || buckets[0];
+      // Default bucket name
+      let bucketName = 'images';
+      
+      // Try to get available buckets, but don't fail if we can't
+      try {
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        if (!bucketError && buckets && buckets.length > 0) {
+          const bucketToUse = buckets.find(b => b.name === 'images') || buckets[0];
+          bucketName = bucketToUse.name;
+        }
+      } catch (bucketErr) {
+        console.warn("Error listing buckets:", bucketErr);
+        // Continue with default bucket name
+      }
       
       // Upload file
       const { data, error } = await supabase.storage
-        .from(bucketToUse.name)
+        .from(bucketName)
         .upload(fileName, newImage.file, {
           cacheControl: '3600',
           upsert: false
@@ -199,17 +229,23 @@ const AndroidImageManagementTab = () => {
       
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from(bucketToUse.name)
+        .from(bucketName)
         .getPublicUrl(fileName);
       
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        throw new Error("Failed to get public URL for the uploaded image");
+      }
+      
       // Add to database
-      await supabase.from('academy_images').insert({
+      const { error: dbError } = await supabase.from('academy_images').insert({
         title: newImage.title,
         category: newImage.category,
         url: publicUrlData.publicUrl,
         filename: fileName,
         storage_path: fileName
       });
+      
+      if (dbError) throw dbError;
       
       toast({ title: "Image uploaded", description: "The image has been successfully uploaded" });
       resetUploadForm();
@@ -235,14 +271,24 @@ const AndroidImageManagementTab = () => {
       
       // Delete from storage if we have a path
       if (currentImage.storage_path) {
-        await supabase.storage
-          .from(currentImage.bucket)
-          .remove([currentImage.storage_path]);
+        try {
+          await supabase.storage
+            .from(currentImage.bucket || 'images')
+            .remove([currentImage.storage_path]);
+        } catch (storageErr) {
+          console.warn("Error deleting from storage:", storageErr);
+          // Continue with database deletion
+        }
       }
       
       // Delete from database if it exists there
       if (currentImage.inDatabase) {
-        await supabase.from('academy_images').delete().eq('id', currentImage.id);
+        try {
+          await supabase.from('academy_images').delete().eq('id', currentImage.id);
+        } catch (dbErr) {
+          console.warn("Error deleting from database:", dbErr);
+          throw dbErr; // Propagate database errors
+        }
       }
       
       setImages(images.filter(img => img.id !== currentImage.id));
@@ -280,8 +326,12 @@ const AndroidImageManagementTab = () => {
       } else {
         // Add to database if it was only in storage before
         const { data: publicUrlData } = supabase.storage
-          .from(currentImage.bucket)
+          .from(currentImage.bucket || 'images')
           .getPublicUrl(currentImage.storage_path);
+        
+        if (!publicUrlData || !publicUrlData.publicUrl) {
+          throw new Error("Failed to get public URL for the image");
+        }
         
         await supabase.from('academy_images').insert({
           title: currentImage.title,
