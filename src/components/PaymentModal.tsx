@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -11,12 +10,19 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Phone, CreditCard } from 'lucide-react';
+import { Phone, CreditCard, Smartphone } from 'lucide-react';
 
 // Add declaration for Razorpay 
 declare global {
   interface Window {
     Razorpay: any;
+    google?: {
+      payments?: {
+        api?: {
+          PaymentsClient?: any;
+        }
+      }
+    };
   }
 }
 
@@ -44,6 +50,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [googlePayLoaded, setGooglePayLoaded] = useState(false);
   const { toast } = useToast();
 
   // Load Razorpay script on component mount
@@ -61,13 +68,38 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         console.error("Failed to load Razorpay script");
         toast({
           title: "Payment Provider Error",
-          description: "Could not load payment provider. Please try again later.",
+          description: "Could not load Razorpay. Please try again later.",
           variant: "destructive",
         });
       };
       document.body.appendChild(script);
     } else {
       setRazorpayLoaded(true);
+    }
+  }, [toast]);
+
+  // Load Google Pay script
+  useEffect(() => {
+    if (!document.getElementById('google-pay-script')) {
+      const script = document.createElement('script');
+      script.id = 'google-pay-script';
+      script.src = 'https://pay.google.com/gp/p/js/pay.js';
+      script.async = true;
+      script.onload = () => {
+        console.log("Google Pay script loaded successfully");
+        setGooglePayLoaded(true);
+      };
+      script.onerror = () => {
+        console.error("Failed to load Google Pay script");
+        toast({
+          title: "Payment Provider Error",
+          description: "Could not load Google Pay. Please try again later.",
+          variant: "destructive",
+        });
+      };
+      document.body.appendChild(script);
+    } else {
+      setGooglePayLoaded(true);
     }
   }, [toast]);
 
@@ -86,7 +118,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     try {
       if (selectedMethod === 'razorpay') {
         if (!razorpayLoaded) {
-          throw new Error("Payment provider not loaded");
+          throw new Error("Razorpay not loaded");
         }
         
         // Razorpay payment handling
@@ -125,11 +157,71 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         
         // We don't set processing to false here as Razorpay will handle the UI
       } else if (selectedMethod === 'phonepe') {
+        // PhonePe payment implementation
+        // Note: This is a placeholder for actual PhonePe integration
+        // You'd typically redirect to PhonePe or use their SDK here
+        
         // Simulate PhonePe payment for demo
         setTimeout(() => {
-          const paymentId = `phonepay_${Date.now()}`;
+          const paymentId = `phonepe_${Date.now()}`;
           handlePaymentSuccess(paymentId);
         }, 2000);
+      } else if (selectedMethod === 'googlepay') {
+        if (!googlePayLoaded || !window.google?.payments?.api?.PaymentsClient) {
+          throw new Error("Google Pay not loaded");
+        }
+        
+        // Google Pay implementation
+        const paymentClient = new window.google.payments.api.PaymentsClient({
+          environment: 'TEST' // Use 'PRODUCTION' for live environment
+        });
+        
+        const paymentDataRequest = {
+          apiVersion: 2,
+          apiVersionMinor: 0,
+          allowedPaymentMethods: [
+            {
+              type: 'CARD',
+              parameters: {
+                allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
+                allowedCardNetworks: ['VISA', 'MASTERCARD']
+              },
+              tokenizationSpecification: {
+                type: 'PAYMENT_GATEWAY',
+                parameters: {
+                  gateway: 'example', // Replace with your payment gateway
+                  gatewayMerchantId: 'exampleGatewayMerchantId' // Replace with your merchant ID
+                }
+              }
+            }
+          ],
+          merchantInfo: {
+            merchantId: '12345678901234567890', // Replace with your merchant ID
+            merchantName: 'Avishkar Academy'
+          },
+          transactionInfo: {
+            totalPriceStatus: 'FINAL',
+            totalPrice: amount.toString(),
+            currencyCode: 'INR'
+          }
+        };
+        
+        paymentClient.loadPaymentData(paymentDataRequest)
+          .then(paymentData => {
+            // Process payment data
+            console.log('Google Pay payment success:', paymentData);
+            const paymentId = `googlepay_${Date.now()}`;
+            handlePaymentSuccess(paymentId);
+          })
+          .catch(error => {
+            console.error('Google Pay error:', error);
+            setProcessing(false);
+            toast({
+              title: "Payment Failed",
+              description: "Google Pay payment was not completed.",
+              variant: "destructive",
+            });
+          });
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -168,7 +260,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-2 gap-4 my-4">
+        <div className="grid grid-cols-3 gap-3 my-4">
           <Card 
             className={`cursor-pointer transition-all ${selectedMethod === 'phonepe' 
               ? 'border-accent border-2' 
@@ -179,7 +271,21 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mb-2">
                 <Phone className="text-indigo-600 h-6 w-6" />
               </div>
-              <span className="font-medium">PhonePe / UPI</span>
+              <span className="font-medium">PhonePe</span>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all ${selectedMethod === 'googlepay' 
+              ? 'border-accent border-2' 
+              : 'hover:border-accent'}`}
+            onClick={() => setSelectedMethod('googlepay')}
+          >
+            <CardContent className="flex flex-col items-center justify-center p-4">
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                <Smartphone className="text-green-600 h-6 w-6" />
+              </div>
+              <span className="font-medium">Google Pay</span>
             </CardContent>
           </Card>
           
@@ -193,7 +299,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-2">
                 <CreditCard className="text-blue-600 h-6 w-6" />
               </div>
-              <span className="font-medium">Card / Netbanking</span>
+              <span className="font-medium">Card / Net Banking</span>
             </CardContent>
           </Card>
         </div>
