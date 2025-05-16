@@ -94,7 +94,7 @@ const Navbar = () => {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
             <img
-              src="https://via.placeholder.com/40x40/ffffff/1e3a8a?text=A"
+              src="https://drive.google.com/file/d/18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm/view?usp=drive_link"
               alt="Avishkar Academy Logo"
               className="w-10 h-10 rounded-md"
             />
@@ -113,7 +113,7 @@ const Navbar = () => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center gap-2">
           <img
-            src="https://via.placeholder.com/40x40/ffffff/1e3a8a?text=A"
+            src="https://drive.google.com/file/d/18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm/view?usp=drive_link"
             alt="Avishkar Academy Logo"
             className="w-10 h-10 rounded-md"
           />
