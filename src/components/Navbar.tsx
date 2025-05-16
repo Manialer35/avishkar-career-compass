@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
@@ -11,6 +11,7 @@ const Navbar = () => {
   const { session, user, userRole, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
@@ -25,6 +26,48 @@ const Navbar = () => {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Ensure the button remains visible
+  useEffect(() => {
+    if (buttonRef.current) {
+      // Force the button to be visible
+      buttonRef.current.style.display = 'flex';
+      buttonRef.current.style.opacity = '1';
+      
+      // Clear any potential timeouts that might hide the button
+      const buttonElement = buttonRef.current;
+      const originalDisplay = buttonElement.style.display;
+      const originalOpacity = buttonElement.style.opacity;
+      
+      // Override any animations or transitions that might affect visibility
+      buttonElement.style.transition = 'none';
+      buttonElement.style.animation = 'none';
+      
+      // Create a mutation observer to detect style changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'style' || 
+              mutation.attributeName === 'class') {
+            // Restore visibility if changed
+            if (buttonElement.style.display === 'none' || 
+                buttonElement.style.opacity === '0' ||
+                buttonElement.style.visibility === 'hidden') {
+              buttonElement.style.display = originalDisplay || 'flex';
+              buttonElement.style.opacity = originalOpacity || '1';
+              buttonElement.style.visibility = 'visible';
+            }
+          }
+        });
+      });
+      
+      observer.observe(buttonElement, { 
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      
+      return () => observer.disconnect();
+    }
   }, []);
 
   const handleLogout = async () => {
@@ -98,25 +141,40 @@ const Navbar = () => {
           )}
           
           {session && (
-            <DropdownMenu open={open} onOpenChange={setOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  className="text-white hover:bg-pink-600 bg-pink-500 rounded-full w-10 h-10 flex items-center justify-center shadow-md"
+            <div 
+              className="relative inline-block" 
+              style={{ opacity: 1, visibility: 'visible' }}
+            >
+              <DropdownMenu open={open} onOpenChange={setOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    ref={buttonRef}
+                    variant="secondary" 
+                    size="sm"
+                    className="text-white hover:bg-pink-600 bg-pink-500 rounded-full w-10 h-10 flex items-center justify-center shadow-md !opacity-100 !visible"
+                    style={{ 
+                      opacity: 1, 
+                      visibility: 'visible', 
+                      display: 'flex',
+                      animation: 'none',
+                      transition: 'none'
+                    }}
+                  >
+                    {isAdmin ? (
+                      <ShieldAlert className="h-5 w-5" />
+                    ) : (
+                      <User className="h-5 w-5" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="z-50">
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    navigate('/profile');
+                  }} 
+                  className="cursor-pointer flex items-center"
                 >
-                  {isAdmin ? (
-                    <ShieldAlert className="h-5 w-5" />
-                  ) : (
-                    <User className="h-5 w-5" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={(e) => {
-                  e.preventDefault();
-                  navigate('/profile');
-                }} className="cursor-pointer flex items-center">
                   <User className="h-4 w-4 mr-2" /> My Profile
                 </DropdownMenuItem>
                 
@@ -139,14 +197,18 @@ const Navbar = () => {
                 )}
                 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={(e) => {
-                  e.preventDefault();
-                  handleLogout();
-                }} className="cursor-pointer text-blue-600">
+                <DropdownMenuItem 
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    handleLogout();
+                  }} 
+                  className="cursor-pointer text-blue-600"
+                >
                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
           )}
         </div>
       </div>
