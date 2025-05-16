@@ -22,6 +22,7 @@ interface ImageItem {
   uploadDate: string;
   size: string;
   fileName: string;
+  bucket: string;
   description?: string;
   altText?: string;
   metadataId?: string;
@@ -54,7 +55,7 @@ const ImageManagementTab = () => {
     previewUrl: null
   });
 
-  // Fix: Change the fetch function to load from all Supabase buckets, not just 'images'
+  // Fetch images from Supabase
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -68,69 +69,53 @@ const ImageManagementTab = () => {
           return;
         }
 
-        // Get all available buckets first
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        // Get all images from the 'images' bucket (simplified approach)
+        const { data: files, error: filesError } = await supabase.storage.from('images').list();
         
-        if (bucketsError) throw bucketsError;
+        if (filesError) throw filesError;
         
-        // Fetch files from all buckets
-        const allImages = [];
+        // Get metadata
+        const { data: metadataList } = await supabase.from('image_metadata').select('*');
         
-        for (const bucket of buckets) {
-          const { data: files, error: filesError } = await supabase.storage.from(bucket.name).list();
-          
-          if (filesError) {
-            console.warn(`Error listing files from bucket ${bucket.name}:`, filesError);
-            continue;
-          }
-          
-          if (!files || files.length === 0) continue;
-          
-          // Get metadata
-          const { data: metadataList } = await supabase.from('image_metadata').select('*');
-          
-          // Process each file
-          const bucketImages = await Promise.all(
-            files
-              .filter(file => !file.name.endsWith('/') && 
-                     file.name && 
-                     /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name))
-              .map(async file => {
-                // Get public URL
-                const { data: publicUrlData } = supabase.storage
-                  .from(bucket.name)
-                  .getPublicUrl(file.name);
+        // Process each file
+        const imagesList = await Promise.all(
+          (files || [])
+            .filter(file => !file.name.endsWith('/') && 
+                   file.name && 
+                   /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(file.name))
+            .map(async file => {
+              // Get public URL
+              const { data: publicUrlData } = supabase.storage
+                .from('images')
+                .getPublicUrl(file.name);
+              
+              // Find matching metadata
+              const metadata = metadataList?.find(m => m.object_id === file.id);
+              
+              // Calculate file size
+              const fileSize = file.metadata?.size ? 
+                (file.metadata.size < 1024 * 1024 ? 
+                  `${(file.metadata.size / 1024).toFixed(2)} KB` : 
+                  `${(file.metadata.size / (1024 * 1024)).toFixed(2)} MB`) : 
+                'Unknown';
                 
-                // Find matching metadata
-                const metadata = metadataList?.find(m => m.object_id === file.id);
-                
-                // Calculate file size
-                const fileSize = file.metadata?.size ? 
-                  (file.metadata.size < 1024 * 1024 ? 
-                    `${(file.metadata.size / 1024).toFixed(2)} KB` : 
-                    `${(file.metadata.size / (1024 * 1024)).toFixed(2)} MB`) : 
-                  'Unknown';
-                  
-                return {
-                  id: file.id,
-                  title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
-                  url: publicUrlData.publicUrl,
-                  bucket: bucket.name,
-                  category: metadata?.category || file.metadata?.category || 'General',
-                  description: metadata?.description || '',
-                  altText: metadata?.alt_text || '',
-                  uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
-                  size: fileSize,
-                  fileName: file.name,
-                  metadataId: metadata?.id
-                };
-              })
-          );
-          
-          allImages.push(...bucketImages);
-        }
+              return {
+                id: file.id,
+                title: metadata?.title || file.name.split('_').slice(1).join('_').replace(/\.[^/.]+$/, ""),
+                url: publicUrlData.publicUrl,
+                bucket: 'images',
+                category: metadata?.category || file.metadata?.category || 'General',
+                description: metadata?.description || '',
+                altText: metadata?.alt_text || '',
+                uploadDate: new Date(file.created_at || Date.now()).toISOString().split('T')[0],
+                size: fileSize,
+                fileName: file.name,
+                metadataId: metadata?.id
+              };
+            })
+        );
         
-        setImages(allImages);
+        setImages(imagesList);
         
       } catch (err) {
         console.error('Error in fetchImages:', err);
@@ -206,7 +191,7 @@ const ImageManagementTab = () => {
       
       // Upload file
       const { data, error } = await supabase.storage
-        .from('images') // Default bucket for new uploads
+        .from('images')
         .upload(fileName, newImage.file, {
           cacheControl: '3600',
           upsert: false,
@@ -221,6 +206,8 @@ const ImageManagementTab = () => {
           title: newImage.title,
           category: newImage.category,
           object_id: data.id,
+          description: '',
+          alt_text: '',
           created_by: session.user.id
         });
       }
@@ -346,28 +333,175 @@ const ImageManagementTab = () => {
     );
   }, [images, searchQuery, selectedCategory]);
   
-  // Loading or empty state component
-  const LoadingOrEmptyState = () => {
-    if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center py-8">
-          <div className="w-8 h-8 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 mt-4">Loading images...</p>
+  const renderUploadDialog = () => (
+    <Dialog open={isUploadDialogOpen} onOpenChange={(open) => !open && resetUploadForm()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Upload New Image</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">Title</Label>
+            <Input
+              id="title"
+              value={newImage.title}
+              onChange={e => setNewImage({...newImage, title: e.target.value})}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="category" className="text-right">Category</Label>
+            <Select 
+              value={newImage.category} 
+              onValueChange={value => setNewImage({...newImage, category: value})}
+            >
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="file" className="text-right">Image</Label>
+            <div className="col-span-3">
+              <Input
+                id="file"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB
+              </p>
+            </div>
+          </div>
+          
+          {newImage.previewUrl && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <div className="text-right">
+                <Label>Preview</Label>
+              </div>
+              <div className="col-span-3">
+                <div className="max-w-full overflow-hidden rounded border border-gray-200">
+                  <img 
+                    src={newImage.previewUrl} 
+                    alt="Preview" 
+                    className="max-h-48 w-auto mx-auto object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      );
-    }
-    
-    if (filteredImages.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Image className="h-8 w-8 text-gray-400 mb-2" />
-          <p className="text-gray-500">No images found matching your criteria</p>
+        <DialogFooter>
+          <Button variant="outline" onClick={resetUploadForm} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleUploadImage} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
+            {loading ? "Uploading..." : "Upload"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const renderEditDialog = () => (
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Image</DialogTitle>
+        </DialogHeader>
+        {currentImage && (
+          <div className="grid gap-4 py-4">
+            <div className="mx-auto mb-4">
+              <img
+                src={currentImage.url}
+                alt={currentImage.title}
+                className="max-w-full max-h-32 object-contain"
+                onError={handleImageError}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-title" className="text-right">Title</Label>
+              <Input
+                id="edit-title"
+                value={currentImage.title}
+                onChange={e => setCurrentImage({...currentImage, title: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-category" className="text-right">Category</Label>
+              <Select 
+                value={currentImage.category} 
+                onValueChange={value => setCurrentImage({...currentImage, category: value})}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={saveChanges} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const renderDeleteDialog = () => (
+    <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Delete Image</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <p className="mb-4">Are you sure you want to delete this image?</p>
+          {currentImage && (
+            <div className="flex items-center space-x-4">
+              <img
+                src={currentImage.url}
+                alt={currentImage.title}
+                className="w-16 h-16 object-cover rounded"
+                onError={handleImageError}
+              />
+              <div>
+                <p className="font-medium">{currentImage.title}</p>
+                <p className="text-sm text-gray-500">{currentImage.category}</p>
+              </div>
+            </div>
+          )}
         </div>
-      );
-    }
-    
-    return null;
-  };
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={confirmDelete}
+            disabled={loading}
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
   
   return (
     <>
@@ -432,7 +566,19 @@ const ImageManagementTab = () => {
               
               {/* Grid View */}
               <TabsContent value="grid" className="mt-0">
-                <LoadingOrEmptyState />
+                {loading && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 mt-4">Loading images...</p>
+                  </div>
+                )}
+                
+                {!loading && filteredImages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Image className="h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No images found matching your criteria</p>
+                  </div>
+                )}
                 
                 {!loading && filteredImages.length > 0 && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -486,7 +632,19 @@ const ImageManagementTab = () => {
               
               {/* List View */}
               <TabsContent value="list" className="mt-0">
-                <LoadingOrEmptyState />
+                {loading && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-8 h-8 border-4 border-academy-primary border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-gray-500 mt-4">Loading images...</p>
+                  </div>
+                )}
+                
+                {!loading && filteredImages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Image className="h-8 w-8 text-gray-400 mb-2" />
+                    <p className="text-gray-500">No images found matching your criteria</p>
+                  </div>
+                )}
                 
                 {!loading && filteredImages.length > 0 && (
                   <div className="overflow-x-auto">
@@ -555,172 +713,9 @@ const ImageManagementTab = () => {
         </Card>
       </div>
       
-      {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={(open) => !open && resetUploadForm()}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Upload New Image</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Title</Label>
-              <Input
-                id="title"
-                value={newImage.title}
-                onChange={e => setNewImage({...newImage, title: e.target.value})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">Category</Label>
-              <Select 
-                value={newImage.category} 
-                onValueChange={value => setNewImage({...newImage, category: value})}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="file" className="text-right">Image</Label>
-              <div className="col-span-3">
-                <Input
-                  id="file"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Maximum file size: {MAX_FILE_SIZE / (1024 * 1024)}MB
-                </p>
-              </div>
-            </div>
-            
-            {newImage.previewUrl && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <div className="text-right">
-                  <Label>Preview</Label>
-                </div>
-                <div className="col-span-3">
-                  <div className="max-w-full overflow-hidden rounded border border-gray-200">
-                    <img 
-                      src={newImage.previewUrl} 
-                      alt="Preview" 
-                      className="max-h-48 w-auto mx-auto object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={resetUploadForm} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={handleUploadImage} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
-              {loading ? "Uploading..." : "Upload"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Image</DialogTitle>
-          </DialogHeader>
-          {currentImage && (
-            <div className="grid gap-4 py-4">
-              <div className="mx-auto mb-4">
-                <img
-                  src={currentImage.url}
-                  alt={currentImage.title}
-                  className="max-w-full max-h-32 object-contain"
-                  onError={handleImageError}
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-title" className="text-right">Title</Label>
-                <Input
-                  id="edit-title"
-                  value={currentImage.title}
-                  onChange={e => setCurrentImage({...currentImage, title: e.target.value})}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-category" className="text-right">Category</Label>
-                <Select 
-                  value={currentImage.category} 
-                  onValueChange={value => setCurrentImage({...currentImage, category: value})}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button onClick={saveChanges} disabled={loading} className="bg-academy-primary hover:bg-academy-primary/90">
-              {loading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Image</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="mb-4">Are you sure you want to delete this image?</p>
-            {currentImage && (
-              <div className="flex items-center space-x-4">
-                <img
-                  src={currentImage.url}
-                  alt={currentImage.title}
-                  className="w-16 h-16 object-cover rounded"
-                  onError={handleImageError}
-                />
-                <div>
-                  <p className="font-medium">{currentImage.title}</p>
-                  <p className="text-sm text-gray-500">{currentImage.category}</p>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={loading}
-            >
-              {loading ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {renderUploadDialog()}
+      {renderEditDialog()}
+      {renderDeleteDialog()}
     </>
   );
 };
