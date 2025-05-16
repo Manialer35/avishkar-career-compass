@@ -11,7 +11,7 @@ import EnquirySection from '../components/home/EnquirySection';
 const Home = () => {
   // Store profile images
   const [profileImages, setProfileImages] = useState({
-    maheshKhot: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK",
+    maheshKhot: "https://drive.google.com/file/d/1-97xrSTl-6oa0hfnDIPVSE8bKESSs5e3/view?usp=drive_link",
     atulMadkar: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM",
     academyLogo: "https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP"
   });
