@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSection from '../components/home/ProfileSection';
@@ -11,97 +10,90 @@ import EnquirySection from '../components/home/EnquirySection';
 const Home = () => {
   // Store profile images
   const [profileImages, setProfileImages] = useState({
-    maheshKhot: "https://drive.google.com/file/d/1-97xrSTl-6oa0hfnDIPVSE8bKESSs5e3/view?usp=drive_link",
-    atulMadkar: "https://via.placeholder.com/200x200/1e3a8a/ffffff?text=AM",
-    academyLogo: "https://via.placeholder.com/200x200/0284c7/ffffff?text=ACADEMY+APP"
+    maheshKhot: '/placeholder-profile.png',
+    atulMadkar: '/placeholder-profile.png',
+    academyLogo: '/placeholder-logo.png'
   });
 
-  // Successful candidates images - to be loaded from database
-  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState([
-    "https://via.placeholder.com/350x230/4ade80/000000?text=Success+Story+1",
-    "https://via.placeholder.com/350x230/34d399/000000?text=Success+Story+2",
-    "https://via.placeholder.com/350x230/2dd4bf/000000?text=Success+Story+3",
-    "https://via.placeholder.com/350x230/22d3ee/000000?text=Success+Story+4",
-    "https://via.placeholder.com/350x230/38bdf8/000000?text=Success+Story+5",
-  ]);
+  // Successful candidates images
+  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Load images from Supabase
   useEffect(() => {
-    const fetchImagesFromCategory = async (category: string) => {
+    const fetchImages = async () => {
       try {
-        console.log(`Fetching images for category: ${category}`);
-        const { data, error } = await supabase
+        setLoading(true);
+        
+        // Fetch all images in one query for better performance
+        const { data: allImages, error } = await supabase
           .from('academy_images')
-          .select('*')
-          .eq('category', category);
+          .select('*');
         
         if (error) {
-          console.error(`Error fetching ${category} images:`, error);
-          return null;
+          console.error('Error fetching images:', error);
+          return;
+        }
+
+        if (!allImages || allImages.length === 0) {
+          console.log('No images found in the database');
+          return;
+        }
+
+        console.log(`Fetched ${allImages.length} images from database`);
+        
+        // Process profile images
+        const profiles = allImages.filter(img => img.category === 'Profiles');
+        const logos = allImages.filter(img => img.category === 'Logos');
+        const successStories = allImages.filter(img => img.category === 'Successful Candidates');
+        
+        // Extract profile images
+        const newProfileImages = { ...profileImages };
+        
+        // Find Mahesh's profile
+        const maheshImage = profiles.find(img => 
+          img.title?.toLowerCase().includes('mahesh') || 
+          img.title?.toLowerCase().includes('khot')
+        );
+        if (maheshImage) {
+          newProfileImages.maheshKhot = maheshImage.url;
         }
         
-        console.log(`Found ${data?.length || 0} images for ${category}:`, data);
-        return data;
-      } catch (error) {
-        console.error(`Error in fetchImagesFromCategory for ${category}:`, error);
-        return null;
-      }
-    };
-    
-    const loadImages = async () => {
-      try {
-        // Fetching successful candidates images
-        const successfulCandidates = await fetchImagesFromCategory('Successful Candidates');
-        if (successfulCandidates && successfulCandidates.length > 0) {
-          const urls = successfulCandidates.map((img: any) => img.url);
-          console.log("Setting successful candidates images:", urls);
-          setSuccessfulCandidatesImages(urls);
+        // Find Atul's profile
+        const atulImage = profiles.find(img => 
+          img.title?.toLowerCase().includes('atul') || 
+          img.title?.toLowerCase().includes('madkar')
+        );
+        if (atulImage) {
+          newProfileImages.atulMadkar = atulImage.url;
         }
         
-        // Fetching profile images
-        const profiles = await fetchImagesFromCategory('Profiles');
-        if (profiles && profiles.length > 0) {
-          const profileMap: Record<string, string> = {};
-          
-          profiles.forEach((profile: any) => {
-            console.log("Processing profile:", profile);
-            if (profile.title && profile.title.toLowerCase().includes('mahesh')) {
-              profileMap.maheshKhot = profile.url;
-            } else if (profile.title && profile.title.toLowerCase().includes('atul')) {
-              profileMap.atulMadkar = profile.url;
-            }
-          });
-          
-          // Update only if we found images
-          if (Object.keys(profileMap).length > 0) {
-            console.log("Setting profile images:", profileMap);
-            setProfileImages(prev => ({
-              ...prev,
-              ...profileMap
-            }));
-          }
+        // Find Academy logo
+        const logoImage = logos.find(img => 
+          img.title?.toLowerCase().includes('academy') || 
+          img.title?.toLowerCase().includes('logo')
+        );
+        if (logoImage) {
+          newProfileImages.academyLogo = logoImage.url;
         }
         
-        // Fetching logo
-        const logos = await fetchImagesFromCategory('Logos');
-        if (logos && logos.length > 0) {
-          const academyLogo = logos.find((logo: any) => 
-            logo.title && logo.title.toLowerCase().includes('academy'));
-          if (academyLogo) {
-            console.log("Setting academy logo:", academyLogo.url);
-            setProfileImages(prev => ({
-              ...prev,
-              academyLogo: academyLogo.url
-            }));
-          }
+        // Update states
+        setProfileImages(newProfileImages);
+        
+        // Extract success stories
+        if (successStories && successStories.length > 0) {
+          const successUrls = successStories.map(img => img.url);
+          setSuccessfulCandidatesImages(successUrls);
         }
         
       } catch (error) {
         console.error('Error loading images:', error);
+      } finally {
+        setLoading(false);
       }
     };
     
-    loadImages();
+    fetchImages();
   }, []);
 
   return (
@@ -109,7 +101,17 @@ const Home = () => {
       <ProfileSection profileImages={profileImages} />
       <SyllabusSection />
       <IntroductionSection />
-      <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
+      {!loading && successfulCandidatesImages.length > 0 ? (
+        <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
+      ) : (
+        <div className="my-8 text-center">
+          {loading ? (
+            <p>Loading success stories...</p>
+          ) : (
+            <p>No success stories available at the moment.</p>
+          )}
+        </div>
+      )}
       <ClassesSection />
       <EnquirySection />
     </div>
