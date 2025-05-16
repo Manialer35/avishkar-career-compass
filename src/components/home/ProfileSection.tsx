@@ -68,7 +68,7 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
         const images = {
           maheshKhot: maheshImage 
             ? supabase.storage.from('images').getPublicUrl(maheshImage.name).data.publicUrl 
-            : 'https://via.placeholder.com/200x200/1e3a8a/ffffff?text=MK',
+            : 'https://drive.google.com/file/d/1-97xrSTl-6oa0hfnDIPVSE8bKESSs5e3/view?usp=drive_link',
           
           atulMadkar: atulImage 
             ? supabase.storage.from('images').getPublicUrl(atulImage.name).data.publicUrl 
