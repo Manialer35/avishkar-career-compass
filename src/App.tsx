@@ -1,4 +1,6 @@
-
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import PremiumStudyMaterials from '@/pages/PremiumStudyMaterials';
+import PurchaseProduct from '@/components/payment/PurchaseProduct';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,6 +23,28 @@ import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
 import { useState } from "react";
+
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <MainLayout />, // Your main layout component
+    children: [
+      // Your existing routes
+      {
+        path: 'premium-materials',
+        element: <PremiumStudyMaterials />
+      },
+      {
+        path: 'purchase/:productId',
+        element: <PurchaseProduct />
+      },
+      // Other routes
+    ]
+  },
+  // Other route configurations
+]);
+
 
 // App content without swipeable behavior
 const AppContent = () => {
@@ -113,5 +137,9 @@ const App = () => {
     </QueryClientProvider>
   );
 };
+
+function App() {
+  return <RouterProvider router={router} />;
+}
 
 export default App;
