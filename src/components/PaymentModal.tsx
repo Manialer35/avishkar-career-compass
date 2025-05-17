@@ -39,7 +39,7 @@ interface PaymentModalProps {
   };
 }
 
-const PaymentModal: React.FC<PaymentModalProps> = ({ 
+export const PaymentModal: React.FC<PaymentModalProps> = ({ 
   open, 
   onClose, 
   amount, 
