@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import PaymentModal from '@/components/PaymentModal';
+import { 
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle 
+} from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 
 interface EnrollmentDialogProps {
   open: boolean;
@@ -30,7 +37,10 @@ const EnrollmentDialog = ({
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState(false);
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCVC, setCardCVC] = useState('');
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,11 +57,53 @@ const EnrollmentDialog = ({
     }
     
     if (classAmount > 0) {
-      // For paid classes, show payment dialog
-      setShowPayment(true);
+      // For paid classes, show payment form
+      setPaymentStep(true);
     } else {
       // For free classes, register directly
       await completeRegistration();
+    }
+  };
+  
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic payment validation
+    if (!cardNumber || !cardExpiry || !cardCVC) {
+      toast({
+        title: "Missing Payment Information",
+        description: "Please fill in all payment details",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Mock payment processing
+    try {
+      setLoading(true);
+      
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Generate a mock payment ID
+      const mockPaymentId = `pay_${Date.now()}`;
+      
+      // Complete the registration with the payment ID
+      await completeRegistration(mockPaymentId);
+      
+      // Reset payment form
+      setPaymentStep(false);
+      setCardNumber('');
+      setCardExpiry('');
+      setCardCVC('');
+      
+    } catch (error: any) {
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to process payment",
+        variant: "destructive",
+      });
+      setLoading(false);
     }
   };
   
@@ -118,22 +170,21 @@ const EnrollmentDialog = ({
     }
   };
   
-  const handlePaymentComplete = () => {
-    // Generate a mock payment ID for demo purposes
-    const mockPaymentId = `pay_${Date.now()}`;
-    completeRegistration(mockPaymentId);
+  const handleBackToInfo = () => {
+    setPaymentStep(false);
   };
 
   return (
-    <>
-      <Dialog open={open && !showPayment} onOpenChange={onClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">
-              Enroll in {classTitle}
-            </DialogTitle>
-          </DialogHeader>
-          
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            {paymentStep ? `Payment for ${classTitle}` : `Enroll in ${classTitle}`}
+          </DialogTitle>
+        </DialogHeader>
+        
+        {!paymentStep ? (
+          // Step 1: User information form
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -197,22 +248,64 @@ const EnrollmentDialog = ({
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-      
-      <PaymentModal
-        open={showPayment}
-        onClose={() => setShowPayment(false)}
-        amount={classAmount}
-        productName={classTitle}
-        onPaymentComplete={handlePaymentComplete}
-        customerDetails={{
-          name,
-          email,
-          phone
-        }}
-      />
-    </>
+        ) : (
+          // Step 2: Payment form
+          <form onSubmit={handlePaymentSubmit} className="space-y-4 mt-4">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>Payment Details</CardTitle>
+                <CardDescription>
+                  Amount: ${classAmount.toFixed(2)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cardNumber">Card Number</Label>
+                  <Input
+                    id="cardNumber"
+                    placeholder="1234 5678 9012 3456"
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="expiry">Expiry Date</Label>
+                    <Input
+                      id="expiry" 
+                      placeholder="MM/YY"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cvc">CVC</Label>
+                    <Input
+                      id="cvc"
+                      placeholder="123"
+                      value={cardCVC}
+                      onChange={(e) => setCardCVC(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="pt-2 flex justify-between">
+              <Button type="button" variant="outline" onClick={handleBackToInfo}>
+                Back
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? 'Processing Payment...' : `Pay $${classAmount.toFixed(2)}`}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
