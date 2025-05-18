@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
 
 export interface PaymentDetails {
   productName: string;
@@ -8,33 +6,25 @@ export interface PaymentDetails {
 }
 
 export const usePayment = () => {
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [currentPayment, setCurrentPayment] = useState<PaymentDetails | null>(null);
-  const { toast } = useToast();
-
+  
   const initiatePayment = (details: PaymentDetails) => {
     setCurrentPayment(details);
-    setIsPaymentModalOpen(true);
-  };
-
-  const closePaymentModal = () => {
-    setIsPaymentModalOpen(false);
+    // Handle payment initiation directly here instead of opening a modal
+    console.log(`Payment initiated for ${details.productName}: $${details.amount}`);
+    // You can implement your direct payment processing logic here
   };
 
   const handlePaymentComplete = () => {
-    // This function can be extended to handle database operations
-    // or other post-payment actions
-    toast({
-      title: "Purchase Complete",
-      description: `Thank you for purchasing ${currentPayment?.productName}!`,
-    });
+    // Payment completion logic
+    console.log(`Payment completed for ${currentPayment?.productName}`);
+    // Reset the current payment after processing
+    setCurrentPayment(null);
   };
 
   return {
-    isPaymentModalOpen,
     currentPayment,
     initiatePayment,
-    closePaymentModal,
     handlePaymentComplete,
   };
 };
