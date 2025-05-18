@@ -13,29 +13,53 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          created_by: string | null
+          description: string | null
+          filename: string | null
           id: string
-          size: string | null
-          title: string
-          updated_at: string
+          storage_path: string | null
+          title: string | null
           url: string
         }
         Insert: {
           category: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filename?: string | null
           id?: string
-          size?: string | null
-          title: string
-          updated_at?: string
+          storage_path?: string | null
+          title?: string | null
           url: string
         }
         Update: {
           category?: string
           created_at?: string
+          created_by?: string | null
+          description?: string | null
+          filename?: string | null
           id?: string
-          size?: string | null
-          title?: string
-          updated_at?: string
+          storage_path?: string | null
+          title?: string | null
           url?: string
+        }
+        Relationships: []
+      }
+      admin_users: {
+        Row: {
+          created_at: string
+          id: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -190,15 +214,46 @@ export type Database = {
           user_id?: string | null
           user_name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "material_purchases_material_id_fkey"
-            columns: ["material_id"]
-            isOneToOne: false
-            referencedRelation: "study_materials"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      payment_orders: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          id: string
+          order_id: string
+          payment_id: string | null
+          product_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id: string
+          payment_id?: string | null
+          product_id: string
+          status: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          order_id?: string
+          payment_id?: string | null
+          product_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -206,6 +261,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_admin: boolean | null
           updated_at: string
           username: string | null
         }
@@ -214,6 +270,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_admin?: boolean | null
           updated_at?: string
           username?: string | null
         }
@@ -222,44 +279,71 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_admin?: boolean | null
           updated_at?: string
           username?: string | null
         }
         Relationships: []
       }
+      purchases: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_method: string
+          status: string
+          study_material_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          payment_method: string
+          status?: string
+          study_material_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_method?: string
+          status?: string
+          study_material_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_study_material_id_fkey"
+            columns: ["study_material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_materials: {
         Row: {
           created_at: string
-          description: string
-          downloadurl: string
+          description: string | null
           id: string
-          ispremium: boolean
-          price: number | null
-          thumbnailurl: string | null
-          title: string
-          updated_at: string
+          name: string
+          price: number
         }
         Insert: {
           created_at?: string
-          description: string
-          downloadurl: string
+          description?: string | null
           id?: string
-          ispremium?: boolean
-          price?: number | null
-          thumbnailurl?: string | null
-          title: string
-          updated_at?: string
+          name: string
+          price: number
         }
         Update: {
           created_at?: string
-          description?: string
-          downloadurl?: string
+          description?: string | null
           id?: string
-          ispremium?: boolean
-          price?: number | null
-          thumbnailurl?: string | null
-          title?: string
-          updated_at?: string
+          name?: string
+          price?: number
         }
         Relationships: []
       }
@@ -299,6 +383,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_purchases: {
+        Row: {
+          amount: number
+          id: string
+          material_id: string
+          payment_id: string | null
+          purchased_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          material_id: string
+          payment_id?: string | null
+          purchased_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          material_id?: string
+          payment_id?: string | null
+          purchased_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -329,9 +440,27 @@ export type Database = {
         Args: { bucket_name: string }
         Returns: boolean
       }
+      create_user_roles_if_not_exists: {
+        Args: Record<PropertyKey, never> | { p_user_id: string; p_role: string }
+        Returns: undefined
+      }
+      ensure_user_role: {
+        Args:
+          | { p_user_id: string; p_role: string }
+          | { p_user_id: string; p_role: string }
+        Returns: undefined
+      }
       get_user_role: {
-        Args: { user_id: string }
-        Returns: Database["public"]["Enums"]["user_role"]
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      has_active_access: {
+        Args: { material_id: string; user_id: string }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { user_uuid: string }
+        Returns: boolean
       }
     }
     Enums: {
