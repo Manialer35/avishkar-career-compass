@@ -327,7 +327,10 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          download_count: number | null
           downloadurl: string | null
+          duration_months: number | null
+          duration_type: string | null
           id: string
           ispremium: boolean | null
           name: string
@@ -338,7 +341,10 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          download_count?: number | null
           downloadurl?: string | null
+          duration_months?: number | null
+          duration_type?: string | null
           id?: string
           ispremium?: boolean | null
           name: string
@@ -349,7 +355,10 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          download_count?: number | null
           downloadurl?: string | null
+          duration_months?: number | null
+          duration_type?: string | null
           id?: string
           ispremium?: boolean | null
           name?: string
@@ -398,6 +407,7 @@ export type Database = {
       user_purchases: {
         Row: {
           amount: number
+          expires_at: string | null
           id: string
           material_id: string
           payment_id: string | null
@@ -406,6 +416,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          expires_at?: string | null
           id?: string
           material_id: string
           payment_id?: string | null
@@ -414,6 +425,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          expires_at?: string | null
           id?: string
           material_id?: string
           payment_id?: string | null
@@ -448,6 +460,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_expiry_date: {
+        Args: { duration_months: number; duration_type: string }
+        Returns: string
+      }
       check_bucket_exists: {
         Args: { bucket_name: string }
         Returns: boolean

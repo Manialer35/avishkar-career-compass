@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ interface Purchase {
   id: string;
   material_id: string;
   user_id: string;
-  purchase_date: string;
+  purchased_at: string;
   expires_at: string;
 }
 
@@ -19,6 +20,8 @@ interface StudyMaterial {
   content_url: string;
   thumbnailUrl?: string;
   isPremium: boolean;
+  duration_months?: number;
+  duration_type?: string;
 }
 
 const SecureMaterialViewer = () => {
@@ -63,11 +66,11 @@ const SecureMaterialViewer = () => {
 
         // Check if user has purchased this material
         const { data: purchaseData, error: purchaseError } = await supabase
-          .from('purchases')
+          .from('user_purchases')
           .select('*')
           .eq('material_id', materialId)
           .eq('user_id', user.id)
-          .order('purchase_date', { ascending: false })
+          .order('purchased_at', { ascending: false })
           .limit(1)
           .single();
 
@@ -83,12 +86,14 @@ const SecureMaterialViewer = () => {
         setPurchase(purchaseData);
 
         // Check if purchase has expired
-        const expiryDate = new Date(purchaseData.expires_at);
-        const now = new Date();
-        
-        if (now > expiryDate) {
-          setError('Your access to this material has expired');
-          return;
+        if (purchaseData.expires_at) {
+          const expiryDate = new Date(purchaseData.expires_at);
+          const now = new Date();
+          
+          if (now > expiryDate) {
+            setError('Your access to this material has expired');
+            return;
+          }
         }
 
         // If all checks pass, get the secure URL
@@ -213,7 +218,12 @@ const SecureMaterialViewer = () => {
   };
 
   const calculateTimeRemaining = () => {
-    if (!purchase) return null;
+    if (!purchase || !purchase.expires_at) return null;
+    
+    // Check if lifetime access
+    if (new Date(purchase.expires_at).getFullYear() > 9000) {
+      return "Lifetime access";
+    }
     
     const expiryDate = new Date(purchase.expires_at);
     const now = new Date();

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
@@ -23,19 +24,50 @@ export const GooglePayButton = ({ productId, productName, price, onSuccess, onCa
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Record the purchase in Supabase
-      const { error } = await supabase
-        .from('purchases')
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not logged in");
+      }
+      
+      // Get study material information to determine duration
+      const { data: material, error: materialError } = await supabase
+        .from('study_materials')
+        .select('duration_months, duration_type')
+        .eq('id', productId)
+        .single();
+      
+      if (materialError || !material) {
+        throw new Error("Could not fetch product information");
+      }
+      
+      // Calculate expiry date based on duration settings
+      let expiryDate;
+      if (material.duration_type === 'lifetime') {
+        expiryDate = '9999-12-31T23:59:59Z';
+      } else {
+        const months = material.duration_months || 3; // Default to 3 months if not specified
+        const date = new Date();
+        date.setMonth(date.getMonth() + months);
+        expiryDate = date.toISOString();
+      }
+      
+      const { error: purchaseError } = await supabase
+        .from('user_purchases')
         .insert({
-          product_id: productId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: user.id,
+          material_id: productId,
+          payment_id: `google_pay_${Date.now()}`,
           amount: price,
-          payment_method: 'google_pay',
-          status: 'completed'
+          expires_at: expiryDate
         });
         
-      if (error) {
-        throw new Error(error.message);
+      if (purchaseError) {
+        throw new Error(purchaseError.message);
       }
+      
+      // Update download stats
+      await supabase.rpc('increment_material_downloads', { material_id: productId });
       
       setPaymentStatus('success');
       
@@ -50,6 +82,11 @@ export const GooglePayButton = ({ productId, productName, price, onSuccess, onCa
       setErrorMessage(error instanceof Error ? error.message : 'Payment failed');
     }
   };
+
+  // Check for Google Pay availability
+  const isGooglePayAvailable = typeof window !== 'undefined' && 
+    window.navigator && 
+    window.navigator.userAgent.indexOf('Android') > -1;
 
   return (
     <div className="flex flex-col items-center">

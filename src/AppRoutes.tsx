@@ -1,10 +1,11 @@
+
 import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import PremiumStudyMaterials from '@/pages/PremiumStudyMaterials';
 import SecureMaterialViewer from '@/pages/SecureMaterialViewer';
 import MyMaterialsPage from '@/pages/MyMaterialsPage';
-import ProductCheckout from './pages/ProductCheckout';
-import MaterialAccess from './pages/MaterialAccess';
-import SuccessPage from './pages/SuccessPage';
+import ProductCheckout from '@/pages/ProductCheckout';
+import MaterialAccess from '@/pages/MaterialAccess';
+import SuccessPage from '@/pages/SuccessPage';
 import Event from './pages/Event';
 // Import other components/pages as needed
 
