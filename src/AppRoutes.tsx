@@ -2,8 +2,6 @@ import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import PremiumStudyMaterials from '@/pages/PremiumStudyMaterials';
 import SecureMaterialViewer from '@/pages/SecureMaterialViewer';
 import MyMaterialsPage from '@/pages/MyMaterialsPage';
-import { createBrowserRouter } from 'react-router-dom';
-import PremiumStudyMaterials from './pages/PremiumStudyMaterials';
 import ProductCheckout from './pages/ProductCheckout';
 import MaterialAccess from './pages/MaterialAccess';
 import SuccessPage from './pages/SuccessPage';
@@ -21,18 +19,9 @@ const AppRoutes = () => {
         <Route path="/materials/premium" element={<PremiumStudyMaterials />} />
         <Route path="/materials/view/:materialId" element={<SecureMaterialViewer />} />
         <Route path="/materials/my" element={<MyMaterialsPage />} />
-        {
-          path: '/checkout/:productId',
-          element: <ProductCheckout />,
-        },
-        {
-          path: '/material/:productId/access',
-          element: <MaterialAccess />,
-        },
-        {
-          path: '/payment-success/:productId',
-          element: <SuccessPage />,
-        },
+        <Route path="/checkout/:productId" element={<ProductCheckout />} />
+        <Route path="/material/:productId/access" element={<MaterialAccess />} />
+        <Route path="/payment-success/:productId" element={<SuccessPage />} />
         
         {/* Other routes */}
         {/* ... */}
