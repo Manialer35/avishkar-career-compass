@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import PremiumStudyMaterials from '@/pages/PremiumStudyMaterials';
 import PurchaseProduct from '@/components/payment/PurchaseProduct';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -115,7 +116,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-/*
 const App = () => {
   // Create queryClient inside the component
   const [queryClient] = useState(() => new QueryClient());
@@ -137,7 +137,6 @@ const App = () => {
     </QueryClientProvider>
   );
 };
-*/
 
 function App() {
   return <RouterProvider router={router} />;
