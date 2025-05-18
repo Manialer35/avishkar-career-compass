@@ -5,6 +5,7 @@ import MyMaterialsPage from '@/pages/MyMaterialsPage';
 import ProductCheckout from './pages/ProductCheckout';
 import MaterialAccess from './pages/MaterialAccess';
 import SuccessPage from './pages/SuccessPage';
+import Event from './pages/Event';
 // Import other components/pages as needed
 
 const AppRoutes = () => {
@@ -22,6 +23,7 @@ const AppRoutes = () => {
         <Route path="/checkout/:productId" element={<ProductCheckout />} />
         <Route path="/material/:productId/access" element={<MaterialAccess />} />
         <Route path="/payment-success/:productId" element={<SuccessPage />} />
+        <Route path="/events" element={<Event />} />
         
         {/* Other routes */}
         {/* ... */}

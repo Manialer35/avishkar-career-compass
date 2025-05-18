@@ -327,23 +327,35 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          downloadurl: string | null
           id: string
+          ispremium: boolean | null
           name: string
           price: number
+          thumbnailurl: string | null
+          title: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          downloadurl?: string | null
           id?: string
+          ispremium?: boolean | null
           name: string
           price: number
+          thumbnailurl?: string | null
+          title?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          downloadurl?: string | null
           id?: string
+          ispremium?: boolean | null
           name?: string
           price?: number
+          thumbnailurl?: string | null
+          title?: string | null
         }
         Relationships: []
       }
