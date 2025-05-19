@@ -1,20 +1,18 @@
 
+import React, { useState } from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Save, Upload, X } from 'lucide-react';
-import { useState, ChangeEvent, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/useAuth';
+import { Switch } from '@/components/ui/switch';
+import { Check, Loader2 } from 'lucide-react';
 
 interface StudyMaterial {
   id: string;
@@ -29,207 +27,177 @@ interface StudyMaterial {
 interface EditMaterialDialogProps {
   material: StudyMaterial;
   isNew: boolean;
+  savingMaterial?: boolean;
   onSave: () => void;
   onCancel: () => void;
-  onChange: (field: string, value: string | number | boolean) => void;
+  onChange: (field: string, value: any) => void;
 }
 
 const EditMaterialDialog = ({ 
   material, 
-  isNew, 
+  isNew,
+  savingMaterial = false,
   onSave, 
-  onCancel,
-  onChange
+  onCancel, 
+  onChange 
 }: EditMaterialDialogProps) => {
-  const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(material.thumbnailUrl || null);
-  const { toast } = useToast();
-  const { session } = useAuth();
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
-  const handleThumbnailChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setThumbnail(file);
-      setPreviewUrl(URL.createObjectURL(file));
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!material.title?.trim()) {
+      errors.title = "Title is required";
+    }
+    
+    if (material.isPremium && (!material.price || material.price <= 0)) {
+      errors.price = "Price must be greater than 0 for premium materials";
+    }
+    
+    if (!material.downloadUrl?.trim()) {
+      errors.downloadUrl = "Download URL is required";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  const handleSave = () => {
+    if (validateForm()) {
+      onSave();
     }
   };
-
-  const handleSave = async () => {
-    if (!session) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to save materials",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (thumbnail) {
-      setUploading(true);
-      try {
-        const fileName = `material-${material.id}-${Date.now()}`;
-        const { data, error } = await supabase.storage
-          .from('materials')
-          .upload(fileName, thumbnail, {
-            cacheControl: '3600',
-            upsert: true
-          });
-        
-        if (error) {
-          throw error;
-        }
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('materials')
-          .getPublicUrl(data.path);
-          
-        onChange('thumbnailUrl', publicUrlData.publicUrl);
-      } catch (error: any) {
-        toast({
-          title: "Error uploading thumbnail",
-          description: error.message,
-          variant: "destructive"
-        });
-      } finally {
-        setUploading(false);
-      }
-    }
-    onSave();
-  };
-
-  const removeThumbnail = () => {
-    setThumbnail(null);
-    setPreviewUrl(null);
-    onChange('thumbnailUrl', '');
-  };
-
-  // Form validation
-  const isFormValid = (): boolean => {
-    if (!material.title.trim()) return false;
-    if (material.isPremium && (material.price === undefined || material.price <= 0)) return false;
-    return true;
-  };
-
+  
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-xl font-semibold mb-4">
-          {isNew ? 'Add New Material' : 'Edit Material'}
-        </h3>
+    <Dialog open={true} onOpenChange={() => onCancel()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isNew ? 'Add New Study Material' : 'Edit Study Material'}
+          </DialogTitle>
+        </DialogHeader>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Title<span className="text-red-500">*</span></label>
-            <Input 
-              value={material.title} 
-              onChange={(e) => onChange('title', e.target.value)}
-              placeholder="Enter title"
-            />
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">
+              Title
+            </Label>
+            <div className="col-span-3">
+              <Input
+                id="title"
+                value={material.title || ''}
+                onChange={(e) => onChange('title', e.target.value)}
+                className={validationErrors.title ? "border-red-500" : ""}
+              />
+              {validationErrors.title && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.title}</p>
+              )}
+            </div>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <Textarea 
-              value={material.description} 
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Description
+            </Label>
+            <Textarea
+              id="description"
+              value={material.description || ''}
               onChange={(e) => onChange('description', e.target.value)}
-              rows={3}
-              placeholder="Enter description"
+              className="col-span-3"
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Download URL<span className="text-red-500">*</span></label>
-            <Input 
-              value={material.downloadUrl} 
-              onChange={(e) => onChange('downloadUrl', e.target.value)}
-              placeholder="https://example.com/document.pdf"
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="downloadUrl" className="text-right">
+              Download URL
+            </Label>
+            <div className="col-span-3">
+              <Input
+                id="downloadUrl"
+                value={material.downloadUrl || ''}
+                onChange={(e) => onChange('downloadUrl', e.target.value)}
+                placeholder="https://"
+                className={validationErrors.downloadUrl ? "border-red-500" : ""}
+              />
+              {validationErrors.downloadUrl && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.downloadUrl}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="thumbnailUrl" className="text-right">
+              Thumbnail URL
+            </Label>
+            <Input
+              id="thumbnailUrl"
+              value={material.thumbnailUrl || ''}
+              onChange={(e) => onChange('thumbnailUrl', e.target.value)}
+              placeholder="https://"
+              className="col-span-3"
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Type<span className="text-red-500">*</span></label>
-            <Select 
-              value={material.isPremium ? "premium" : "free"} 
-              onValueChange={(value) => onChange('isPremium', value === "premium")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="premium">Premium</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">Thumbnail</label>
-            {previewUrl ? (
-              <div className="relative mt-1 mb-2">
-                <img 
-                  src={previewUrl} 
-                  alt="Material thumbnail preview" 
-                  className="w-full h-40 object-cover rounded-md border border-gray-200"
-                />
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="absolute top-2 right-2 bg-white/90 rounded-full text-blue-500"
-                  onClick={removeThumbnail}
-                >
-                  <X size={16} />
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-1 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6">
-                <div className="text-center">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                  <div className="mt-1 text-sm text-gray-500">
-                    <label htmlFor="file-upload" className="cursor-pointer text-blue-500 hover:underline">
-                      Upload a thumbnail
-                      <Input
-                        id="file-upload"
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={handleThumbnailChange}
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="isPremium" className="text-right">
+              Premium
+            </Label>
+            <div className="flex items-center space-x-2 col-span-3">
+              <Switch
+                id="isPremium"
+                checked={material.isPremium || false}
+                onCheckedChange={(checked) => onChange('isPremium', checked)}
+              />
+              <Label htmlFor="isPremium">
+                {material.isPremium ? 'Yes' : 'No'}
+              </Label>
+            </div>
           </div>
           
           {material.isPremium && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Price (₹)<span className="text-red-500">*</span></label>
-              <Input 
-                type="number"
-                value={material.price || 0} 
-                onChange={(e) => onChange('price', parseInt(e.target.value) || 0)}
-              />
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="price" className="text-right">
+                Price
+              </Label>
+              <div className="col-span-3">
+                <Input
+                  id="price"
+                  type="number"
+                  value={material.price || ''}
+                  onChange={(e) => onChange('price', parseFloat(e.target.value))}
+                  placeholder="0.00"
+                  className={validationErrors.price ? "border-red-500" : ""}
+                />
+                {validationErrors.price && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.price}</p>
+                )}
+              </div>
             </div>
           )}
         </div>
         
-        <div className="flex justify-end gap-2 mt-6">
+        <DialogFooter>
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={uploading || !isFormValid()}
-            className={!isFormValid() ? "opacity-50 cursor-not-allowed" : ""}
-          >
-            <Save size={16} className="mr-2" /> 
-            {uploading ? 'Uploading...' : 'Save Changes'}
+          <Button onClick={handleSave} disabled={savingMaterial}>
+            {savingMaterial ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : isNew ? (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Create
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Save Changes
+              </>
+            )}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

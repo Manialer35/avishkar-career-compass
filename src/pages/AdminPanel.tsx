@@ -18,6 +18,7 @@ const AdminPanel = () => {
   const { 
     materials, 
     loading,
+    savingMaterial,
     activeTab, 
     setActiveTab,
     editingMaterial,
@@ -55,14 +56,16 @@ const AdminPanel = () => {
       
       <div className="w-full overflow-hidden">
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-3 sm:mb-4 overflow-x-auto flex w-full sm:justify-start gap-1">
-            <TabsTrigger value="free" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Free Materials</TabsTrigger>
-            <TabsTrigger value="premium" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Premium Materials</TabsTrigger>
-            <TabsTrigger value="videos" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Training Videos</TabsTrigger>
-            <TabsTrigger value="images" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Images</TabsTrigger>
-            <TabsTrigger value="registrations" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Class Registrations</TabsTrigger>
-            <TabsTrigger value="events" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Events</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="mb-3 sm:mb-4 flex w-full sm:justify-start gap-1">
+              <TabsTrigger value="free" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Free Materials</TabsTrigger>
+              <TabsTrigger value="premium" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Premium Materials</TabsTrigger>
+              <TabsTrigger value="videos" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Training Videos</TabsTrigger>
+              <TabsTrigger value="images" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Images</TabsTrigger>
+              <TabsTrigger value="registrations" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Class Registrations</TabsTrigger>
+              <TabsTrigger value="events" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Events</TabsTrigger>
+            </TabsList>
+          </div>
           
           <div className="mt-4 bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <TabsContent value="free" className="min-w-0 mt-0">
@@ -122,6 +125,7 @@ const AdminPanel = () => {
         <EditMaterialDialog
           material={editingMaterial}
           isNew={newMaterial}
+          savingMaterial={savingMaterial}
           onSave={handleSave}
           onCancel={() => {
             setEditingMaterial(null);

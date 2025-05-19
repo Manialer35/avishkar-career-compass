@@ -5,6 +5,7 @@ import MaterialCard from './MaterialCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface StudyMaterial {
   id: string;
@@ -26,9 +27,17 @@ interface FreeMaterialsTabProps {
 
 const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: FreeMaterialsTabProps) => {
   const freeMaterials = materials.filter(material => !material.isPremium);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    // Ensure the container is scrollable on mobile devices
+    if (containerRef.current) {
+      containerRef.current.style.webkitOverflowScrolling = 'touch';
+    }
+  }, []);
   
   return (
-    <div className="overflow-x-hidden">
+    <div className="overflow-x-hidden" ref={containerRef}>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
         <div>
           <h2 className="text-base sm:text-lg font-semibold">Free Study Materials</h2>
@@ -42,7 +51,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
         </Button>
       </div>
       
-      <div className="overflow-y-auto max-h-[80vh] pb-4">
+      <div className="overflow-y-auto max-h-[70vh] pb-4 -mx-3 px-3">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3">
             {[...Array(4)].map((_, i) => (
@@ -62,7 +71,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 mt-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
             {freeMaterials.map(material => (
               <MaterialCard 
                 key={material.id}

@@ -18,6 +18,7 @@ interface StudyMaterial {
 export const useAdminMaterials = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingMaterial, setSavingMaterial] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [newMaterial, setNewMaterial] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('free');
@@ -147,6 +148,7 @@ export const useAdminMaterials = () => {
     if (!editingMaterial) return;
     
     try {
+      setSavingMaterial(true);
       console.log("Saving material:", editingMaterial);
       
       if (!session) {
@@ -257,6 +259,8 @@ export const useAdminMaterials = () => {
         variant: "destructive",
         duration: 3000,
       });
+    } finally {
+      setSavingMaterial(false);
     }
   };
   
@@ -278,6 +282,7 @@ export const useAdminMaterials = () => {
     allMaterials: materials,
     setMaterials,
     loading,
+    savingMaterial,
     editingMaterial,
     setEditingMaterial,
     newMaterial,

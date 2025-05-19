@@ -46,7 +46,7 @@ const ProductCard = ({ product }: { product: ProductType }) => {
           className="w-full mt-3 bg-academy-primary hover:bg-academy-secondary"
           asChild
         >
-          <Link to={`/checkout/${product.id}`}>Purchase</Link>
+          <Link to={`/purchase/${product.id}`}>Purchase</Link>
         </Button>
       </div>
     </div>

@@ -9,11 +9,26 @@ import Event from './pages/Event';
 import OnlineClasses from './pages/OnlineClasses';
 import Auth from './pages/Auth';
 import Index from './pages/Index';
-// Import other components/pages as needed
+import NotFound from './pages/NotFound';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import PurchaseProduct from './components/payment/PurchaseProduct';
+
+// ScrollToTop component to ensure page scrolls to top on route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+};
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Existing routes */}
         <Route path="/" element={<Index />} />
@@ -24,13 +39,14 @@ const AppRoutes = () => {
         <Route path="/materials/view/:materialId" element={<SecureMaterialViewer />} />
         <Route path="/materials/my" element={<MyMaterialsPage />} />
         <Route path="/checkout/:productId" element={<ProductCheckout />} />
+        <Route path="/purchase/:productId" element={<PurchaseProduct />} />
         <Route path="/material/:productId/access" element={<MaterialAccess />} />
         <Route path="/payment-success/:productId" element={<SuccessPage />} />
         <Route path="/events" element={<Event />} />
         <Route path="/online-classes" element={<OnlineClasses />} />
         
-        {/* Other routes */}
-        {/* ... */}
+        {/* 404 catch-all route */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

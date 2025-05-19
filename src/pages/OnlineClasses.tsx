@@ -1,35 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock, MapPin, User } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
-import MobileClassesSection from '@/components/mobile/MobileClassesSection';
 
-interface ClassItem {
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Calendar, Clock, User, Target, Bookmark } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+interface ClassType {
   id: string;
-  class_title: string;
-  class_description: string;
-  class_date: string;
-  class_time: string;
-  class_duration: string;
-  class_location: string;
-  class_instructor: string;
-  class_price: number;
-  class_capacity: number;
-  is_active: boolean;
-  class_category: string;
-  class_level: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  duration: string;
+  instructor: string;
+  level: string;
+  price: number;
+  category: string;
+  capacity?: number;
 }
 
 const OnlineClasses = () => {
-  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [classes, setClasses] = useState<ClassType[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const mobile = useIsMobile();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchClasses();
@@ -38,150 +34,197 @@ const OnlineClasses = () => {
   const fetchClasses = async () => {
     try {
       setLoading(true);
-
-      // Get current date in ISO format to filter only upcoming classes
-      const today = new Date().toISOString();
-
+      console.log('Fetching classes data...');
+      
       const { data, error } = await supabase
         .from('classes')
         .select('*')
-        .gte('class_date', today)
         .eq('is_active', true)
         .order('class_date', { ascending: true });
 
       if (error) {
+        console.error('Error fetching classes:', error);
         throw error;
       }
 
-      console.log('Fetched classes:', data);
-      setClasses(data || []);
-    } catch (err) {
-      console.error('Error fetching classes:', err);
-      toast({
-        title: "Error",
-        description: "Failed to load classes. Please try again later.",
-        variant: "destructive",
-      });
+      if (data) {
+        console.log('Classes data fetched:', data.length);
+        const formattedClasses = data.map(item => ({
+          id: item.id,
+          title: item.class_title,
+          description: item.class_description || '',
+          date: new Date(item.class_date).toLocaleDateString(),
+          time: item.class_time,
+          duration: item.class_duration,
+          instructor: item.class_instructor,
+          level: item.class_level,
+          category: item.class_category,
+          price: Number(item.class_price) || 0,
+          capacity: item.class_capacity
+        }));
+        
+        setClasses(formattedClasses);
+      }
+    } catch (error) {
+      console.error('Error in fetchClasses:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric'
-      });
-    } catch (e) {
-      return dateString;
-    }
+  const renderClassCard = (classItem: ClassType) => {
+    return (
+      <div 
+        key={classItem.id} 
+        className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 flex flex-col"
+      >
+        <div className="p-5 flex-1">
+          <div className="flex justify-between items-start mb-3">
+            <h3 className="font-bold text-lg text-academy-primary">{classItem.title}</h3>
+            <Badge variant="outline" className="bg-academy-secondary/10 text-academy-secondary">
+              {classItem.category}
+            </Badge>
+          </div>
+          
+          <p className="text-gray-600 text-sm mb-4 line-clamp-2">{classItem.description}</p>
+          
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center text-sm text-gray-500">
+              <Calendar className="h-4 w-4 mr-2" />
+              <span>{classItem.date}</span>
+            </div>
+            
+            <div className="flex items-center text-sm text-gray-500">
+              <Clock className="h-4 w-4 mr-2" />
+              <span>{classItem.time} ({classItem.duration})</span>
+            </div>
+            
+            <div className="flex items-center text-sm text-gray-500">
+              <User className="h-4 w-4 mr-2" />
+              <span>{classItem.instructor}</span>
+            </div>
+            
+            <div className="flex items-center text-sm text-gray-500">
+              <Target className="h-4 w-4 mr-2" />
+              <span>{classItem.level} Level</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-5 bg-gray-50 border-t border-gray-100">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-bold text-academy-primary">
+                ₹{classItem.price}
+              </span>
+              {classItem.capacity && (
+                <span className="text-xs text-gray-500">
+                  ({classItem.capacity} seats available)
+                </span>
+              )}
+            </div>
+            <Button 
+              className="whitespace-nowrap"
+              variant="default"
+              size="sm"
+              onClick={() => console.log(`Enroll in class: ${classItem.id}`)}
+            >
+              <Bookmark className="h-4 w-4 mr-2" />
+              Enroll Now
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   };
-
-  const handleEnrollClick = (classItem: ClassItem) => {
-    navigate(`/class-registration/${classItem.id}`, { 
-      state: { classData: classItem } 
-    });
-  };
-
-  // If mobile, render the mobile-specific component
-  if (mobile) {
-    return <MobileClassesSection />;
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center mb-6">
-        <Button variant="ghost" size="icon" className="mr-4" asChild>
-          <Link to="/">
-            <ArrowLeft className="h-6 w-6" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold text-academy-primary">Online Classes</h1>
-      </div>
-
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-5 bg-gray-200 rounded w-3/4 mb-1"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              </CardContent>
-              <CardFooter>
-                <div className="h-10 bg-gray-200 rounded w-full"></div>
-              </CardFooter>
-            </Card>
-          ))}
+      <h1 className="text-2xl font-bold text-center mb-8 text-academy-primary">
+        Online Classes & Training Programs
+      </h1>
+      
+      <Tabs defaultValue="all" className="w-full">
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-full">
+            <TabsTrigger value="all" className="flex-1">All Classes</TabsTrigger>
+            <TabsTrigger value="mathematics" className="flex-1">Mathematics</TabsTrigger>
+            <TabsTrigger value="science" className="flex-1">Science</TabsTrigger>
+          </TabsList>
         </div>
-      ) : classes.length === 0 ? (
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No Classes Scheduled</h3>
-          <p className="text-gray-500">There are no upcoming classes at the moment. Please check back later.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((classItem) => (
-            <Card key={classItem.id} className="shadow-sm hover:shadow-md transition-shadow duration-200">
-              <CardHeader className="bg-academy-primary/5">
-                <CardTitle className="text-xl">{classItem.class_title}</CardTitle>
-                <CardDescription className="flex items-center">
-                  <span className="bg-academy-primary text-white text-xs px-2 py-0.5 rounded">
-                    {classItem.class_category}
-                  </span>
-                  <span className="ml-2 text-gray-600 text-xs px-2 py-0.5 bg-gray-100 rounded">
-                    {classItem.class_level} Level
-                  </span>
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                  {classItem.class_description}
-                </p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    {formatDate(classItem.class_date)}
+        
+        <TabsContent value="all" className="mt-6">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-6 w-1/2 mb-4" />
+                    <Skeleton className="h-6 w-1/4 rounded-full" />
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    {classItem.class_time} ({classItem.class_duration})
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {classItem.class_location}
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <User className="h-4 w-4 mr-2" />
-                    {classItem.class_instructor}
-                  </div>
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-2/3 mb-4" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-10 w-full mt-4" />
                 </div>
-                <div className="mt-4 flex justify-between items-center">
-                  <span className="font-semibold text-lg">
-                    {classItem.class_price > 0 ? `₹${classItem.class_price}` : 'Free'}
-                  </span>
+              ))}
+            </div>
+          ) : classes.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No online classes currently available.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classes.map(classItem => renderClassCard(classItem))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="mathematics" className="mt-6">
+          {loading ? (
+            <div className="flex justify-center">
+              <Skeleton className="h-12 w-12 rounded-full" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classes
+                .filter(c => c.category.toLowerCase() === 'mathematics')
+                .map(classItem => renderClassCard(classItem))
+              }
+              
+              {classes.filter(c => c.category.toLowerCase() === 'mathematics').length === 0 && (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-gray-500">No mathematics classes available.</p>
                 </div>
-              </CardContent>
-              <CardFooter className="pt-2">
-                <Button 
-                  className="w-full"
-                  onClick={() => handleEnrollClick(classItem)}
-                >
-                  Enroll Now
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+              )}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="science" className="mt-6">
+          {loading ? (
+            <div className="flex justify-center">
+              <Skeleton className="h-12 w-12 rounded-full" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classes
+                .filter(c => c.category.toLowerCase() === 'science')
+                .map(classItem => renderClassCard(classItem))
+              }
+              
+              {classes.filter(c => c.category.toLowerCase() === 'science').length === 0 && (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-gray-500">No science classes available.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
