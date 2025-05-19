@@ -29,7 +29,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
   // Your actual Google Pay merchant ID - replace placeholder with your real ID
-  const merchantId = "YOUR_MERCHANT_ID"; // Replace with your actual merchant ID
+  const merchantId = "BCR2DN4TTWA2JCD6"; // Replace with your actual merchant ID
 
   useEffect(() => {
     // Load Google Pay API script
