@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AuthForm from '@/components/auth/AuthForm';
@@ -9,7 +9,7 @@ const Auth = () => {
   const { session } = useAuth();
   
   // If user is already authenticated, redirect to home
-  React.useEffect(() => {
+  useEffect(() => {
     if (session) {
       navigate('/');
     }
