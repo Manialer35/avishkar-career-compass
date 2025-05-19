@@ -131,8 +131,8 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-xl font-semibold">Class Registrations</h2>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
@@ -172,7 +172,7 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
 
       {loading ? (
         <div className="space-y-2">
-          {Array(5)
+          {Array(3)
             .fill(0)
             .map((_, i) => (
               <div key={i} className="flex gap-4">
@@ -181,7 +181,7 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
             ))}
         </div>
       ) : filteredRegistrations.length === 0 ? (
-        <div className="text-center py-10 border rounded-md bg-muted/10">
+        <div className="text-center py-8 border rounded-md bg-muted/10">
           <p className="text-muted-foreground">
             {searchQuery
               ? 'No registrations found matching your search'
@@ -189,41 +189,43 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
           </p>
         </div>
       ) : (
-        <div className="border rounded-md overflow-hidden overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">Student Name</TableHead>
-                <TableHead className="whitespace-nowrap">Email</TableHead>
-                <TableHead className="whitespace-nowrap">Phone</TableHead>
-                <TableHead className="whitespace-nowrap">Class</TableHead>
-                <TableHead className="whitespace-nowrap">Class Date</TableHead>
-                <TableHead className="whitespace-nowrap">Registration Date</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRegistrations.map((registration) => (
-                <TableRow key={registration.id}>
-                  <TableCell className="font-medium whitespace-nowrap">{registration.student_name}</TableCell>
-                  <TableCell className="whitespace-nowrap">{registration.student_email}</TableCell>
-                  <TableCell className="whitespace-nowrap">{registration.student_phone}</TableCell>
-                  <TableCell className="whitespace-nowrap">{registration.class_title}</TableCell>
-                  <TableCell className="whitespace-nowrap">{formatDate(registration.class_date)}</TableCell>
-                  <TableCell className="whitespace-nowrap">{formatDate(registration.created_at)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleDeleteRegistration(registration.id)}
-                    >
-                      <Trash className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </TableCell>
+        <div className="border rounded-md overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Student Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Email</TableHead>
+                  <TableHead className="whitespace-nowrap">Phone</TableHead>
+                  <TableHead className="whitespace-nowrap">Class</TableHead>
+                  <TableHead className="whitespace-nowrap">Class Date</TableHead>
+                  <TableHead className="whitespace-nowrap">Registration Date</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredRegistrations.map((registration) => (
+                  <TableRow key={registration.id}>
+                    <TableCell className="font-medium whitespace-nowrap">{registration.student_name}</TableCell>
+                    <TableCell className="whitespace-nowrap">{registration.student_email}</TableCell>
+                    <TableCell className="whitespace-nowrap">{registration.student_phone}</TableCell>
+                    <TableCell className="whitespace-nowrap">{registration.class_title}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(registration.class_date)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDate(registration.created_at)}</TableCell>
+                    <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDeleteRegistration(registration.id)}
+                      >
+                        <Trash className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>

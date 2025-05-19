@@ -46,55 +46,61 @@ const AdminPanel = () => {
       
       <div className="w-full overflow-hidden">
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4 sm:mb-6 overflow-x-auto flex w-full">
-            <TabsTrigger value="free" className="whitespace-nowrap">Free Materials</TabsTrigger>
-            <TabsTrigger value="premium" className="whitespace-nowrap">Premium Materials</TabsTrigger>
-            <TabsTrigger value="videos" className="whitespace-nowrap">Training Videos</TabsTrigger>
-            <TabsTrigger value="images" className="whitespace-nowrap">Images</TabsTrigger>
-            <TabsTrigger value="registrations" className="whitespace-nowrap">Class Registrations</TabsTrigger>
+          <TabsList className="mb-4 sm:mb-6 overflow-x-auto flex w-full sm:justify-start gap-1 sm:gap-2">
+            <TabsTrigger value="free" className="whitespace-nowrap px-3">Free Materials</TabsTrigger>
+            <TabsTrigger value="premium" className="whitespace-nowrap px-3">Premium Materials</TabsTrigger>
+            <TabsTrigger value="videos" className="whitespace-nowrap px-3">Training Videos</TabsTrigger>
+            <TabsTrigger value="images" className="whitespace-nowrap px-3">Images</TabsTrigger>
+            <TabsTrigger value="registrations" className="whitespace-nowrap px-3">Class Registrations</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="free" className="min-w-0">
-            <FreeMaterialsTab 
-              materials={materials.filter(m => !m.isPremium)} 
-              loading={loading}
-              onAddNew={handleAddNew}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </TabsContent>
-          
-          <TabsContent value="premium" className="min-w-0">
-            <PremiumMaterialsTab 
-              materials={materials.filter(m => m.isPremium)} 
-              loading={loading}
-              onAddNew={handleAddNew}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </TabsContent>
-          
-          <TabsContent value="videos" className="min-w-0">
-            <VideosTab />
-          </TabsContent>
-          
-          <TabsContent value="images" className="min-w-0">
-            <ImageManagementTab />
-          </TabsContent>
-          
-          <TabsContent value="registrations" className="min-w-0">
-            <ClassRegistrationsTab />
-          </TabsContent>
+          <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border">
+            <TabsContent value="free" className="min-w-0 mt-0">
+              <FreeMaterialsTab 
+                materials={materials.filter(m => !m.isPremium)} 
+                loading={loading}
+                onAddNew={handleAddNew}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+              <div className="mt-6">
+                <Pagination 
+                  currentPage={currentPage} 
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="premium" className="min-w-0 mt-0">
+              <PremiumMaterialsTab 
+                materials={materials.filter(m => m.isPremium)} 
+                loading={loading}
+                onAddNew={handleAddNew}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+              <div className="mt-6">
+                <Pagination 
+                  currentPage={currentPage} 
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="videos" className="min-w-0 mt-0">
+              <VideosTab />
+            </TabsContent>
+            
+            <TabsContent value="images" className="min-w-0 mt-0">
+              <ImageManagementTab />
+            </TabsContent>
+            
+            <TabsContent value="registrations" className="min-w-0 mt-0">
+              <ClassRegistrationsTab />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
       

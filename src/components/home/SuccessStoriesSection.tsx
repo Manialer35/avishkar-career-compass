@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import ImageModal from '@/components/ImageModal';
 
 interface SuccessStoriesSectionProps {
   successfulCandidatesImages?: string[];
@@ -10,6 +12,7 @@ const SuccessStoriesSection = ({
 }: SuccessStoriesSectionProps) => {
   const [images, setImages] = useState<string[]>(propImages || []);
   const [loading, setLoading] = useState(!propImages || propImages.length === 0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     // If images were provided as props, use them and skip fetching
@@ -70,12 +73,13 @@ const SuccessStoriesSection = ({
               {images.map((imageUrl, index) => (
                 <div 
                   key={index} 
-                  className="w-64 h-48 flex-shrink-0 rounded-lg overflow-hidden shadow-md"
+                  className="w-64 h-48 flex-shrink-0 rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition-shadow"
+                  onClick={() => setSelectedImage(imageUrl)}
                 >
                   <img 
                     src={imageUrl} 
                     alt={`Success Story ${index + 1}`} 
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       // Fallback if image fails to load
                       (e.target as HTMLImageElement).src = '/placeholder-success.png';
@@ -94,6 +98,16 @@ const SuccessStoriesSection = ({
             </p>
           </div>
         </div>
+      )}
+
+      {/* Image modal for enlarging clicked images */}
+      {selectedImage && (
+        <ImageModal
+          isOpen={!!selectedImage}
+          onClose={() => setSelectedImage(null)}
+          imageUrl={selectedImage}
+          altText="Success story image"
+        />
       )}
     </div>
   );
