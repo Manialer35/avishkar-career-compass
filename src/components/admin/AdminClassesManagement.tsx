@@ -5,6 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -280,10 +281,10 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
           title: "Class updated successfully!",
         });
       } else {
-        // Create new class
+        // Create new class - FIX: Pass the object directly, not in an array
         const { data, error } = await supabase
           .from('classes')
-          .insert([classData])
+          .insert(classData)  // Fixed: removed the array brackets
           .select();
 
         if (error) {
@@ -392,7 +393,14 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
     setSelectedClass(cls);
     setIsEditMode(true);
     setIsDrawerOpen(true);
-    form.reset(cls);
+    
+    // FIX: Convert the string date to a Date object before setting in form
+    form.reset({
+      ...cls,
+      class_date: new Date(cls.class_date), // Convert string to Date
+      class_price: Number(cls.class_price), // Ensure number type
+      class_capacity: Number(cls.class_capacity) // Ensure number type
+    });
   };
 
   // Function to open the drawer for creating a new class
