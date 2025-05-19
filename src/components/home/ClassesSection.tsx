@@ -1,6 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { Calendar } from 'lucide-react';
 
 const ClassesSection = () => {
   return (
@@ -12,10 +13,11 @@ const ClassesSection = () => {
         </p>
         <div className="flex flex-wrap gap-2">
           <Button 
-            className="bg-academy-primary hover:bg-academy-primary/90 text-white"
+            className="bg-academy-primary hover:bg-academy-primary/90 text-white flex items-center"
             asChild
           >
             <Link to="/online-classes">
+              <Calendar size={16} className="mr-2" />
               View Online Classes
             </Link>
           </Button>
