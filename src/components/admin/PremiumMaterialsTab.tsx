@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import MaterialCard from './MaterialCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRef, useEffect } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface StudyMaterial {
   id: string;
@@ -23,13 +24,13 @@ interface PremiumMaterialsTabProps {
   onDelete: (id: string) => void;
 }
 
-const PremiumMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: PremiumMaterialsTabProps) => {
+const PremiumMaterialsTab = ({ materials, loading, onAddNew, onDelete, onEdit }: PremiumMaterialsTabProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Ensure the container is scrollable on mobile devices
+    // Add touch-scrolling class to improve scrolling on mobile devices
     if (containerRef.current) {
-      containerRef.current.style.webkitOverflowScrolling = 'touch';
+      containerRef.current.classList.add('touch-scrolling');
     }
   }, []);
   
@@ -48,7 +49,7 @@ const PremiumMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }:
         </Button>
       </div>
       
-      <div className="overflow-y-auto max-h-[70vh] pb-4 -mx-3 px-3">
+      <ScrollArea className="h-[70vh] w-full pb-4 -mx-3 px-3">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3">
             {[...Array(4)].map((_, i) => (
@@ -76,7 +77,7 @@ const PremiumMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }:
             ))}
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };

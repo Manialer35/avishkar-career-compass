@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface StudyMaterial {
   id: string;
@@ -30,9 +31,9 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Ensure the container is scrollable on mobile devices
+    // Add touch-scrolling class to improve scrolling on mobile devices
     if (containerRef.current) {
-      containerRef.current.style.webkitOverflowScrolling = 'touch';
+      containerRef.current.classList.add('touch-scrolling');
     }
   }, []);
   
@@ -51,7 +52,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
         </Button>
       </div>
       
-      <div className="overflow-y-auto max-h-[70vh] pb-4 -mx-3 px-3">
+      <ScrollArea className="h-[70vh] w-full pb-4 -mx-3 px-3">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3">
             {[...Array(4)].map((_, i) => (
@@ -82,7 +83,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
             ))}
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };
