@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { ArrowLeft, Calendar, Clock, MapPin, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { isMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import MobileClassesSection from '@/components/mobile/MobileClassesSection';
 
 interface ClassItem {
@@ -30,7 +29,7 @@ const OnlineClasses = () => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const mobile = isMobile();
+  const mobile = useIsMobile();
 
   useEffect(() => {
     fetchClasses();
