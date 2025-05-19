@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Save, Upload, X } from 'lucide-react';
-import { useState, ChangeEvent } from 'react';
+import { useState, ChangeEvent, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -14,6 +14,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StudyMaterial {
   id: string;
@@ -44,6 +45,7 @@ const EditMaterialDialog = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(material.thumbnailUrl || null);
   const { toast } = useToast();
+  const { session } = useAuth();
   
   const handleThumbnailChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -54,6 +56,15 @@ const EditMaterialDialog = ({
   };
 
   const handleSave = async () => {
+    if (!session) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save materials",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (thumbnail) {
       setUploading(true);
       try {
@@ -94,6 +105,13 @@ const EditMaterialDialog = ({
     onChange('thumbnailUrl', '');
   };
 
+  // Form validation
+  const isFormValid = (): boolean => {
+    if (!material.title.trim()) return false;
+    if (material.isPremium && (material.price === undefined || material.price <= 0)) return false;
+    return true;
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -103,10 +121,11 @@ const EditMaterialDialog = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Title</label>
+            <label className="block text-sm font-medium mb-1">Title<span className="text-red-500">*</span></label>
             <Input 
               value={material.title} 
               onChange={(e) => onChange('title', e.target.value)}
+              placeholder="Enter title"
             />
           </div>
           
@@ -116,19 +135,21 @@ const EditMaterialDialog = ({
               value={material.description} 
               onChange={(e) => onChange('description', e.target.value)}
               rows={3}
+              placeholder="Enter description"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Download URL</label>
+            <label className="block text-sm font-medium mb-1">Download URL<span className="text-red-500">*</span></label>
             <Input 
               value={material.downloadUrl} 
               onChange={(e) => onChange('downloadUrl', e.target.value)}
+              placeholder="https://example.com/document.pdf"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Type</label>
+            <label className="block text-sm font-medium mb-1">Type<span className="text-red-500">*</span></label>
             <Select 
               value={material.isPremium ? "premium" : "free"} 
               onValueChange={(value) => onChange('isPremium', value === "premium")}
@@ -184,7 +205,7 @@ const EditMaterialDialog = ({
           
           {material.isPremium && (
             <div>
-              <label className="block text-sm font-medium mb-1">Price (₹)</label>
+              <label className="block text-sm font-medium mb-1">Price (₹)<span className="text-red-500">*</span></label>
               <Input 
                 type="number"
                 value={material.price || 0} 
@@ -198,7 +219,11 @@ const EditMaterialDialog = ({
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={uploading}>
+          <Button 
+            onClick={handleSave} 
+            disabled={uploading || !isFormValid()}
+            className={!isFormValid() ? "opacity-50 cursor-not-allowed" : ""}
+          >
             <Save size={16} className="mr-2" /> 
             {uploading ? 'Uploading...' : 'Save Changes'}
           </Button>
