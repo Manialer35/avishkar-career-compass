@@ -12,6 +12,7 @@ interface StudyMaterial {
   thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
+  name?: string; // Added name field
 }
 
 export const useAdminMaterials = () => {
@@ -55,6 +56,7 @@ export const useAdminMaterials = () => {
         const formattedMaterials = data.map(item => ({
           id: item.id,
           title: item.title,
+          name: item.name || item.title, // Ensure name is always set
           description: item.description || "",
           downloadUrl: item.downloadurl || "",
           thumbnailUrl: item.thumbnailurl || undefined,
@@ -130,6 +132,7 @@ export const useAdminMaterials = () => {
     setEditingMaterial({
       id: `new-${Date.now()}`,
       title: '',
+      name: '', // Add empty name
       description: '',
       downloadUrl: '',
       isPremium: activeTab === 'premium',
@@ -156,6 +159,7 @@ export const useAdminMaterials = () => {
       
       const materialData = {
         title: editingMaterial.title,
+        name: editingMaterial.title, // Use title as name if not provided
         description: editingMaterial.description,
         downloadurl: editingMaterial.downloadUrl,
         thumbnailurl: editingMaterial.thumbnailUrl || null,
@@ -178,6 +182,7 @@ export const useAdminMaterials = () => {
           const newItem: StudyMaterial = {
             id: data[0].id,
             title: data[0].title,
+            name: data[0].name,
             description: data[0].description || "",
             downloadUrl: data[0].downloadurl || "",
             thumbnailUrl: data[0].thumbnailurl || undefined,

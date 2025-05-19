@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -9,43 +10,15 @@ export const checkDatabaseSchema = async () => {
   const issues = [];
   
   try {
-    // Check if user_roles table exists
-    const { data: tables, error: tablesError } = await supabase
-      .from('information_schema.tables')
-      .select('table_name')
-      .eq('table_schema', 'public');
+    // Check if user_roles table exists by directly querying it
+    const { data: userRolesData, error: userRolesError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .limit(1);
       
-    if (tablesError) {
-      console.error("Error checking tables:", tablesError);
-      issues.push(`Could not check tables: ${tablesError.message}`);
-    } else {
-      const tableNames = tables?.map(t => t.table_name) || [];
-      
-      // Check for user_roles table
-      if (!tableNames.includes('user_roles')) {
-        issues.push("Missing 'user_roles' table");
-        console.error("Missing required table: user_roles");
-      } else {
-        // Check user_roles columns
-        const { data: columns, error: columnsError } = await supabase
-          .from('information_schema.columns')
-          .select('column_name')
-          .eq('table_name', 'user_roles')
-          .eq('table_schema', 'public');
-          
-        if (columnsError) {
-          console.error("Error checking user_roles columns:", columnsError);
-          issues.push(`Could not check user_roles columns: ${columnsError.message}`);
-        } else {
-          const columnNames = columns?.map(c => c.column_name) || [];
-          if (!columnNames.includes('user_id')) {
-            issues.push("Missing 'user_id' column in user_roles table");
-          }
-          if (!columnNames.includes('role')) {
-            issues.push("Missing 'role' column in user_roles table");
-          }
-        }
-      }
+    if (userRolesError) {
+      console.error("Error checking user_roles table:", userRolesError);
+      issues.push(`User roles table might not exist: ${userRolesError.message}`);
     }
     
     // Test the auth API
@@ -84,12 +57,15 @@ export const checkDatabaseSchema = async () => {
 export const initializeDatabaseSchema = async () => {
   console.log("Initializing database schema...");
   try {
-    // Create user_roles table if it doesn't exist
-    const { error: createTableError } = await supabase.rpc('create_user_roles_if_not_exists', {});
-    
-    if (createTableError) {
-      console.error("Error creating user_roles table:", createTableError);
-      return { success: false, error: createTableError.message };
+    // Verify user_roles table exists by querying it
+    const { error } = await supabase
+      .from('user_roles')
+      .select('count(*)')
+      .limit(1);
+      
+    if (error) {
+      console.error("Error with user_roles table:", error);
+      return { success: false, error: error.message };
     }
     
     return { success: true };

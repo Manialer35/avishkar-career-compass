@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,47 +38,58 @@ const MyMaterialsPage = () => {
         return;
       }
 
-      // Get user's purchases with material info using a join
+      // Get user's purchases with material info
       const { data, error } = await supabase
-        .from('purchases')
+        .from('user_purchases')
         .select(`
           id,
-          material_id,
-          purchase_date,
+          purchased_at,
           expires_at,
-          study_materials (
-            id,
-            title,
-            description,
-            thumbnailurl
-          )
+          material_id,
+          amount
         `)
         .eq('user_id', user.id)
-        .order('purchase_date', { ascending: false });
+        .order('purchased_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      if (data) {
-        // Process and transform the data
+      // If we got purchase data, fetch the corresponding study materials
+      if (data && data.length > 0) {
+        const materialsWithAccess: MaterialWithAccess[] = [];
         const now = new Date();
-        const materialsWithAccess: MaterialWithAccess[] = data.map(item => {
-          const expiryDate = new Date(item.expires_at);
+        
+        // Process each purchase
+        for (const purchase of data) {
+          // Get the study material details for this purchase
+          const { data: materialData, error: materialError } = await supabase
+            .from('study_materials')
+            .select('id, title, description, thumbnailurl')
+            .eq('id', purchase.material_id)
+            .single();
+            
+          if (materialError || !materialData) {
+            console.error(`Error fetching material ${purchase.material_id}:`, materialError);
+            continue;
+          }
+          
+          // Calculate days remaining
+          const expiryDate = new Date(purchase.expires_at);
           const diffTime = expiryDate.getTime() - now.getTime();
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
           
-          return {
-            id: item.study_materials.id,
-            title: item.study_materials.title,
-            description: item.study_materials.description,
-            thumbnailUrl: item.study_materials.thumbnailurl || "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=" + encodeURIComponent(item.study_materials.title),
-            purchaseDate: new Date(item.purchase_date).toLocaleDateString(),
-            expiresAt: new Date(item.expires_at).toLocaleDateString(),
+          materialsWithAccess.push({
+            id: materialData.id,
+            title: materialData.title,
+            description: materialData.description || "",
+            thumbnailUrl: materialData.thumbnailurl || `https://via.placeholder.com/350x200/1e3a8a/ffffff?text=${encodeURIComponent(materialData.title)}`,
+            purchaseDate: new Date(purchase.purchased_at).toLocaleDateString(),
+            expiresAt: new Date(purchase.expires_at).toLocaleDateString(),
             daysRemaining: diffDays
-          };
-        });
-
+          });
+        }
+        
         setMaterials(materialsWithAccess);
       }
     } catch (error) {

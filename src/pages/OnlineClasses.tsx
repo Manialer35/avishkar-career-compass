@@ -11,7 +11,7 @@ const OnlineClasses = () => {
   const [activeTab, setActiveTab] = useState("upcoming");
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [isRegistering, setIsRegistering] = useState(false);
-  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
   
   // Sample class/event data - replace with actual data from backend
   const upcomingClasses = [
@@ -77,7 +77,7 @@ const OnlineClasses = () => {
   
   const handleEnroll = (classItem: any) => {
     setSelectedClass(classItem);
-    setIsEnrolling(true);
+    setIsEnrollmentOpen(true);
   };
   
   // Helper function to format date
@@ -260,8 +260,8 @@ const OnlineClasses = () => {
 
       {/* Enrollment dialog */}
       <EnrollmentDialog
-        isOpen={isEnrolling}
-        onClose={() => setIsEnrolling(false)}
+        open={isEnrollmentOpen}
+        onClose={() => setIsEnrollmentOpen(false)}
         classItem={selectedClass}
       />
     </div>

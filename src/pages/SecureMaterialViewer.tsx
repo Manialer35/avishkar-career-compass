@@ -62,7 +62,19 @@ const SecureMaterialViewer = () => {
           return;
         }
 
-        setMaterial(materialData);
+        // Map database fields to our interface
+        const formattedMaterial: StudyMaterial = {
+          id: materialData.id,
+          title: materialData.title,
+          description: materialData.description || '',
+          content_url: materialData.downloadurl || '',
+          thumbnailUrl: materialData.thumbnailurl,
+          isPremium: materialData.ispremium,
+          duration_months: materialData.duration_months,
+          duration_type: materialData.duration_type
+        };
+
+        setMaterial(formattedMaterial);
 
         // Check if user has purchased this material
         const { data: purchaseData, error: purchaseError } = await supabase
@@ -97,16 +109,20 @@ const SecureMaterialViewer = () => {
         }
 
         // If all checks pass, get the secure URL
-        const { data: urlData, error: urlError } = await supabase
-          .storage
-          .from('study_materials')
-          .createSignedUrl(materialData.content_url, 3600); // URL valid for 1 hour
+        if (formattedMaterial.content_url) {
+          const { data: urlData, error: urlError } = await supabase
+            .storage
+            .from('study_materials')
+            .createSignedUrl(formattedMaterial.content_url, 3600); // URL valid for 1 hour
 
-        if (urlError) {
-          throw urlError;
+          if (urlError) {
+            throw urlError;
+          }
+
+          setContentUrl(urlData.signedUrl);
+        } else {
+          setError('This material has no content available');
         }
-
-        setContentUrl(urlData.signedUrl);
       } catch (error) {
         console.error('Error checking material access:', error);
         setError('An error occurred while loading the material');
@@ -115,7 +131,9 @@ const SecureMaterialViewer = () => {
       }
     };
 
-    checkAccess();
+    if (materialId) {
+      checkAccess();
+    }
   }, [materialId]);
 
   // Add event listeners to prevent download

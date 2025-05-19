@@ -66,8 +66,15 @@ export const GooglePayButton = ({ productId, productName, price, onSuccess, onCa
         throw new Error(purchaseError.message);
       }
       
-      // Update download stats
-      await supabase.rpc('increment_material_downloads', { material_id: productId });
+      // Update download stats - using direct update instead of RPC
+      const { error: updateError } = await supabase
+        .from('study_materials')
+        .update({ download_count: supabase.rpc('calculate_new_count', { current_count: 1 }) })
+        .eq('id', productId);
+      
+      if (updateError) {
+        console.error('Error updating download count:', updateError);
+      }
       
       setPaymentStatus('success');
       
