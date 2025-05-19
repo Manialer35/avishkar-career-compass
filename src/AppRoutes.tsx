@@ -6,7 +6,9 @@ import ProductCheckout from '@/pages/ProductCheckout';
 import MaterialAccess from '@/pages/MaterialAccess';
 import SuccessPage from '@/components/SuccessPage';
 import Event from './pages/Event';
+import OnlineClasses from './pages/OnlineClasses';
 import Auth from './pages/Auth';
+import Index from './pages/Index';
 // Import other components/pages as needed
 
 const AppRoutes = () => {
@@ -14,7 +16,7 @@ const AppRoutes = () => {
     <BrowserRouter>
       <Routes>
         {/* Existing routes */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Index />} />
         <Route path="/login" element={<Auth />} />
         
         {/* Premium materials routes */}
@@ -25,6 +27,7 @@ const AppRoutes = () => {
         <Route path="/material/:productId/access" element={<MaterialAccess />} />
         <Route path="/payment-success/:productId" element={<SuccessPage />} />
         <Route path="/events" element={<Event />} />
+        <Route path="/online-classes" element={<OnlineClasses />} />
         
         {/* Other routes */}
         {/* ... */}

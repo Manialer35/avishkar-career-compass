@@ -21,6 +21,7 @@ interface ClassItem {
   class_category: string;
   class_level: string;
   class_language: string;
+  is_active: boolean;
 }
 
 function formatDate(dateString: string): string {

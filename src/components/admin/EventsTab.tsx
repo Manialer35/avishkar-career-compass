@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Edit, Trash, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -31,31 +31,16 @@ interface Event {
   location: string;
   time: string;
   price: number;
+  class_capacity?: number;
+  is_active?: boolean;
+  class_level?: string;
+  class_language?: string;
+  class_category?: string;
 }
 
 const EventsTab = () => {
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: 'police-bharti-2025',
-      title: 'Police Bharti Special Training 2025',
-      description: 'Comprehensive coaching and preparation for Police Recruitment Examinations',
-      date: 'Starting from June 15, 2025',
-      location: 'Avishkar Career Academy, Main Campus, City Center',
-      time: 'Morning Batch: 7:00 AM - 11:00 AM | Evening Batch: 4:00 PM - 8:00 PM',
-      price: 4999
-    },
-    {
-      id: 'mpsc-2025',
-      title: 'MPSC Exam Preparation 2025',
-      description: 'Complete syllabus coverage with expert coaching for MPSC aspirants',
-      date: 'Starting from July 10, 2025',
-      location: 'Avishkar Career Academy, Online and Offline options',
-      time: 'Weekday Batch: 2:00 PM - 6:00 PM | Weekend Batch: 9:00 AM - 5:00 PM',
-      price: 8999
-    }
-  ]);
-  
-  const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -66,9 +51,61 @@ const EventsTab = () => {
     date: '',
     location: '',
     time: '',
-    price: 0
+    price: 0,
+    class_capacity: 10,
+    is_active: true,
+    class_level: 'Beginner',
+    class_language: 'English',
+    class_category: 'General'
   });
   const { toast } = useToast();
+
+  // Fetch events from Supabase
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        const formattedEvents = data.map(item => ({
+          id: item.id,
+          title: item.class_title,
+          description: item.class_description || '',
+          date: item.class_date,
+          location: item.class_location || '',
+          time: item.class_time,
+          price: item.class_price || 0,
+          class_capacity: item.class_capacity || 10,
+          is_active: item.is_active !== false,
+          class_level: item.class_level || 'Beginner',
+          class_language: item.class_language || 'English',
+          class_category: item.class_category || 'General',
+        }));
+        
+        setEvents(formattedEvents);
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      toast({
+        variant: "destructive",
+        title: "Error loading events",
+        description: "There was a problem loading events. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEdit = (event: Event) => {
     setSelectedEvent(event);
@@ -86,10 +123,13 @@ const EventsTab = () => {
     
     setLoading(true);
     try {
-      // In a real implementation, you would delete from Supabase here
-      // await supabase.from('events').delete().eq('id', selectedEvent.id);
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', selectedEvent.id);
       
-      // For now, just remove from local state
+      if (error) throw error;
+      
       setEvents(events.filter(event => event.id !== selectedEvent.id));
       
       toast({
@@ -114,7 +154,7 @@ const EventsTab = () => {
     const { name, value } = e.target;
     setEditFormData(prev => ({
       ...prev,
-      [name]: name === 'price' ? parseFloat(value) : value
+      [name]: name === 'price' || name === 'class_capacity' ? parseFloat(value) : value
     }));
   };
 
@@ -123,30 +163,72 @@ const EventsTab = () => {
     setLoading(true);
     
     try {
-      // In a real implementation, you would update Supabase here
-      // if (selectedEvent) {
-      //   await supabase.from('events').update(editFormData).eq('id', selectedEvent.id);
-      // } else {
-      //   await supabase.from('events').insert([editFormData]);
-      // }
+      // Format the data for Supabase classes table
+      const classData = {
+        class_title: editFormData.title,
+        class_description: editFormData.description,
+        class_date: editFormData.date,
+        class_location: editFormData.location,
+        class_time: editFormData.time,
+        class_price: editFormData.price,
+        class_capacity: editFormData.class_capacity,
+        is_active: editFormData.is_active,
+        class_level: editFormData.class_level,
+        class_language: editFormData.class_language,
+        class_category: editFormData.class_category,
+        class_duration: '2 hours', // Default value
+        class_instructor: 'Staff Instructor' // Default value
+      };
       
-      // For now, just update local state
       if (selectedEvent) {
-        setEvents(events.map(e => e.id === selectedEvent.id ? editFormData : e));
+        // Update existing event
+        const { error } = await supabase
+          .from('classes')
+          .update(classData)
+          .eq('id', selectedEvent.id);
+        
+        if (error) throw error;
+        
+        setEvents(events.map(e => 
+          e.id === selectedEvent.id ? {...editFormData} : e
+        ));
+        
         toast({
           title: "Event updated successfully",
           description: `${editFormData.title} has been updated`,
         });
       } else {
-        const newEvent = {
-          ...editFormData,
-          id: `event-${Date.now()}`
-        };
-        setEvents([...events, newEvent]);
-        toast({
-          title: "Event created successfully",
-          description: `${editFormData.title} has been created`,
-        });
+        // Create new event
+        const { data, error } = await supabase
+          .from('classes')
+          .insert([classData])
+          .select();
+        
+        if (error) throw error;
+        
+        if (data && data[0]) {
+          const newEvent = {
+            id: data[0].id,
+            title: data[0].class_title,
+            description: data[0].class_description || '',
+            date: data[0].class_date,
+            location: data[0].class_location || '',
+            time: data[0].class_time,
+            price: data[0].class_price || 0,
+            class_capacity: data[0].class_capacity || 10,
+            is_active: data[0].is_active !== false,
+            class_level: data[0].class_level || 'Beginner',
+            class_language: data[0].class_language || 'English',
+            class_category: data[0].class_category || 'General',
+          };
+          
+          setEvents([newEvent, ...events]);
+          
+          toast({
+            title: "Event created successfully",
+            description: `${editFormData.title} has been created`,
+          });
+        }
       }
     } catch (error) {
       console.error('Error saving event:', error);
@@ -166,7 +248,12 @@ const EventsTab = () => {
         date: '',
         location: '',
         time: '',
-        price: 0
+        price: 0,
+        class_capacity: 10,
+        is_active: true,
+        class_level: 'Beginner',
+        class_language: 'English',
+        class_category: 'General'
       });
     }
   };
@@ -180,7 +267,12 @@ const EventsTab = () => {
       date: '',
       location: '',
       time: '',
-      price: 0
+      price: 0,
+      class_capacity: 10,
+      is_active: true,
+      class_level: 'Beginner',
+      class_language: 'English',
+      class_category: 'General'
     });
     setIsEditDialogOpen(true);
   };
@@ -319,9 +411,10 @@ const EventsTab = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
+                <label className="block text-sm font-medium mb-1">Date (YYYY-MM-DD)</label>
                 <input
                   name="date"
+                  type="date"
                   value={editFormData.date}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -333,6 +426,29 @@ const EventsTab = () => {
                 <input
                   name="time"
                   value={editFormData.time}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <input
+                  name="class_category"
+                  value={editFormData.class_category}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Capacity</label>
+                <input
+                  type="number"
+                  name="class_capacity"
+                  value={editFormData.class_capacity}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
