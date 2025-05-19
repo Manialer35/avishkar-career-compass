@@ -29,27 +29,27 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
   
   return (
     <>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
         <div>
-          <h2 className="text-lg sm:text-xl font-semibold">Free Study Materials</h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">
+          <h2 className="text-base sm:text-lg font-semibold">Free Study Materials</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
             Manage study materials available for free download
           </p>
         </div>
-        <Button onClick={onAddNew} size="sm" className="whitespace-nowrap">
-          <Plus size={16} className="mr-1" />
+        <Button onClick={onAddNew} size="sm" className="whitespace-nowrap h-8">
+          <Plus size={14} className="mr-1" />
           Add New
         </Button>
       </div>
       
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 mt-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="border rounded-lg p-3">
-              <Skeleton className="h-4 w-3/4 mb-3" />
-              <Skeleton className="h-24 w-full mb-3" />
-              <Skeleton className="h-4 w-full mb-2" />
-              <Skeleton className="h-4 w-1/2" />
+            <div key={i} className="border rounded-lg p-2 sm:p-3">
+              <Skeleton className="h-3 w-3/4 mb-2" />
+              <Skeleton className="h-16 w-full mb-2" />
+              <Skeleton className="h-3 w-full mb-2" />
+              <Skeleton className="h-3 w-1/2" />
             </div>
           ))}
         </div>
@@ -61,7 +61,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
           </AlertDescription>
         </Alert>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mt-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 mt-3">
           {freeMaterials.map(material => (
             <MaterialCard 
               key={material.id}
