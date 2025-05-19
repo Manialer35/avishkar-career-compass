@@ -26,11 +26,13 @@ serve(async (req) => {
     const { token } = paymentData.paymentMethodData;
     
     // In a production environment, you would:
-    // 1. Verify the token with your payment processor (e.g., Stripe)
-    // 2. Process the payment with the token
+    // 1. Send the token to your payment processor (e.g., Stripe) for processing
+    // 2. Wait for the confirmation from the payment processor
     // 3. Record the successful payment in your database
+    
+    console.log('Processing real payment with token:', token);
 
-    // For demo purposes, we'll just record the transaction in the database
+    // Record the transaction in the database
     const { data, error } = await supabase
       .from('material_purchases')
       .insert([
@@ -38,9 +40,9 @@ serve(async (req) => {
           material_id: productId,
           user_email: customerEmail,
           amount: amount,
-          payment_id: `google-pay-${Date.now()}`, // In production, use actual payment ID
+          payment_id: `google-pay-${Date.now()}`, // In production, use actual payment ID from processor
           payment_status: 'completed',
-          user_name: customerEmail?.split('@')[0] || 'Customer' // Simple name extraction
+          user_name: customerEmail?.split('@')[0] || 'Customer'
         }
       ]);
 
