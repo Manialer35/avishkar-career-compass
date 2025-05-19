@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { GooglePayButton, PaymentSummary } from '@/components/PaymentComponents';
+import { GooglePayButton } from '@/components/GooglePayButton';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PurchaseProduct {
   id: string;
@@ -21,6 +22,7 @@ const ProductCheckout = () => {
   const [product, setProduct] = useState<PurchaseProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -66,14 +68,49 @@ const ProductCheckout = () => {
     fetchProductDetails();
   }, [productId]);
 
-  const handlePaymentSuccess = () => {
-    // Redirect to success page or material access page
-    navigate(`/material/${productId}/access`, { 
-      state: { 
-        purchaseSuccess: true,
-        productName: product?.name 
-      } 
-    });
+  const handlePaymentSuccess = async () => {
+    try {
+      // Record the purchase in the database
+      if (user && product) {
+        await supabase.from('user_purchases').insert({
+          user_id: user.id,
+          material_id: product.id,
+          amount: product.price,
+          payment_id: `google-pay-${Date.now()}`, // In production, use actual payment ID
+          expires_at: calculateExpiryDate(product.duration_months, product.duration_type)
+        });
+      }
+      
+      // Redirect to success page or material access page
+      navigate(`/material/${productId}/access`, { 
+        state: { 
+          purchaseSuccess: true,
+          productName: product?.name 
+        } 
+      });
+    } catch (error) {
+      console.error('Error recording purchase:', error);
+      // Still redirect to success page as payment was processed
+      navigate(`/material/${productId}/access`, { 
+        state: { 
+          purchaseSuccess: true,
+          productName: product?.name 
+        } 
+      });
+    }
+  };
+
+  const calculateExpiryDate = (months?: number, type?: string): string => {
+    if (type === 'lifetime') {
+      // Far future date for lifetime access
+      return new Date(2099, 11, 31).toISOString();
+    }
+    
+    // Default to 3 months if not specified
+    const durationMonths = months || 3;
+    const expiryDate = new Date();
+    expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+    return expiryDate.toISOString();
   };
 
   const handleCancel = () => {
@@ -149,18 +186,18 @@ const ProductCheckout = () => {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-shrink-0 w-full md:w-40 h-40 overflow-hidden rounded-md">
                 <img 
-                  src={product.imageSrc} 
-                  alt={product.name} 
+                  src={product?.imageSrc} 
+                  alt={product?.name} 
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-lg text-academy-primary">{product.name}</h3>
-                <p className="text-gray-600 mt-2">{product.description}</p>
+                <h3 className="font-medium text-lg text-academy-primary">{product?.name}</h3>
+                <p className="text-gray-600 mt-2">{product?.description}</p>
                 <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xl font-semibold">${product.price.toFixed(2)}</span>
+                  <span className="text-xl font-semibold">${product?.price?.toFixed(2)}</span>
                   <span className="text-sm text-academy-secondary font-medium">
-                    {formatDuration(product.duration_months, product.duration_type)}
+                    {formatDuration(product?.duration_months, product?.duration_type)}
                   </span>
                 </div>
               </div>
@@ -175,26 +212,28 @@ const ProductCheckout = () => {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Product</span>
-                <span>{product.name}</span>
+                <span>{product?.name}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Price</span>
-                <span>${product.price.toFixed(2)}</span>
+                <span>${product?.price?.toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between">
                 <span className="font-medium">Total</span>
-                <span className="font-semibold">${product.price.toFixed(2)}</span>
+                <span className="font-semibold">${product?.price?.toFixed(2)}</span>
               </div>
             </div>
             
             <div className="mt-6">
-              <GooglePayButton 
-                productId={product.id}
-                productName={product.name}
-                price={product.price}
-                onSuccess={handlePaymentSuccess}
-                onCancel={handleCancel}
-              />
+              {product && (
+                <GooglePayButton 
+                  productId={product.id}
+                  productName={product.name}
+                  price={product.price}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handleCancel}
+                />
+              )}
               
               <Button 
                 variant="outline" 

@@ -27,6 +27,9 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const { toast } = useToast();
   const [googlePayAvailable, setGooglePayAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  
+  // Your actual Google Pay merchant ID - replace placeholder with your real ID
+  const merchantId = "YOUR_MERCHANT_ID"; // Replace with your actual merchant ID
 
   useEffect(() => {
     // Load Google Pay API script
@@ -49,7 +52,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
 
     try {
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'TEST' // Use 'TEST' for development, 'PRODUCTION' for live
+        environment: 'PRODUCTION' // Use 'PRODUCTION' for live, 'TEST' for testing
       });
 
       const isReadyToPayRequest = {
@@ -59,7 +62,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           type: 'CARD',
           parameters: {
             allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-            allowedCardNetworks: ['MASTERCARD', 'VISA']
+            allowedCardNetworks: ['MASTERCARD', 'VISA', 'AMEX', 'DISCOVER', 'JCB']
           }
         }]
       };
@@ -85,7 +88,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     try {
       setIsLoading(true);
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'TEST' // Use 'TEST' for development, 'PRODUCTION' for live
+        environment: 'PRODUCTION' // Use 'PRODUCTION' for live
       });
 
       const paymentDataRequest = {
@@ -95,41 +98,67 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           type: 'CARD',
           parameters: {
             allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-            allowedCardNetworks: ['MASTERCARD', 'VISA']
+            allowedCardNetworks: ['MASTERCARD', 'VISA', 'AMEX', 'DISCOVER', 'JCB']
           },
           tokenizationSpecification: {
             type: 'PAYMENT_GATEWAY',
             parameters: {
               gateway: 'example',
-              gatewayMerchantId: 'exampleGatewayMerchantId'
+              gatewayMerchantId: merchantId
             }
           }
         }],
         merchantInfo: {
-          merchantId: '12345678901234567890',
+          merchantId: merchantId,
           merchantName: 'Study Academy'
         },
         transactionInfo: {
           totalPriceStatus: 'FINAL',
           totalPrice: price.toString(),
-          currencyCode: 'USD',
-          countryCode: 'US'
+          currencyCode: 'INR',
+          countryCode: 'IN'
         }
       };
 
-      // For demonstration purposes, we're simulating a successful payment
-      // In a real implementation, you would process the payment token with your backend
-      setTimeout(() => {
+      try {
+        // In production, use actual payment flow
+        const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
+        console.log('Payment data:', paymentData);
+        
+        // Send payment data to your backend for processing
+        const response = await sendPaymentToBackend(paymentData, productId, price);
+        
+        if (response.success) {
+          setIsLoading(false);
+          toast({
+            title: "Payment Successful",
+            description: "Your payment has been processed successfully.",
+          });
+          onSuccess();
+        } else {
+          throw new Error(response.message || 'Payment processing failed');
+        }
+      } catch (error: any) {
+        console.error('Google Pay error:', error);
+        
+        // Handle user cancellation separately from other errors
+        if (error.statusCode === "CANCELED") {
+          toast({
+            title: "Payment Cancelled",
+            description: "You cancelled the payment process.",
+            variant: "default",
+          });
+          onCancel();
+        } else {
+          toast({
+            title: "Payment Failed",
+            description: error.message || "There was an error processing your payment. Please try again.",
+            variant: "destructive",
+          });
+          onCancel();
+        }
         setIsLoading(false);
-        // Call the success callback
-        onSuccess();
-      }, 2000);
-      
-      // In a real implementation, you would use:
-      // const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
-      // Process paymentData with your backend
-      // onSuccess();
-
+      }
     } catch (error) {
       console.error('Error processing Google Pay payment:', error);
       setIsLoading(false);
@@ -142,14 +171,31 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     }
   };
 
-  // For demo purposes, we'll simulate Google Pay availability
-  // In a real implementation, use the actual availability state
-  const isAvailable = true; // Use googlePayAvailable in a real implementation
+  // Function to send payment data to backend
+  const sendPaymentToBackend = async (paymentData: any, productId: string, amount: number) => {
+    try {
+      // This would be replaced with an actual API call to your backend
+      console.log('Sending payment data to backend:', { paymentData, productId, amount });
+      
+      // For demo purposes, simulate a successful response
+      // In production, this would be an actual API call
+      return {
+        success: true,
+        message: 'Payment processed successfully'
+      };
+    } catch (error) {
+      console.error('Error sending payment to backend:', error);
+      return {
+        success: false,
+        message: 'Failed to process payment on server'
+      };
+    }
+  };
 
   return (
     <Button 
       onClick={processPayment}
-      disabled={isLoading || !isAvailable}
+      disabled={isLoading || !googlePayAvailable}
       className="w-full bg-black hover:bg-gray-800 flex items-center justify-center gap-2 py-3"
     >
       {isLoading ? (
