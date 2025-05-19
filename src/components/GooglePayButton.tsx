@@ -28,8 +28,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const [googlePayAvailable, setGooglePayAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  // Your actual Google Pay merchant ID - replace placeholder with your real ID
-  const merchantId = "BCR2DN4TTWA2JCD6"; // Replace with your actual merchant ID
+  // Your actual Google Pay merchant ID - using the one provided in the file
+  const merchantId = "BCR2DN4TTWA2JCD6";
 
   useEffect(() => {
     // Load Google Pay API script
@@ -40,7 +40,11 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      // Clean up script when component unmounts if it exists
+      const scriptElement = document.querySelector('script[src="https://pay.google.com/gp/p/js/pay.js"]');
+      if (scriptElement && scriptElement.parentNode) {
+        scriptElement.parentNode.removeChild(scriptElement);
+      }
     };
   }, []);
 
@@ -52,7 +56,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
 
     try {
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION' // Use 'PRODUCTION' for live, 'TEST' for testing
+        environment: 'PRODUCTION' // Use 'TEST' for testing
       });
 
       const isReadyToPayRequest = {
@@ -88,7 +92,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     try {
       setIsLoading(true);
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION' // Use 'PRODUCTION' for live
+        environment: 'PRODUCTION'
       });
 
       const paymentDataRequest = {
@@ -121,9 +125,10 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       };
 
       try {
+        console.log('Initiating Google Pay payment with merchant ID:', merchantId);
         // In production, use actual payment flow
         const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
-        console.log('Payment data:', paymentData);
+        console.log('Payment data received:', paymentData);
         
         // Send payment data to your backend for processing
         const response = await sendPaymentToBackend(paymentData, productId, price);
@@ -175,7 +180,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const sendPaymentToBackend = async (paymentData: any, productId: string, amount: number) => {
     try {
       // This would be replaced with an actual API call to your backend
-      console.log('Sending payment data to backend:', { paymentData, productId, amount });
+      console.log('Sending payment data to backend for merchant ID:', merchantId, { paymentData, productId, amount });
       
       // For demo purposes, simulate a successful response
       // In production, this would be an actual API call

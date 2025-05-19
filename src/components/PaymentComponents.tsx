@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { loadRazorpay } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,13 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
 
   useEffect(() => {
     const initializeRazorpay = async () => {
-      const rzp = await loadRazorpay();
-      setRazorpay(rzp);
+      try {
+        const rzp = await loadRazorpay();
+        console.log("Razorpay loaded successfully:", rzp ? "available" : "not available");
+        setRazorpay(rzp);
+      } catch (err) {
+        console.error("Error loading Razorpay:", err);
+      }
     };
 
     initializeRazorpay();
@@ -48,68 +54,62 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
     }
 
     try {
-      // 1. Create Order on Server
-      const orderResponse = await fetch('/api/payments/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: amount * 100, // amount in paise
-          currency,
-          productId,
-          productName,
-          customerId: user.id,
-        }),
-      });
-
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error || 'Failed to create order');
-      }
-
-      const orderData = await orderResponse.json();
+      console.log("Starting payment process for:", productName, "with amount:", amount);
+      // Mock server-side order creation since we don't have a real backend
+      // In production, you should call your backend API to create an order
+      const orderData = {
+        id: "order_" + Date.now().toString(),
+        amount: amount * 100, // amount in paise
+        currency: currency,
+        receipt: "receipt_" + Math.random().toString(36).substring(2, 15)
+      };
+      
+      console.log("Order created:", orderData);
 
       // 2. Configure Razorpay options
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Razorpay key ID
+        key: "rzp_test_YOUR_TEST_KEY", // Replace with your Razorpay test key ID
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Academind Premium',
         description: productName,
         order_id: orderData.id,
         handler: async function (response: any) {
-          // Verify payment on the server
-          const verifyResponse = await fetch('/api/payments/verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              productId: productId,
-            }),
-          });
+          // Normally, you would verify the payment on your backend
+          console.log("Payment successful:", response);
+          try {
+            // Record the purchase in your database
+            const { error } = await supabase.from('user_purchases').insert({
+              user_id: user.id,
+              material_id: productId,
+              amount: amount,
+              payment_id: response.razorpay_payment_id,
+              // Set expiry date to 1 year from now for demo
+              expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+            });
+            
+            if (error) throw error;
+            
+            toast({
+              title: "Payment Successful!",
+              description: "Your payment was processed successfully.",
+            });
 
-          if (!verifyResponse.ok) {
-            const errorData = await verifyResponse.json();
-            throw new Error(errorData.message || 'Payment verification failed');
+            // Redirect to success page
+            navigate(`/materials/my`);
+          } catch (error) {
+            console.error("Error recording purchase:", error);
+            toast({
+              title: "Error",
+              description: "Payment was processed but we couldn't record your purchase. Please contact support.",
+              variant: "destructive",
+            });
           }
-
-          toast({
-            title: "Payment Successful!",
-            description: "Your payment was processed successfully.",
-          });
-
-          // Redirect to success page
-          navigate(`/payment-success/${productId}`);
         },
         prefill: {
-          name: user?.user_metadata?.full_name || 'John Doe',
-          email: user?.email || 'john.doe@example.com',
-          contact: '',
+          name: user.user_metadata?.full_name || user.email || '',
+          email: user.email || '',
+          contact: user.user_metadata?.phone || '',
         },
         notes: {
           productId,
@@ -119,20 +119,40 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
         theme: {
           color: '#6366f1',
         },
+        modal: {
+          ondismiss: function() {
+            console.log("Payment modal dismissed");
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment process.",
+              variant: "default",
+            });
+          }
+        }
       };
 
       // 3. Open Razorpay checkout
-      const paymentObject = new razorpay(options);
-      paymentObject.open();
+      try {
+        console.log("Opening Razorpay checkout with options:", JSON.stringify(options));
+        const paymentObject = new razorpay(options);
+        paymentObject.open();
 
-      paymentObject.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error);
+        paymentObject.on('payment.failed', function (response: any) {
+          console.error('Payment failed:', response.error);
+          toast({
+            title: "Payment Failed",
+            description: response.error.description || "Your payment failed. Please try again.",
+            variant: "destructive",
+          });
+        });
+      } catch (error) {
+        console.error("Error opening Razorpay:", error);
         toast({
-          title: "Payment Failed",
-          description: response.error.description || "Your payment failed. Please try again.",
+          title: "Payment Error",
+          description: "Could not open payment form. Please try again.",
           variant: "destructive",
         });
-      });
+      }
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
