@@ -3,9 +3,10 @@ import PremiumStudyMaterials from '@/pages/PremiumStudyMaterials';
 import SecureMaterialViewer from '@/pages/SecureMaterialViewer';
 import MyMaterialsPage from '@/pages/MyMaterialsPage';
 import ProductCheckout from '@/pages/ProductCheckout';
-import MaterialAccess from '@/components/MaterialAccess';
+import MaterialAccess from '@/pages/MaterialAccess';
 import SuccessPage from '@/components/SuccessPage';
 import Event from './pages/Event';
+import Auth from './pages/Auth';
 // Import other components/pages as needed
 
 const AppRoutes = () => {
@@ -14,7 +15,7 @@ const AppRoutes = () => {
       <Routes>
         {/* Existing routes */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<Auth />} />
         
         {/* Premium materials routes */}
         <Route path="/materials/premium" element={<PremiumStudyMaterials />} />

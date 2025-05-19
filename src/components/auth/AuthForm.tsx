@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -10,14 +11,24 @@ import { Icons } from "@/components/Icons";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 
-type AuthFormProps = React.HTMLAttributes<HTMLDivElement>;
+export interface AuthFormProps extends React.HTMLAttributes<HTMLDivElement> {
+  // Add the missing props that are being passed from Auth.tsx
+  isSignUp?: boolean;
+  setIsSignUp?: React.Dispatch<React.SetStateAction<boolean>>;
+  authType?: "admin" | "user";
+  setAuthType?: React.Dispatch<React.SetStateAction<"admin" | "user">>;
+  email?: string;
+  setEmail?: React.Dispatch<React.SetStateAction<string>>;
+  password?: string;
+  setPassword?: React.Dispatch<React.SetStateAction<string>>;
+  fullName?: string;
+  setFullName?: React.Dispatch<React.SetStateAction<string>>;
+  onForgotPassword?: () => void;
+  adminEmails?: string[];
+}
 
-const buttonVariants =
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-slate-500";
-
-export function AuthForm({ className, ...props }: AuthFormProps) {
+export function AuthForm({ className, isSignUp = false, setIsSignUp, ...props }: AuthFormProps) {
   const { signIn, signUp, loading } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -28,23 +39,21 @@ export function AuthForm({ className, ...props }: AuthFormProps) {
   const onSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault();
     setErrorMsg(null);
-    setLoading(true);
-
+    
     if (!email || !password) {
       setErrorMsg("Please enter both email and password.");
-      setLoading(false);
       return;
     }
 
     try {
       let authResult;
-      if (isLogin) {
+      if (!isSignUp) {
         authResult = await signIn(email, password);
       } else {
         authResult = await signUp(email, password);
       }
 
-      const { error } = authResult;
+      const { error } = authResult || {};
 
       if (error) {
         console.error("Authentication error:", error);
@@ -52,13 +61,12 @@ export function AuthForm({ className, ...props }: AuthFormProps) {
           error.message || 
           "An error occurred during authentication"
         );
-        setLoading(false);
         return;
       }
 
       toast({
         title: "Success!",
-        description: `Successfully ${isLogin ? "logged in" : "registered"}.`,
+        description: `Successfully ${!isSignUp ? "logged in" : "registered"}.`,
       });
 
       const redirectTo = searchParams.get("redirectTo") || "/";
@@ -66,8 +74,6 @@ export function AuthForm({ className, ...props }: AuthFormProps) {
     } catch (error: any) {
       console.error("Authentication error:", error);
       setErrorMsg(error.message || "An unexpected error occurred.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -75,7 +81,7 @@ export function AuthForm({ className, ...props }: AuthFormProps) {
     <div className={cn("grid gap-6", className)} {...props}>
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle>{isLogin ? "Login" : "Register"}</CardTitle>
+          <CardTitle>{!isSignUp ? "Login" : "Register"}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
           <form onSubmit={onSubmit}>
@@ -105,16 +111,16 @@ export function AuthForm({ className, ...props }: AuthFormProps) {
               />
             </div>
             {errorMsg && <p className="text-red-500">{errorMsg}</p>}
-            <Button disabled={loading}>
+            <Button disabled={loading} type="submit" className="mt-4 w-full">
               {loading && (
                 <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {isLogin ? "Login" : "Register"}
+              {!isSignUp ? "Login" : "Register"}
             </Button>
           </form>
           <Separator />
-          <Button variant="link" onClick={() => setIsLogin(!isLogin)}>
-            {isLogin
+          <Button variant="link" onClick={() => setIsSignUp && setIsSignUp(!isSignUp)}>
+            {!isSignUp
               ? "Don't have an account? Register"
               : "Already have an account? Login"}
           </Button>

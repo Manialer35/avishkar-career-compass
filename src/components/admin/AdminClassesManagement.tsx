@@ -1,46 +1,111 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Calendar, Users, Clock, Tag, Edit, Trash2, Plus, Search, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter,
-  DialogDescription
-} from '@/components/ui/dialog';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
+  SelectValue,
+} from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { toast } from '@/components/ui/use-toast';
-import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { Progress } from "@/components/ui/progress"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -48,656 +113,761 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardDescription,
+  HoverCardHeader,
+  HoverCardTitle,
+} from "@/components/ui/hover-card"
+import {
+  CardHeader as ShadCardHeader,
+  CardTitle as ShadCardTitle,
+  CardDescription as ShadCardDescription,
+  CardContent as ShadCardContent,
+  CardFooter as ShadCardFooter,
+} from "@/components/ui/card"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Icons } from "@/components/Icons"
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-const AdminClassesManagement = () => {
-  const [classes, setClasses] = useState([]);
-  const [filteredClasses, setFilteredClasses] = useState([]);
+// Define a schema for class data validation
+const classSchema = z.object({
+  class_title: z.string().min(2, {
+    message: "Class title must be at least 2 characters.",
+  }),
+  class_description: z.string().min(10, {
+    message: "Class description must be at least 10 characters.",
+  }),
+  class_date: z.date(),
+  class_time: z.string().min(5, {
+    message: "Please select a valid time.",
+  }),
+  class_duration: z.string().min(1, {
+    message: "Class duration must be specified.",
+  }),
+  class_price: z.number().min(0, {
+    message: "Price must be a non-negative number.",
+  }),
+  class_capacity: z.number().min(1, {
+    message: "Capacity must be at least 1.",
+  }),
+  class_category: z.string().min(2, {
+    message: "Class category must be at least 2 characters.",
+  }),
+  class_level: z.string().min(2, {
+    message: "Class level must be at least 2 characters.",
+  }),
+  class_language: z.string().min(2, {
+    message: "Class language must be at least 2 characters.",
+  }),
+  class_instructor: z.string().min(2, {
+    message: "Class instructor must be at least 2 characters.",
+  }),
+  class_location: z.string().min(2, {
+    message: "Class location must be at least 2 characters.",
+  }),
+  class_materials: z.string().optional(),
+  is_active: z.boolean().default(true),
+});
+
+// Define a type for the form values based on the schema
+type ClassFormValues = z.infer<typeof classSchema>;
+
+// Define a type for the class data
+interface ClassData extends ClassFormValues {
+  id: string;
+  created_at: string;
+}
+
+// Define a type for the props of the component
+interface AdminClassesManagementProps {
+  // Add any props that the component might receive
+}
+
+// Define the component
+const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
+  const [classes, setClasses] = useState<ClassData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedClass, setSelectedClass] = useState<ClassData | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
-  const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isViewing, setIsViewing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [formData, setFormData] = useState({
-    id: '',
-    title: '',
-    description: '',
-    instructor: '',
-    date: '',
-    time: '',
-    duration: '',
-    price: 0,
-    tags: [],
-    isActive: true
+  const [currentPage, setCurrentPage] = useState(1);
+  const [classesPerPage] = useState(5);
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Initialize the form with useForm hook
+  const form = useForm<ClassFormValues>({
+    resolver: zodResolver(classSchema),
+    defaultValues: {
+      class_title: "",
+      class_description: "",
+      class_date: new Date(),
+      class_time: "09:00",
+      class_duration: "1 hour",
+      class_price: 0,
+      class_capacity: 10,
+      class_category: "Mathematics",
+      class_level: "Beginner",
+      class_language: "English",
+      class_instructor: "John Doe",
+      class_location: "Online",
+      class_materials: "",
+      is_active: true,
+    },
   });
 
-  // Sample data - replace with API calls in production
-  useEffect(() => {
-    // Simulating API fetch
-    const mockClasses = [
-      {
-        id: "class1",
-        title: "Police Bharti Preparation Masterclass",
-        description: "Comprehensive overview of the Police Bharti exam pattern and preparation strategy.",
-        instructor: "Mahesh Khot",
-        date: "2025-05-15",
-        time: "18:30",
-        duration: "90",
-        price: 0,
-        tags: ["Free", "Beginner"],
-        isActive: true,
-        registrations: 45
-      },
-      {
-        id: "class2",
-        title: "Advanced Reasoning & Aptitude Workshop",
-        description: "In-depth practice session for reasoning puzzles and mathematical aptitude problems.",
-        instructor: "Atul Madkar",
-        date: "2025-05-20",
-        time: "17:00",
-        duration: "120",
-        price: 299,
-        tags: ["Premium", "Advanced"],
-        isActive: true,
-        registrations: 28
-      },
-      {
-        id: "class3",
-        title: "Current Affairs Discussion (Apr-May 2025)",
-        description: "Analysis of recent events and their importance for competitive exams.",
-        instructor: "Dr. Rajesh Sharma",
-        date: "2025-05-25",
-        time: "19:00",
-        duration: "60",
-        price: 199,
-        tags: ["Premium", "All Levels"],
-        isActive: true,
-        registrations: 32
-      },
-      {
-        id: "past1",
-        title: "Mock Test Analysis Session",
-        description: "Detailed solution discussion for the recent mock test series.",
-        instructor: "Atul Madkar",
-        date: "2025-04-20",
-        time: "17:00",
-        duration: "120",
-        price: 0,
-        tags: ["Free", "All Levels"],
-        isActive: false,
-        registrations: 78
-      },
-      {
-        id: "past2",
-        title: "Interview Preparation Workshop",
-        description: "Tips and techniques for cracking the interview round of police recruitment.",
-        instructor: "Mahesh Khot",
-        date: "2025-04-15",
-        time: "18:30",
-        duration: "90",
-        price: 299,
-        tags: ["Premium", "Advanced"],
-        isActive: false,
-        registrations: 56
+  // Function to handle form submission
+  const onSubmit = async (values: ClassFormValues) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (isEditMode && selectedClass) {
+        // Update existing class
+        const { data, error } = await supabase
+          .from('classes')
+          .update({ ...values })
+          .eq('id', selectedClass.id)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Update the classes state with the updated class
+        setClasses(classes.map(cls => cls.id === selectedClass.id ? { ...cls, ...values } : cls));
+        toast({
+          title: "Class updated successfully!",
+        });
+      } else {
+        // Create new class
+        const { data, error } = await supabase
+          .from('classes')
+          .insert([{ ...values, created_by: user?.id }])
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Add the new class to the classes state
+        setClasses([...classes, data]);
+        toast({
+          title: "Class created successfully!",
+        });
       }
-    ];
-    
-    setClasses(mockClasses);
-    setFilteredClasses(mockClasses);
-  }, []);
 
-  // Filter classes based on search query and active tab
+      // Close the drawer and reset the form
+      setIsDrawerOpen(false);
+      form.reset();
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Error!",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch classes from Supabase
+  const fetchClasses = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setClasses(data || []);
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Error!",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  // Function to delete a class
+  const deleteClass = async (id: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Remove the deleted class from the classes state
+      setClasses(classes.filter(cls => cls.id !== id));
+      toast({
+        title: "Class deleted successfully!",
+      });
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Error!",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to open the dialog and set the selected class
+  const openDialog = (cls: ClassData) => {
+    setSelectedClass(cls);
+    setIsDialogOpen(true);
+  };
+
+  // Function to close the dialog
+  const closeDialog = () => {
+    setSelectedClass(null);
+    setIsDialogOpen(false);
+  };
+
+  // Function to open the drawer and set the selected class for editing
+  const openDrawerForEdit = (cls: ClassData) => {
+    setSelectedClass(cls);
+    setIsEditMode(true);
+    setIsDrawerOpen(true);
+    form.reset(cls);
+  };
+
+  // Function to open the drawer for creating a new class
+  const openDrawerForCreate = () => {
+    setSelectedClass(null);
+    setIsEditMode(false);
+    setIsDrawerOpen(true);
+    form.reset();
+  };
+
+  // Function to close the drawer
+  const closeDrawer = () => {
+    setSelectedClass(null);
+    setIsEditMode(false);
+    setIsDrawerOpen(false);
+    form.reset();
+  };
+
+  // Use useEffect to fetch classes when the component mounts
   useEffect(() => {
-    let filtered = classes;
+    fetchClasses();
+  }, [fetchClasses]);
 
-    // Filter by tab (all, active, past)
-    if (activeTab === 'active') {
-      filtered = filtered.filter(c => c.isActive === true);
-    } else if (activeTab === 'past') {
-      filtered = filtered.filter(c => c.isActive === false);
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(c => 
-        c.title.toLowerCase().includes(query) || 
-        c.instructor.toLowerCase().includes(query) ||
-        c.description.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredClasses(filtered);
-  }, [classes, searchQuery, activeTab]);
-
-  // Format date for display
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+  // Function to format the class date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
   };
 
-  // Handle adding a new class
-  const handleAddClass = () => {
-    setIsAdding(true);
-    setFormData({
-      id: `class${Date.now()}`, // Generate a temporary ID
-      title: '',
-      description: '',
-      instructor: '',
-      date: '',
-      time: '',
-      duration: '',
-      price: 0,
-      tags: [],
-      isActive: true
-    });
+  // Function to handle search
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(1); // Reset to the first page when searching
   };
 
-  // Handle viewing a class
-  const handleViewClass = (classItem) => {
-    setSelectedClass(classItem);
-    setIsViewing(true);
-  };
+  // Function to handle pagination
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
-  // Handle editing a class
-  const handleEditClass = (classItem) => {
-    setSelectedClass(classItem);
-    setFormData({
-      ...classItem,
-      tags: classItem.tags.join(', ')
-    });
-    setIsEditing(true);
-  };
+  // Filter classes based on search query
+  const filteredClasses = classes.filter(cls =>
+    cls.class_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_level.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_language.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_instructor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    cls.class_location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // Handle form input change
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
+  // Get current classes for pagination
+  const indexOfLastClass = currentPage * classesPerPage;
+  const indexOfFirstClass = indexOfLastClass - classesPerPage;
+  const currentClasses = filteredClasses.slice(indexOfFirstClass, indexOfLastClass);
 
-  // Handle switch toggle for isActive
-  const handleSwitchChange = (checked) => {
-    setFormData({
-      ...formData,
-      isActive: checked
-    });
-  };
+  // Calculate the total number of pages
+  const totalPages = Math.ceil(filteredClasses.length / classesPerPage);
 
-  // Handle tags input (comma separated)
-  const handleTagsChange = (e) => {
-    setFormData({
-      ...formData,
-      tags: e.target.value
-    });
-  };
-
-  // Save class (both add and edit)
-  const handleSaveClass = () => {
-    // Process tags from comma-separated string to array
-    const processedTags = typeof formData.tags === 'string' 
-      ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      : formData.tags;
-
-    const classData = {
-      ...formData,
-      tags: processedTags,
-      registrations: selectedClass?.registrations || 0
-    };
-
-    if (isAdding) {
-      // Add new class to the array
-      setClasses([...classes, classData]);
-      toast({
-        title: "Class added",
-        description: `${classData.title} has been successfully added`
-      });
-    } else if (isEditing) {
-      // Update existing class
-      setClasses(classes.map(c => c.id === classData.id ? classData : c));
-      toast({
-        title: "Class updated",
-        description: `${classData.title} has been successfully updated`
-      });
-    }
-
-    // Close dialogs
-    setIsAdding(false);
-    setIsEditing(false);
-  };
-
-  // Handle confirming class deletion
-  const handleConfirmDelete = () => {
-    if (selectedClass) {
-      setClasses(classes.filter(c => c.id !== selectedClass.id));
-      setIsDeleting(false);
-      toast({
-        title: "Class deleted",
-        description: `${selectedClass.title} has been removed`
-      });
-    }
-  };
-
-  // Open delete confirmation dialog
-  const handleDeleteClass = (classItem) => {
-    setSelectedClass(classItem);
-    setIsDeleting(true);
-  };
-
+  // Render the component
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-academy-primary">Class Management</h1>
-        <Button 
-          onClick={handleAddClass}
-          className="bg-academy-primary hover:bg-academy-primary/90"
-        >
-          <Plus className="h-4 w-4 mr-2" /> Add New Class
-        </Button>
-      </div>
-
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-            <div className="relative w-full md:w-1/3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search classes..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Tabs 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="w-full md:w-auto"
-            >
-              <TabsList className="grid grid-cols-3 w-full md:w-auto">
-                <TabsTrigger value="all">All Classes</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="past">Past</TabsTrigger>
-              </TabsList>
-            </Tabs>
+    <div className="container mx-auto py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Classes</CardTitle>
+          <CardDescription>
+            Here you can manage all the classes that are offered.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Search Input */}
+          <div className="mb-4">
+            <Label htmlFor="search">Search Classes</Label>
+            <Input
+              type="text"
+              id="search"
+              placeholder="Search by title, description, category, etc."
+              value={searchQuery}
+              onChange={handleSearch}
+            />
           </div>
-          
+
+          {/* Button to Create New Class */}
+          <Button variant="outline" onClick={openDrawerForCreate} className="mb-4">
+            <Icons.add className="mr-2 h-4 w-4" />
+            Create New Class
+          </Button>
+
+          {/* Table of Classes */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
+                  <TableHead className="w-[200px]">Title</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Language</TableHead>
                   <TableHead>Instructor</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Registrations</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredClasses.length > 0 ? (
-                  filteredClasses.map((classItem) => (
-                    <TableRow key={classItem.id}>
-                      <TableCell className="font-medium">{classItem.title}</TableCell>
-                      <TableCell>{classItem.instructor}</TableCell>
-                      <TableCell>{formatDate(classItem.date)}</TableCell>
-                      <TableCell>
-                        {classItem.price === 0 ? (
-                          <Badge className="bg-green-500">Free</Badge>
-                        ) : (
-                          <Badge className="bg-academy-red">₹{classItem.price}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{classItem.registrations}</TableCell>
-                      <TableCell>
-                        {classItem.isActive ? (
-                          <Badge className="bg-green-600">Active</Badge>
-                        ) : (
-                          <Badge variant="outline">Completed</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleViewClass(classItem)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEditClass(classItem)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteClass(classItem)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+                {loading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                      No classes found
+                    <TableCell colSpan={8} className="text-center">
+                      <div className="flex items-center justify-center">
+                        <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                        Loading classes...
+                      </div>
                     </TableCell>
                   </TableRow>
                 )}
+                {!loading && currentClasses.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      No classes found.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {!loading && currentClasses.map((cls) => (
+                  <TableRow key={cls.id}>
+                    <TableCell className="font-medium">{cls.class_title}</TableCell>
+                    <TableCell>{cls.class_category}</TableCell>
+                    <TableCell>{cls.class_level}</TableCell>
+                    <TableCell>{cls.class_language}</TableCell>
+                    <TableCell>{cls.class_instructor}</TableCell>
+                    <TableCell>{cls.class_location}</TableCell>
+                    <TableCell>{formatDate(cls.class_date)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <Icons.dotsHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openDrawerForEdit(cls)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openDialog(cls)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {filteredClasses.length > classesPerPage && (
+            <div className="flex justify-center mt-4">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                <Button
+                  key={number}
+                  variant={currentPage === number ? "default" : "outline"}
+                  onClick={() => paginate(number)}
+                  className="mx-1"
+                >
+                  {number}
+                </Button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* View Class Dialog */}
-      <Dialog open={isViewing} onOpenChange={setIsViewing}>
-        <DialogContent className="max-w-2xl">
+      {/* Dialog to Confirm Deletion */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-academy-primary">
-              {selectedClass?.title}
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedClass && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-500 block mb-1">Instructor</Label>
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2 text-academy-primary" />
-                    <span>{selectedClass.instructor}</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-gray-500 block mb-1">Price</Label>
-                  <Badge className={selectedClass.price === 0 ? "bg-green-500" : "bg-academy-red"}>
-                    {selectedClass.price === 0 ? "Free" : `₹${selectedClass.price}`}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <Label className="text-gray-500 block mb-1">Date</Label>
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-academy-primary" />
-                    <span>{formatDate(selectedClass.date)}</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-gray-500 block mb-1">Time</Label>
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-2 text-academy-primary" />
-                    <span>{selectedClass.time} ({selectedClass.duration} mins)</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-gray-500 block mb-1">Status</Label>
-                  <div className="flex items-center">
-                    {selectedClass.isActive ? (
-                      <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 mr-2 text-gray-400" />
-                    )}
-                    <span>{selectedClass.isActive ? "Active" : "Completed"}</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label className="text-gray-500 block mb-1">Registrations</Label>
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2 text-academy-primary" />
-                    <span>{selectedClass.registrations}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-gray-500 block mb-1">Tags</Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedClass.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <Label className="text-gray-500 block mb-1">Description</Label>
-                <p className="text-gray-700">{selectedClass.description}</p>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewing(false)}>
-              Close
-            </Button>
-            <Button 
-              className="bg-academy-primary hover:bg-academy-primary/90"
-              onClick={() => {
-                setIsViewing(false);
-                handleEditClass(selectedClass);
-              }}
-            >
-              Edit Class
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add/Edit Class Dialog */}
-      <Dialog 
-        open={isAdding || isEditing} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsAdding(false);
-            setIsEditing(false);
-          }
-        }}
-      >
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {isAdding ? "Add New Class" : "Edit Class"}
-            </DialogTitle>
+            <DialogTitle>Are you sure?</DialogTitle>
             <DialogDescription>
-              {isAdding 
-                ? "Create a new online class or event" 
-                : "Update details for this class or event"}
+              This action cannot be undone. Are you sure you want to delete this class?
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="col-span-1 md:col-span-2">
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input 
-                    name="title"
-                    value={formData.title} 
-                    onChange={handleInputChange}
-                    placeholder="Enter class title"
-                    className="w-full"
-                  />
-                </FormControl>
-              </FormItem>
-            </div>
-            
-            <FormItem>
-              <FormLabel>Instructor</FormLabel>
-              <FormControl>
-                <Input 
-                  name="instructor"
-                  value={formData.instructor} 
-                  onChange={handleInputChange}
-                  placeholder="Instructor name"
-                />
-              </FormControl>
-            </FormItem>
-            
-            <FormItem>
-              <FormLabel>Price (₹)</FormLabel>
-              <FormControl>
-                <Input 
-                  name="price"
-                  type="number"
-                  value={formData.price} 
-                  onChange={handleInputChange}
-                  placeholder="0 for free classes"
-                />
-              </FormControl>
-            </FormItem>
-            
-            <FormItem>
-              <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Input 
-                  name="date"
-                  type="date"
-                  value={formData.date} 
-                  onChange={handleInputChange}
-                />
-              </FormControl>
-            </FormItem>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <FormItem>
-                <FormLabel>Time</FormLabel>
-                <FormControl>
-                  <Input 
-                    name="time"
-                    type="time"
-                    value={formData.time} 
-                    onChange={handleInputChange}
-                  />
-                </FormControl>
-              </FormItem>
-              
-              <FormItem>
-                <FormLabel>Duration (mins)</FormLabel>
-                <FormControl>
-                  <Input 
-                    name="duration"
-                    type="number"
-                    value={formData.duration} 
-                    onChange={handleInputChange}
-                    placeholder="In minutes"
-                  />
-                </FormControl>
-              </FormItem>
-            </div>
-            
-            <div className="col-span-1 md:col-span-2">
-              <FormItem>
-                <FormLabel>Tags (comma separated)</FormLabel>
-                <FormControl>
-                  <Input 
-                    name="tags"
-                    value={formData.tags} 
-                    onChange={handleTagsChange}
-                    placeholder="e.g. Free, Beginner, Premium"
-                  />
-                </FormControl>
-                <p className="text-sm text-gray-500 mt-1">
-                  Separate tags with commas (e.g. Free, Beginner, Advanced)
-                </p>
-              </FormItem>
-            </div>
-            
-            <div className="col-span-1 md:col-span-2">
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    placeholder="Enter class description"
-                    rows={4}
-                  />
-                </FormControl>
-              </FormItem>
-            </div>
-            
-            <div className="col-span-1 md:col-span-2">
-              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-base">Class Status</FormLabel>
-                  <FormDescription>
-                    {formData.isActive 
-                      ? "Class is currently active and visible to users" 
-                      : "Class is marked as completed and not visible in upcoming classes"
-                    }
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={formData.isActive}
-                    onCheckedChange={handleSwitchChange}
-                  />
-                </FormControl>
-              </FormItem>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Class Title
+              </Label>
+              <Input
+                type="text"
+                id="name"
+                value={selectedClass?.class_title || ''}
+                className="col-span-3"
+                disabled
+              />
             </div>
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsAdding(false);
-              setIsEditing(false);
-            }}>
+            <Button type="button" variant="secondary" onClick={closeDialog}>
               Cancel
             </Button>
-            <Button 
-              className="bg-academy-primary hover:bg-academy-primary/90"
-              onClick={handleSaveClass}
+            <Button
+              type="submit"
+              onClick={() => {
+                if (selectedClass) {
+                  deleteClass(selectedClass.id);
+                  closeDialog();
+                }
+              }}
             >
-              {isAdding ? "Add Class" : "Save Changes"}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleting} onOpenChange={setIsDeleting}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the class "{selectedClass?.title}". 
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              className="bg-red-600 hover:bg-red-700"
-              onClick={handleConfirmDelete}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Drawer to Create or Edit Class */}
+      <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <DrawerTrigger asChild>
+          <Button variant="outline">Open</Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{isEditMode ? "Edit Class" : "Create New Class"}</DrawerTitle>
+            <DrawerDescription>
+              {isEditMode ? "Edit the details of the selected class." : "Create a new class by entering the details below."}
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="px-6 pb-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <FormField
+                  control={form.control}
+                  name="class_title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the title for this class" {...field} />
+                      </FormControl>
+                      <div className="text-sm text-muted-foreground">
+                        Enter the title for this class.
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Description</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter the description for this class"
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Describe this class for the students.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Class Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-[240px] pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <Icons.calendar className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date > new Date()
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <div className="text-sm text-muted-foreground">
+                        When will this class take place?
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        What time will this class take place?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Duration</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the duration for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        How long will this class take?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Price</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Enter the price for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        How much will this class cost?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_capacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Capacity</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="Enter the capacity for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        How many students can attend this class?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Category</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the category for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        What category does this class belong to?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Level</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the level for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        What level is this class for?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_language"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Language</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the language for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        What language will this class be taught in?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_instructor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Instructor</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the instructor for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Who is the instructor for this class?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Location</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the location for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Where will this class take place?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="class_materials"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Class Materials</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter the materials for this class" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        What materials will be used in this class?
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Active</FormLabel>
+                        <FormDescription>
+                          Set class as active or inactive.
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <DrawerFooter>
+                  <Button type="submit" disabled={loading}>
+                    {loading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+                    {isEditMode ? "Update Class" : "Create Class"}
+                  </Button>
+                </DrawerFooter>
+              </form>
+            </Form>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

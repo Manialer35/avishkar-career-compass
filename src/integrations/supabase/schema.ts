@@ -10,10 +10,10 @@ export const checkDatabaseSchema = async () => {
   const issues = [];
   
   try {
-    // Check if user_roles table exists by directly querying it
+    // Check if user_roles table exists
     const { data: userRolesData, error: userRolesError } = await supabase
       .from('user_roles')
-      .select('*')
+      .select('count(*)')
       .limit(1);
       
     if (userRolesError) {
@@ -41,7 +41,7 @@ export const checkDatabaseSchema = async () => {
       isValid: true,
       issues: []
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception during schema check:", error);
     return {
       isValid: false,
@@ -69,7 +69,7 @@ export const initializeDatabaseSchema = async () => {
     }
     
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Exception during schema initialization:", error);
     return { success: false, error: error.message || "Unknown error" };
   }

@@ -1,5 +1,5 @@
-// pages/admin/images.tsx - Admin page for managing images
 
+// Update the import to use the correct path
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ImageUploader from '@/components/admin/ImageUploader';

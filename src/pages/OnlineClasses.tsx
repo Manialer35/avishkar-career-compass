@@ -260,9 +260,12 @@ const OnlineClasses = () => {
 
       {/* Enrollment dialog */}
       <EnrollmentDialog
-        open={isEnrollmentOpen}
+        open={isEnrollmentOpen} 
         onClose={() => setIsEnrollmentOpen(false)}
-        classItem={selectedClass}
+        classTitle={selectedClass?.title || ''}
+        classDate={selectedClass?.date || new Date()}
+        classId={selectedClass?.id || ''}
+        price={selectedClass?.price || 0}
       />
     </div>
   );
