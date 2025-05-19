@@ -1,18 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation, useParams, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, CheckCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-
-interface MaterialDetail {
-  id: string;
-  title: string;
-  description: string;
-  downloadUrl: string;
-  thumbnailUrl?: string;
-}
+import { ArrowLeft, Download, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface MaterialAccessProps {
   productId?: string;
@@ -20,144 +13,82 @@ interface MaterialAccessProps {
   productName?: string;
 }
 
-const MaterialAccess: React.FC<MaterialAccessProps> = ({ 
-  productId: propProductId,
-  purchaseSuccess: propPurchaseSuccess,
-  productName: propProductName
-}) => {
-  const { productId: paramProductId } = useParams();
-  const location = useLocation();
+const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }: MaterialAccessProps) => {
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [material, setMaterial] = useState<MaterialDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [accessUrl, setAccessUrl] = useState<string | null>(null);
+  const [material, setMaterial] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   
-  // Use props or URL params/state
-  const productId = propProductId || paramProductId;
-  const purchaseSuccess = propPurchaseSuccess || location.state?.purchaseSuccess || false;
-  const productName = propProductName || location.state?.productName || 'study material';
-
   useEffect(() => {
-    if (purchaseSuccess) {
-      toast({
-        title: "Purchase Successful!",
-        description: `You have successfully purchased ${productName}`,
-      });
-    }
-
     if (productId) {
-      fetchMaterialDetails(productId);
+      fetchMaterialDetails();
     } else {
       setLoading(false);
     }
-  }, [productId, purchaseSuccess, productName]);
-
-  const fetchMaterialDetails = async (id: string) => {
+    
+    if (purchaseSuccess) {
+      toast({
+        title: "Purchase Successful!",
+        description: `You now have access to "${productName}"`,
+        duration: 5000,
+      });
+    }
+  }, [productId, purchaseSuccess]);
+  
+  const fetchMaterialDetails = async () => {
     try {
       setLoading(true);
       
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Authentication required",
-          description: "Please login to access this content",
-          variant: "destructive",
-        });
-        setError("Authentication required");
-        setLoading(false);
-        return;
-      }
-
-      // Check if the user has purchased this material
-      const { data: purchase, error: purchaseError } = await supabase
-        .from('user_purchases')
-        .select('*')
-        .eq('material_id', id)
-        .eq('user_id', user.id)
-        .gte('expires_at', new Date().toISOString())
-        .single();
-
-      if (purchaseError || !purchase) {
-        toast({
-          title: "Access Denied",
-          description: "You don't have access to this material or your access has expired",
-          variant: "destructive",
-        });
-        setError("Access denied");
-        setLoading(false);
-        return;
-      }
-
-      // Fetch material details
-      const { data: materialData, error: materialError } = await supabase
+      const { data, error } = await supabase
         .from('study_materials')
         .select('*')
-        .eq('id', id)
+        .eq('id', productId)
         .single();
-
-      if (materialError || !materialData) {
-        toast({
-          title: "Error",
-          description: "Failed to load material details",
-          variant: "destructive",
-        });
-        setError("Failed to load material details");
-        setLoading(false);
-        return;
+        
+      if (error) {
+        throw error;
       }
-
-      setMaterial({
-        id: materialData.id,
-        title: materialData.title || materialData.name,
-        description: materialData.description || '',
-        downloadUrl: materialData.downloadurl || '',
-        thumbnailUrl: materialData.thumbnailurl
-      });
-      setAccessUrl(materialData.downloadurl);
-      setLoading(false);
+      
+      setMaterial(data);
     } catch (error: any) {
-      console.error("Error fetching material access:", error);
+      console.error('Error fetching material details:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "We couldn't load the material details.",
         variant: "destructive",
       });
-      setError("An unexpected error occurred");
+    } finally {
       setLoading(false);
+    }
+  };
+  
+  const handleDownload = () => {
+    if (!material?.downloadurl) {
+      toast({
+        title: "Download Error",
+        description: "Download URL not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Open in new tab or trigger download
+    window.open(material.downloadurl, '_blank');
+    
+    // Record download
+    if (productId) {
+      supabase.rpc('increment_material_downloads', { material_id: productId })
+        .then(({ data, error }) => {
+          if (error) console.error('Error recording download:', error);
+        });
     }
   };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <p>Loading material access...</p>
-      </div>
-    );
-  }
-
-  if (!material || !accessUrl) {
-    return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" className="mr-4" asChild>
-            <Link to="/materials/premium">
-              <ArrowLeft className="h-6 w-6" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-        </div>
-        
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-red-600 text-lg font-medium mb-2">{error || "Access Denied"}</h2>
-          <p className="text-gray-600 mb-4">
-            You don't have access to this content or your access has expired.
-          </p>
-          <Button asChild>
-            <Link to="/materials/premium">Browse Premium Materials</Link>
-          </Button>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-pulse text-gray-500">Loading material access...</div>
         </div>
       </div>
     );
@@ -167,41 +98,97 @@ const MaterialAccess: React.FC<MaterialAccessProps> = ({
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-6">
         <Button variant="ghost" size="icon" className="mr-4" asChild>
-          <Link to="/materials/premium">
+          <Link to="/premium-materials">
             <ArrowLeft className="h-6 w-6" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold">Material Access</h1>
+        <h1 className="text-2xl font-bold text-academy-primary">Material Access</h1>
       </div>
       
-      {purchaseSuccess && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center">
-          <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0" />
-          <p className="text-green-800">
-            Thank you for your purchase of <strong>{productName}</strong>! You now have access to this premium material.
-          </p>
-        </div>
-      )}
+      {purchaseSuccess ? (
+        <Card className="mb-8 bg-green-50 border-green-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-3">
+              <CheckCircle className="text-green-500 h-6 w-6" />
+              <h2 className="text-xl font-semibold text-green-700">Purchase Successful!</h2>
+            </div>
+            <p className="text-green-700">
+              Thank you for your purchase. You now have access to "{productName || material?.title}".
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
       
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2">{material.title}</h2>
-          <p className="text-gray-600 mb-6">{material.description}</p>
+      {material ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="text-xl font-bold mb-4">{material.title}</h2>
+                <p className="text-gray-600 mb-6">{material.description}</p>
+                
+                <Button 
+                  onClick={handleDownload} 
+                  className="w-full sm:w-auto flex items-center gap-2"
+                >
+                  <Download size={18} />
+                  Download Material
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
           
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="font-medium mb-4">Download Material</h3>
-            <Button
-              asChild
-              className="flex items-center"
-            >
-              <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer" download>
-                <Download className="mr-2 h-4 w-4" />
-                Download Material
-              </a>
-            </Button>
+          <div>
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-4">Material Information</h3>
+                
+                {material.thumbnailurl && (
+                  <div className="mb-4">
+                    <img 
+                      src={material.thumbnailurl} 
+                      alt={material.title} 
+                      className="w-full h-auto rounded-md"
+                    />
+                  </div>
+                )}
+                
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Type:</span>
+                    <span>{material.ispremium ? 'Premium' : 'Free'}</span>
+                  </div>
+                  {material.ispremium && (
+                    <div className="flex justify-between">
+                      <span className="font-medium">Price:</span>
+                      <span>${material.price?.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="font-medium">Downloads:</span>
+                    <span>{material.download_count || 0}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="flex justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+          </div>
+          <h2 className="text-red-600 text-lg font-medium mb-2">
+            Material Not Found
+          </h2>
+          <p className="text-gray-600 mb-4">
+            We couldn't find the material you're looking for.
+          </p>
+          <Button asChild>
+            <Link to="/premium-materials">Browse Materials</Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

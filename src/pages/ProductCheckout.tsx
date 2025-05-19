@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -173,7 +172,20 @@ const ProductCheckout = () => {
         <div>
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <h2 className="text-xl font-semibold mb-4">Payment</h2>
-            <PaymentSummary productName={product.name} price={product.price} />
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Product</span>
+                <span>{product.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Price</span>
+                <span>${product.price.toFixed(2)}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between">
+                <span className="font-medium">Total</span>
+                <span className="font-semibold">${product.price.toFixed(2)}</span>
+              </div>
+            </div>
             
             <div className="mt-6">
               <GooglePayButton 
@@ -183,6 +195,14 @@ const ProductCheckout = () => {
                 onSuccess={handlePaymentSuccess}
                 onCancel={handleCancel}
               />
+              
+              <Button 
+                variant="outline" 
+                className="w-full mt-3"
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
             </div>
           </div>
         </div>
