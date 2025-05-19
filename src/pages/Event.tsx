@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, Clock, MapPin, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { isMobile } from '@/hooks/use-mobile';
 import MobileClassesSection from '@/components/mobile/MobileClassesSection';
 
 interface EventType {
@@ -26,7 +27,7 @@ const Event = () => {
   const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const mobile = useIsMobile();
+  const mobile = isMobile();
 
   useEffect(() => {
     fetchEvents();
