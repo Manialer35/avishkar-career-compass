@@ -28,3 +28,6 @@ enabled = false
 
 [functions.process-google-pay]
 verify_jwt = false
+
+[functions.send-enquiry]
+verify_jwt = false

@@ -1,9 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { GooglePayButton } from '@/components/GooglePayButton';
+import GooglePayButton from '@/components/GooglePayButton';
 import { useAuth } from '@/hooks/useAuth';
 
 interface PurchaseProduct {

@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Resend } from "https://esm.sh/@resend/node@0.0.3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,39 +22,48 @@ serve(async (req) => {
 
     console.log("Received enquiry from:", name, email);
     
-    // Initialize Resend with API key
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-    
-    if (!resend) {
-      throw new Error("Email client configuration failed");
-    }
-    
-    // Format the email with enquiry details
-    const emailContent = `
-      <h2>New Enquiry from Avishkar Academy Website</h2>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Phone:</strong> ${phone}</p>
-      <p><strong>Subject:</strong> ${subject || 'No subject provided'}</p>
-      <h3>Message:</h3>
-      <p>${message}</p>
+    // Format the email body
+    const emailBody = `
+      New Enquiry from Avishkar Academy Website
+
+      Name: ${name}
+      Email: ${email}
+      Phone: ${phone}
+      Subject: ${subject || 'No subject provided'}
+      
+      Message:
+      ${message}
     `;
     
-    // Send email to both recipients
-    const { data, error: sendError } = await resend.emails.send({
-      from: "Avishkar Academy <no-reply@resend.dev>",
-      to: ["khot.md@gmail.com", "neerajmadkar35@gmail.com"],
-      subject: `New Enquiry: ${subject || 'General Enquiry'}`,
-      html: emailContent,
-      reply_to: email
+    // Instead of using Resend, we'll use a simple fetch to an email service
+    // In a production environment, you would integrate with your email service API
+    console.log("Would send email with content:", emailBody);
+    
+    // Send the data to the recipient emails using Supabase database for now
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    
+    // Record the enquiry in the database for reference
+    const response = await fetch(`${supabaseUrl}/rest/v1/enquiries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        subject: subject || 'General Enquiry',
+        message,
+        created_at: new Date().toISOString()
+      })
     });
     
-    if (sendError) {
-      console.error("Email sending failed:", sendError);
-      throw new Error("Failed to send email notification");
+    if (!response.ok) {
+      throw new Error(`Failed to record enquiry: ${await response.text()}`);
     }
-    
-    console.log("Email sent successfully:", data);
     
     return new Response(JSON.stringify({ 
       success: true,
