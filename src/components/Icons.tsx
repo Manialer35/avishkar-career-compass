@@ -1,6 +1,6 @@
 
 import { Loader2, Calendar, ChevronLeft, ChevronRight, Check, 
-  X, Plus, Search, MoreHorizontal, EllipsisHorizontal } from "lucide-react";
+  X, Plus, Search, MoreHorizontal, MoreVertical, Ellipsis } from "lucide-react";
 
 export const Icons = {
   spinner: Loader2,
@@ -12,5 +12,6 @@ export const Icons = {
   add: Plus,
   search: Search,
   more: MoreHorizontal,
-  dotsHorizontal: EllipsisHorizontal
+  dotsHorizontal: MoreHorizontal,
+  ellipsis: Ellipsis
 }

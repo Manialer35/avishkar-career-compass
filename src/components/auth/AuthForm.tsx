@@ -1,146 +1,149 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Icons } from '@/components/Icons';
+import ForgotPasswordForm from './ForgotPasswordForm';
 
-interface AuthFormProps {
-  onSuccess?: () => void;
-}
-
-const AuthForm: React.FC<AuthFormProps> = ({ onSuccess }) => {
+const AuthForm = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { toast } = useToast();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn, signUp } = useAuth();
+  const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all the fields.",
-        variant: "destructive",
-      });
-      return;
-    }
+    setIsLoading(true);
 
     try {
-      setLoading(true);
-      
-      if (isSignUp) {
-        const { user, error } = await signUp(email, password);
-        if (error) throw error;
-        
-        toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
-        });
-      } else {
-        const { user, error } = await signIn(email, password);
-        if (error) throw error;
-        
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully logged in.",
-        });
-      }
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error: any) {
-      console.error('Authentication error:', error);
+      await signIn(email, password);
       toast({
-        title: "Authentication failed",
-        description: error.message || "An error occurred during authentication.",
-        variant: "destructive",
+        title: 'Success',
+        description: 'You have successfully signed in.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to sign in',
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await signUp(email, password);
+      toast({
+        title: 'Success',
+        description: 'Account created! Check your email for confirmation.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to create account',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showForgotPassword) {
+    return <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />;
+  }
+
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-xl">
-          {isSignUp ? 'Create an Account' : 'Sign In'}
-        </CardTitle>
-        <CardDescription>
-          {isSignUp 
-            ? 'Enter your details to create a new account'
-            : 'Enter your credentials to sign in to your account'
-          }
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  {isSignUp ? 'Creating account...' : 'Signing in...'}
-                </>
-              ) : (
-                isSignUp ? 'Sign Up' : 'Sign In'
-              )}
-            </Button>
+    <Tabs defaultValue="sign-in" className="w-full">
+      <TabsList className="grid grid-cols-2 mb-4">
+        <TabsTrigger value="sign-in">Sign In</TabsTrigger>
+        <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="sign-in">
+        <form onSubmit={handleSignIn} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="signin-email">Email</Label>
+            <Input 
+              id="signin-email" 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              required
+            />
           </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="signin-password">Password</Label>
+              <Button 
+                variant="link" 
+                type="button" 
+                className="px-0 text-sm" 
+                onClick={() => setShowForgotPassword(true)}
+              >
+                Forgot password?
+              </Button>
+            </div>
+            <Input 
+              id="signin-password" 
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            Sign In
+          </Button>
         </form>
-      </CardContent>
-      <CardFooter className="flex flex-col space-y-2">
-        <div className="text-center text-sm">
-          {isSignUp ? (
-            <p>
-              Already have an account?{' '}
-              <Button variant="link" className="p-0 h-auto" onClick={() => setIsSignUp(false)}>
-                Sign in
-              </Button>
-            </p>
-          ) : (
-            <p>
-              Don't have an account?{' '}
-              <Button variant="link" className="p-0 h-auto" onClick={() => setIsSignUp(true)}>
-                Create one
-              </Button>
-            </p>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
+      </TabsContent>
+      
+      <TabsContent value="sign-up">
+        <form onSubmit={handleSignUp} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">Email</Label>
+            <Input 
+              id="signup-email" 
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="signup-password">Password</Label>
+            <Input 
+              id="signup-password" 
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+            Create Account
+          </Button>
+        </form>
+      </TabsContent>
+    </Tabs>
   );
 };
 

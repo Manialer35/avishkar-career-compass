@@ -4,14 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
+interface UserRole {
+  role: string;
+}
+
 export interface AuthContextType {
   user: any | null;
   session: any | null;
   isAdmin: boolean;
+  userRole: UserRole | null;
   loading: boolean;
   signUp: (email: string, password: string, userData?: any) => Promise<any>;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
+  resetPassword?: (email: string) => Promise<any>;
+  createAdminUser?: (email: string, password: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [session, setSession] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -50,6 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (!roleError && roleData) {
             setIsAdmin(true);
+            setUserRole({ role: 'admin' });
+          } else {
+            setUserRole({ role: 'user' });
           }
         }
       } catch (error) {
@@ -74,8 +85,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (!roleError && roleData) {
             setIsAdmin(true);
+            setUserRole({ role: 'admin' });
           } else {
             setIsAdmin(false);
+            setUserRole({ role: 'user' });
           }
           
           toast({
@@ -86,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setIsAdmin(false);
+          setUserRole(null);
           toast({
             title: "Signed out successfully",
           });
@@ -148,14 +162,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error('Error resetting password:', error);
+      throw error;
+    }
+  };
+
+  const createAdminUser = async (email: string, password: string) => {
+    try {
+      // First create the user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (authError || !authData.user) {
+        throw authError || new Error('Failed to create user');
+      }
+      
+      // Then assign admin role to the user
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: 'admin'
+        });
+      
+      if (roleError) {
+        throw roleError;
+      }
+      
+      return authData;
+    } catch (error: any) {
+      console.error('Error creating admin user:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     session,
     isAdmin,
+    userRole,
     loading,
     signUp,
     signIn,
     signOut,
+    resetPassword,
+    createAdminUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
