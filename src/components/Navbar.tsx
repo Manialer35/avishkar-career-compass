@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
@@ -144,10 +145,11 @@ const Navbar = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              className="bg-blue-600 text-white hover:bg-blue-700 border-none mr-2"
+              className="bg-blue-600 text-white hover:bg-blue-700 border-none"
               onClick={() => navigate('/admin')}
             >
-              <ShieldAlert className="h-4 w-4 mr-1" /> Admin Panel
+              <ShieldAlert className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Admin</span>
             </Button>
           )}
           

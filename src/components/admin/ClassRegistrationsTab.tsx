@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -131,10 +132,10 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
         <h2 className="text-xl font-semibold">Class Registrations</h2>
-        <div className="flex items-center gap-2">
-          <div className="relative w-64">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search registrations..."
@@ -188,29 +189,29 @@ const ClassRegistrationsTab = ({}: ClassRegistrationsTabProps) => {
           </p>
         </div>
       ) : (
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-hidden overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Student Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Class Date</TableHead>
-                <TableHead>Registration Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="whitespace-nowrap">Student Name</TableHead>
+                <TableHead className="whitespace-nowrap">Email</TableHead>
+                <TableHead className="whitespace-nowrap">Phone</TableHead>
+                <TableHead className="whitespace-nowrap">Class</TableHead>
+                <TableHead className="whitespace-nowrap">Class Date</TableHead>
+                <TableHead className="whitespace-nowrap">Registration Date</TableHead>
+                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredRegistrations.map((registration) => (
                 <TableRow key={registration.id}>
-                  <TableCell className="font-medium">{registration.student_name}</TableCell>
-                  <TableCell>{registration.student_email}</TableCell>
-                  <TableCell>{registration.student_phone}</TableCell>
-                  <TableCell>{registration.class_title}</TableCell>
-                  <TableCell>{formatDate(registration.class_date)}</TableCell>
-                  <TableCell>{formatDate(registration.created_at)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="font-medium whitespace-nowrap">{registration.student_name}</TableCell>
+                  <TableCell className="whitespace-nowrap">{registration.student_email}</TableCell>
+                  <TableCell className="whitespace-nowrap">{registration.student_phone}</TableCell>
+                  <TableCell className="whitespace-nowrap">{registration.class_title}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDate(registration.class_date)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDate(registration.created_at)}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
                     <Button
                       variant="outline"
                       size="icon"
