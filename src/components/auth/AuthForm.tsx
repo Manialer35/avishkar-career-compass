@@ -17,21 +17,50 @@ const AuthForm = () => {
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
 
+  const validateInputs = () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+      });
+      return false;
+    }
+
+    if (!password || password.length < 6) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Password',
+        description: 'Password must be at least 6 characters long.',
+      });
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateInputs()) return;
+    
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
+      console.log('Attempting to sign in with:', { email });
+      const result = await signIn(email, password);
+      console.log('Sign in result:', result);
+      
       toast({
         title: 'Success',
         description: 'You have successfully signed in.',
       });
     } catch (error: any) {
+      console.error('Sign in error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to sign in',
+        title: 'Authentication Failed',
+        description: error.message || 'Invalid email or password. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -40,19 +69,24 @@ const AuthForm = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateInputs()) return;
+    
     setIsLoading(true);
 
     try {
+      console.log('Attempting to sign up with:', { email });
       await signUp(email, password);
       toast({
         title: 'Success',
         description: 'Account created! Check your email for confirmation.',
       });
     } catch (error: any) {
+      console.error('Sign up error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to create account',
+        title: 'Registration Failed',
+        description: error.message || 'Could not create account. Please try again.',
       });
     } finally {
       setIsLoading(false);

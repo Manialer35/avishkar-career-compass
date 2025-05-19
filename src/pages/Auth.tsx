@@ -6,14 +6,23 @@ import AuthForm from '@/components/auth/AuthForm';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
   
   // If user is already authenticated, redirect to home
   useEffect(() => {
-    if (session) {
+    if (session && !loading) {
+      console.log('User already authenticated, redirecting to home');
       navigate('/');
     }
-  }, [session, navigate]);
+  }, [session, navigate, loading]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-academy-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
