@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users } from 'lucide-react';
@@ -11,6 +11,7 @@ import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
 import ImageManagementTab from '@/components/admin/ImageManagementTab';
 import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
+import Pagination from '@/components/admin/classes/Pagination';
 
 const AdminPanel = () => {
   const { 
@@ -25,7 +26,10 @@ const AdminPanel = () => {
     handleAddNew,
     handleEdit,
     handleDelete,
-    handleSave
+    handleSave,
+    currentPage,
+    totalPages,
+    handlePageChange
   } = useAdminMaterials();
   
   return (
@@ -57,6 +61,11 @@ const AdminPanel = () => {
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </TabsContent>
         
         <TabsContent value="premium">
@@ -66,6 +75,11 @@ const AdminPanel = () => {
             onAddNew={handleAddNew}
             onEdit={handleEdit}
             onDelete={handleDelete}
+          />
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
           />
         </TabsContent>
         

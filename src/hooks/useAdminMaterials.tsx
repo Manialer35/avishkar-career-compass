@@ -21,6 +21,8 @@ export const useAdminMaterials = () => {
   const [editingMaterial, setEditingMaterial] = useState<StudyMaterial | null>(null);
   const [newMaterial, setNewMaterial] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('free');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(8);
   const { toast } = useToast();
   const { session } = useAuth();
 
@@ -204,7 +206,16 @@ export const useAdminMaterials = () => {
           throw error;
         }
 
-        setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
+        setMaterials(materials.map(m => m.id === editingMaterial.id ? {
+          ...m,
+          title: editingMaterial.title,
+          name: editingMaterial.title,
+          description: editingMaterial.description,
+          downloadUrl: editingMaterial.downloadUrl,
+          thumbnailUrl: editingMaterial.thumbnailUrl,
+          isPremium: editingMaterial.isPremium,
+          price: editingMaterial.price
+        } : m));
         console.log("Material updated:", editingMaterial);
       }
       
@@ -226,9 +237,23 @@ export const useAdminMaterials = () => {
       });
     }
   };
+  
+  // Get current materials for pagination
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const filteredMaterials = materials.filter(m => 
+    (activeTab === 'free' && !m.isPremium) || (activeTab === 'premium' && m.isPremium)
+  );
+  const currentMaterials = filteredMaterials.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredMaterials.length / itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   return {
-    materials,
+    materials: currentMaterials,
+    allMaterials: materials,
     setMaterials,
     loading,
     editingMaterial,
@@ -237,6 +262,9 @@ export const useAdminMaterials = () => {
     setNewMaterial,
     activeTab,
     setActiveTab,
+    currentPage,
+    totalPages,
+    handlePageChange,
     handleEdit,
     handleDelete,
     handleAddNew,
