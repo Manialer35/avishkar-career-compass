@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from "@/hooks/useAuth";
 
 interface GooglePayButtonProps {
   productId: string;
@@ -27,8 +29,9 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const { toast } = useToast();
   const [googlePayAvailable, setGooglePayAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { user } = useAuth();
   
-  // Your actual Google Pay merchant ID - using the one provided in the file
+  // Your actual Google Pay merchant ID
   const merchantId = "BCR2DN4TTWA2JCD6";
 
   useEffect(() => {
@@ -36,7 +39,18 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     const script = document.createElement('script');
     script.src = 'https://pay.google.com/gp/p/js/pay.js';
     script.async = true;
-    script.onload = () => checkGooglePayAvailability();
+    script.onload = () => {
+      console.log("Google Pay script loaded successfully");
+      checkGooglePayAvailability();
+    };
+    script.onerror = () => {
+      console.error("Error loading Google Pay script");
+      toast({
+        title: "Payment Error",
+        description: "Failed to load Google Pay. Please try again later.",
+        variant: "destructive",
+      });
+    };
     document.body.appendChild(script);
 
     return () => {
@@ -55,8 +69,9 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     }
 
     try {
+      console.log("Checking Google Pay availability...");
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION' // Use 'TEST' for testing
+        environment: 'TEST' // Use 'TEST' for development, 'PRODUCTION' for live
       });
 
       const isReadyToPayRequest = {
@@ -72,6 +87,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       };
 
       const response = await paymentsClient.isReadyToPay(isReadyToPayRequest);
+      console.log("Google Pay availability checked:", response.result);
       setGooglePayAvailable(response.result);
     } catch (error) {
       console.error('Error checking Google Pay availability:', error);
@@ -89,10 +105,21 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue with the payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
+      console.log("Starting Google Pay payment process...");
+      
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION'
+        environment: 'TEST' // Use 'TEST' for development, 'PRODUCTION' for live
       });
 
       const paymentDataRequest = {
@@ -126,23 +153,33 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
 
       try {
         console.log('Initiating Google Pay payment with merchant ID:', merchantId);
-        // In production, use actual payment flow
         const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
         console.log('Payment data received:', paymentData);
         
-        // Send payment data to your backend for processing
-        const response = await sendPaymentToBackend(paymentData, productId, price);
+        // Send payment data to record the transaction
+        const { data, error } = await supabase
+          .from('user_purchases')
+          .insert([{
+            user_id: user.id,
+            material_id: productId,
+            payment_id: `google-pay-${Date.now()}`,
+            amount: price,
+            purchased_at: new Date().toISOString(),
+            payment_method: 'GOOGLE_PAY',
+            payment_status: 'COMPLETED'
+          }]);
         
-        if (response.success) {
-          setIsLoading(false);
-          toast({
-            title: "Payment Successful",
-            description: "Your payment has been processed successfully.",
-          });
-          onSuccess();
-        } else {
-          throw new Error(response.message || 'Payment processing failed');
+        if (error) {
+          console.error("Database error recording payment:", error);
+          throw new Error("Failed to record payment");
         }
+        
+        setIsLoading(false);
+        toast({
+          title: "Payment Successful",
+          description: "Your payment has been processed successfully.",
+        });
+        onSuccess();
       } catch (error: any) {
         console.error('Google Pay error:', error);
         
@@ -173,27 +210,6 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
         description: "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  // Function to send payment data to backend
-  const sendPaymentToBackend = async (paymentData: any, productId: string, amount: number) => {
-    try {
-      // This would be replaced with an actual API call to your backend
-      console.log('Sending payment data to backend for merchant ID:', merchantId, { paymentData, productId, amount });
-      
-      // For demo purposes, simulate a successful response
-      // In production, this would be an actual API call
-      return {
-        success: true,
-        message: 'Payment processed successfully'
-      };
-    } catch (error) {
-      console.error('Error sending payment to backend:', error);
-      return {
-        success: false,
-        message: 'Failed to process payment on server'
-      };
     }
   };
 

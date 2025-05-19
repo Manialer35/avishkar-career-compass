@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { loadRazorpay } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { Wallet } from 'lucide-react';
 
 interface PaymentButtonProps {
   amount: number;
@@ -14,36 +13,13 @@ interface PaymentButtonProps {
   productName: string;
 }
 
+// Simplified GooglePay-only payment button
 const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR', productId, productName }) => {
-  const [razorpay, setRazorpay] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const initializeRazorpay = async () => {
-      try {
-        const rzp = await loadRazorpay();
-        console.log("Razorpay loaded successfully:", rzp ? "available" : "not available");
-        setRazorpay(rzp);
-      } catch (err) {
-        console.error("Error loading Razorpay:", err);
-      }
-    };
-
-    initializeRazorpay();
-  }, []);
-
   const handlePayment = async () => {
-    if (!razorpay) {
-      toast({
-        title: "Payment Error",
-        description: "Razorpay SDK failed to load. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -54,105 +30,10 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
     }
 
     try {
-      console.log("Starting payment process for:", productName, "with amount:", amount);
-      // Mock server-side order creation since we don't have a real backend
-      // In production, you should call your backend API to create an order
-      const orderData = {
-        id: "order_" + Date.now().toString(),
-        amount: amount * 100, // amount in paise
-        currency: currency,
-        receipt: "receipt_" + Math.random().toString(36).substring(2, 15)
-      };
+      console.log("Redirecting to Google Pay checkout for:", productName, "with amount:", amount);
       
-      console.log("Order created:", orderData);
-
-      // 2. Configure Razorpay options
-      const options = {
-        key: "rzp_test_7HEANb7LBNz7UT", // Test key - replace with your key in production
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'Study Academy Premium',
-        description: productName,
-        order_id: orderData.id,
-        handler: async function (response: any) {
-          // Normally, you would verify the payment on your backend
-          console.log("Payment successful:", response);
-          try {
-            // Record the purchase in your database
-            const { error } = await supabase.from('user_purchases').insert({
-              user_id: user.id,
-              material_id: productId,
-              amount: amount,
-              payment_id: response.razorpay_payment_id,
-              // Set expiry date to 1 year from now for demo
-              expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-            });
-            
-            if (error) throw error;
-            
-            toast({
-              title: "Payment Successful!",
-              description: "Your payment was processed successfully.",
-            });
-
-            // Redirect to success page
-            navigate(`/materials/my`);
-          } catch (error) {
-            console.error("Error recording purchase:", error);
-            toast({
-              title: "Error",
-              description: "Payment was processed but we couldn't record your purchase. Please contact support.",
-              variant: "destructive",
-            });
-          }
-        },
-        prefill: {
-          name: user.user_metadata?.full_name || user.email || '',
-          email: user.email || '',
-          contact: user.user_metadata?.phone || '',
-        },
-        notes: {
-          productId,
-          productName,
-          userId: user.id,
-        },
-        theme: {
-          color: '#6366f1',
-        },
-        modal: {
-          ondismiss: function() {
-            console.log("Payment modal dismissed");
-            toast({
-              title: "Payment Cancelled",
-              description: "You cancelled the payment process.",
-              variant: "default",
-            });
-          }
-        }
-      };
-
-      // 3. Open Razorpay checkout
-      try {
-        console.log("Opening Razorpay checkout with options:", JSON.stringify(options));
-        const paymentObject = new razorpay(options);
-        paymentObject.open();
-
-        paymentObject.on('payment.failed', function (response: any) {
-          console.error('Payment failed:', response.error);
-          toast({
-            title: "Payment Failed",
-            description: response.error.description || "Your payment failed. Please try again.",
-            variant: "destructive",
-          });
-        });
-      } catch (error) {
-        console.error("Error opening Razorpay:", error);
-        toast({
-          title: "Payment Error",
-          description: "Could not open payment form. Please try again.",
-          variant: "destructive",
-        });
-      }
+      // Redirect to checkout page that uses Google Pay
+      navigate(`/checkout/${productId}`);
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
@@ -164,7 +45,8 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
   };
 
   return (
-    <Button onClick={handlePayment}>
+    <Button onClick={handlePayment} className="flex items-center gap-2">
+      <Wallet className="h-4 w-4" />
       Pay ₹{amount} {currency}
     </Button>
   );
@@ -229,7 +111,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ materialId, down
   );
 };
 
-// Add these components for ProductCheckout.tsx
+// Updated GooglePayButton with improved functionality
 export const GooglePayButton: React.FC<{
   productId: string;
   productName: string;

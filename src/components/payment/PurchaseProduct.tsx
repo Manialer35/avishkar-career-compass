@@ -1,5 +1,4 @@
 
-// src/components/payment/PurchaseProduct.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { Link } from 'react-router-dom';
 import { paymentService } from '@/services/PaymentService';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { loadRazorpay } from '@/lib/utils';
+import { GooglePayButton } from '@/components/PaymentComponents';
 
 const PurchaseProduct = () => {
   const { productId } = useParams();
@@ -82,132 +81,23 @@ const PurchaseProduct = () => {
     }
   };
 
-  const handlePurchase = async () => {
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to purchase this material",
-        variant: "destructive",
-      });
-      navigate('/login', { state: { redirectTo: `/purchase/${productId}` } });
-      return;
-    }
+  const handlePaymentSuccess = () => {
+    toast({
+      title: "Purchase Successful",
+      description: "You can now access this material",
+    });
+    
+    // Redirect to material page or download
+    navigate(`/study-materials/${product.id}`);
+  };
 
-    if (!product) {
-      toast({
-        title: "Error",
-        description: "Product information is missing",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setProcessingPayment(true);
-      
-      console.log("Loading Razorpay script...");
-      // Load Razorpay directly
-      const Razorpay = await loadRazorpay();
-      
-      if (!Razorpay) {
-        throw new Error("Failed to load Razorpay checkout script");
-      }
-      
-      console.log("Razorpay loaded, creating order...");
-
-      // Create a mock order for this demo
-      const orderId = `order_${Date.now()}`;
-      
-      // Configure Razorpay
-      const options = {
-        key: "rzp_test_7HEANb7LBNz7UT", // Test key - replace with your key in production
-        amount: product.price * 100, // Convert to paise
-        currency: "INR",
-        name: "Study Academy",
-        description: `Payment for ${product.title}`,
-        order_id: orderId,
-        handler: async function(response: any) {
-          console.log("Payment successful:", response);
-          
-          try {
-            // Record purchase in database
-            const { error } = await supabase.from('user_purchases').insert({
-              user_id: user.id,
-              material_id: product.id,
-              payment_id: response.razorpay_payment_id,
-              amount: product.price,
-              purchased_at: new Date().toISOString()
-            });
-            
-            if (error) throw error;
-            
-            toast({
-              title: "Purchase Successful",
-              description: "You can now access this material",
-            });
-            
-            // Redirect to material page or download
-            navigate(`/study-materials/${product.id}`);
-          } catch (error) {
-            console.error('Error recording purchase:', error);
-            toast({
-              title: "Error",
-              description: "Payment was successful but we couldn't record your purchase. Please contact support.",
-              variant: "destructive",
-            });
-          } finally {
-            setProcessingPayment(false);
-          }
-        },
-        prefill: {
-          name: user.user_metadata?.full_name || "",
-          email: user.email || "",
-          contact: user.user_metadata?.phone || "",
-        },
-        notes: {
-          productId: product.id,
-          userId: user.id,
-        },
-        theme: {
-          color: "#1e3a8a",
-        },
-        modal: {
-          ondismiss: function() {
-            console.log("Payment modal dismissed");
-            toast({
-              title: "Payment Cancelled",
-              description: "You cancelled the payment process.",
-              variant: "default",
-            });
-            setProcessingPayment(false);
-          }
-        }
-      };
-
-      console.log("Opening Razorpay modal with options:", options);
-      // Open Razorpay checkout
-      const paymentObject = new Razorpay(options);
-      paymentObject.on('payment.failed', function(response: any) {
-        console.error('Payment failed:', response.error);
-        toast({
-          title: "Payment Failed",
-          description: response.error.description || "Your payment failed. Please try again.",
-          variant: "destructive",
-        });
-        setProcessingPayment(false);
-      });
-      
-      paymentObject.open();
-      
-    } catch (error: any) {
-      console.error('Error processing payment:', error);
-      toast({
-        title: "Payment Error",
-        description: error.message || "There was an error processing your payment. Please try again later.",
-        variant: "destructive",
-      });
-      setProcessingPayment(false);
-    }
+  const handlePaymentCancel = () => {
+    toast({
+      title: "Payment Cancelled",
+      description: "You cancelled the payment process.",
+      variant: "default",
+    });
+    setProcessingPayment(false);
   };
 
   if (loading) {
@@ -270,13 +160,13 @@ const PurchaseProduct = () => {
                     </Link>
                   </div>
                 ) : (
-                  <Button 
-                    className="w-full py-3" 
-                    onClick={handlePurchase}
-                    disabled={processingPayment}
-                  >
-                    {processingPayment ? "Processing..." : "Pay with Razorpay"}
-                  </Button>
+                  <GooglePayButton 
+                    productId={product.id}
+                    productName={product.title}
+                    price={product.price}
+                    onSuccess={handlePaymentSuccess}
+                    onCancel={handlePaymentCancel}
+                  />
                 )}
               </div>
             </div>

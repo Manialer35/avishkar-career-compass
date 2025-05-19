@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { GooglePayButton } from '@/components/PaymentComponents';
 
 interface EnrollmentDialogProps {
   open: boolean;
@@ -38,9 +40,6 @@ const EnrollmentDialog = ({
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [paymentStep, setPaymentStep] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCVC, setCardCVC] = useState('');
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,48 +64,6 @@ const EnrollmentDialog = ({
     }
   };
   
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic payment validation
-    if (!cardNumber || !cardExpiry || !cardCVC) {
-      toast({
-        title: "Missing Payment Information",
-        description: "Please fill in all payment details",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Mock payment processing
-    try {
-      setLoading(true);
-      
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate a mock payment ID
-      const mockPaymentId = `pay_${Date.now()}`;
-      
-      // Complete the registration with the payment ID
-      await completeRegistration(mockPaymentId);
-      
-      // Reset payment form
-      setPaymentStep(false);
-      setCardNumber('');
-      setCardExpiry('');
-      setCardCVC('');
-      
-    } catch (error: any) {
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to process payment",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
-  
   const completeRegistration = async (paymentId?: string) => {
     try {
       setLoading(true);
@@ -121,7 +78,8 @@ const EnrollmentDialog = ({
         class_id: classId,
         amount_paid: classAmount,
         payment_status: paymentId ? 'completed' : 'waived',
-        payment_id: paymentId
+        payment_id: paymentId,
+        payment_method: paymentId ? 'GOOGLE_PAY' : 'FREE'
       };
       
       // Record both in class_enrollments for enrolled students
@@ -172,6 +130,20 @@ const EnrollmentDialog = ({
   
   const handleBackToInfo = () => {
     setPaymentStep(false);
+  };
+
+  const handlePaymentSuccess = () => {
+    // Complete the registration with a payment ID
+    completeRegistration(`google-pay-${Date.now()}`);
+  };
+
+  const handlePaymentCancel = () => {
+    setPaymentStep(false);
+    toast({
+      title: "Payment Cancelled",
+      description: "You cancelled the payment process.",
+      variant: "default",
+    });
   };
 
   return (
@@ -249,8 +221,8 @@ const EnrollmentDialog = ({
             </div>
           </form>
         ) : (
-          // Step 2: Payment form
-          <form onSubmit={handlePaymentSubmit} className="space-y-4 mt-4">
+          // Step 2: Payment form with Google Pay
+          <div className="space-y-4 mt-4">
             <Card className="mb-4">
               <CardHeader>
                 <CardTitle>Payment Details</CardTitle>
@@ -258,39 +230,17 @@ const EnrollmentDialog = ({
                   Amount: ₹{classAmount.toFixed(2)}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input
-                    id="cardNumber"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiry">Expiry Date</Label>
-                    <Input
-                      id="expiry" 
-                      placeholder="MM/YY"
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cvc">CVC</Label>
-                    <Input
-                      id="cvc"
-                      placeholder="123"
-                      value={cardCVC}
-                      onChange={(e) => setCardCVC(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
+              <CardContent>
+                <p className="text-sm text-gray-500 mb-4">
+                  Please complete your payment using Google Pay to enroll in this class.
+                </p>
+                <GooglePayButton
+                  productId={classId}
+                  productName={classTitle}
+                  price={classAmount}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handlePaymentCancel}
+                />
               </CardContent>
             </Card>
             
@@ -298,11 +248,8 @@ const EnrollmentDialog = ({
               <Button type="button" variant="outline" onClick={handleBackToInfo}>
                 Back
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Processing Payment...' : `Pay ₹${classAmount.toFixed(2)}`}
-              </Button>
             </div>
-          </form>
+          </div>
         )}
       </DialogContent>
     </Dialog>
