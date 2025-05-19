@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, Target, Bookmark } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import EnrollmentDialog from '@/components/classes/EnrollmentDialog';
 
 interface ClassType {
   id: string;
@@ -25,6 +25,8 @@ interface ClassType {
 const OnlineClasses = () => {
   const [classes, setClasses] = useState<ClassType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedClass, setSelectedClass] = useState<ClassType | null>(null);
+  const [enrollDialogOpen, setEnrollDialogOpen] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -70,6 +72,11 @@ const OnlineClasses = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEnrollClick = (classItem: ClassType) => {
+    setSelectedClass(classItem);
+    setEnrollDialogOpen(true);
   };
 
   const renderClassCard = (classItem: ClassType) => {
@@ -127,7 +134,7 @@ const OnlineClasses = () => {
               className="whitespace-nowrap"
               variant="default"
               size="sm"
-              onClick={() => console.log(`Enroll in class: ${classItem.id}`)}
+              onClick={() => handleEnrollClick(classItem)}
             >
               <Bookmark className="h-4 w-4 mr-2" />
               Enroll Now
@@ -144,87 +151,44 @@ const OnlineClasses = () => {
         Online Classes & Training Programs
       </h1>
       
-      <Tabs defaultValue="all" className="w-full">
-        <div className="overflow-x-auto pb-2">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">All Classes</TabsTrigger>
-            <TabsTrigger value="mathematics" className="flex-1">Mathematics</TabsTrigger>
-            <TabsTrigger value="science" className="flex-1">Science</TabsTrigger>
-          </TabsList>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="border rounded-lg p-4">
+              <div className="flex justify-between">
+                <Skeleton className="h-6 w-1/2 mb-4" />
+                <Skeleton className="h-6 w-1/4 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-2/3 mb-4" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-10 w-full mt-4" />
+            </div>
+          ))}
         </div>
-        
-        <TabsContent value="all" className="mt-6">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex justify-between">
-                    <Skeleton className="h-6 w-1/2 mb-4" />
-                    <Skeleton className="h-6 w-1/4 rounded-full" />
-                  </div>
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-2/3 mb-4" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-10 w-full mt-4" />
-                </div>
-              ))}
-            </div>
-          ) : classes.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No online classes currently available.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classes.map(classItem => renderClassCard(classItem))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="mathematics" className="mt-6">
-          {loading ? (
-            <div className="flex justify-center">
-              <Skeleton className="h-12 w-12 rounded-full" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classes
-                .filter(c => c.category.toLowerCase() === 'mathematics')
-                .map(classItem => renderClassCard(classItem))
-              }
-              
-              {classes.filter(c => c.category.toLowerCase() === 'mathematics').length === 0 && (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No mathematics classes available.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="science" className="mt-6">
-          {loading ? (
-            <div className="flex justify-center">
-              <Skeleton className="h-12 w-12 rounded-full" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classes
-                .filter(c => c.category.toLowerCase() === 'science')
-                .map(classItem => renderClassCard(classItem))
-              }
-              
-              {classes.filter(c => c.category.toLowerCase() === 'science').length === 0 && (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-gray-500">No science classes available.</p>
-                </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      ) : classes.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No online classes currently available.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {classes.map(classItem => renderClassCard(classItem))}
+        </div>
+      )}
+      
+      {selectedClass && (
+        <EnrollmentDialog
+          open={enrollDialogOpen}
+          onClose={() => setEnrollDialogOpen(false)}
+          classTitle={selectedClass.title}
+          classDate={selectedClass.date}
+          classId={selectedClass.id}
+          classAmount={selectedClass.price}
+        />
+      )}
     </div>
   );
 };

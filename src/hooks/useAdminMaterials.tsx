@@ -181,13 +181,14 @@ export const useAdminMaterials = () => {
         return;
       }
 
+      // Fix: Prepare the material data with proper field names matching the database
       const materialData = {
         title: editingMaterial.title,
         name: editingMaterial.title, // Use title as name if not provided
         description: editingMaterial.description,
-        downloadurl: editingMaterial.downloadUrl,
-        thumbnailurl: editingMaterial.thumbnailUrl || null,
-        ispremium: editingMaterial.isPremium,
+        downloadurl: editingMaterial.downloadUrl, // Note: lowercase 'url' to match DB column
+        thumbnailurl: editingMaterial.thumbnailUrl || null, // Note: lowercase 'url' to match DB column
+        ispremium: editingMaterial.isPremium, // Note: lowercase 'is' to match DB column
         price: editingMaterial.isPremium ? editingMaterial.price : 0 // Always set a price value
       };
 
@@ -217,6 +218,13 @@ export const useAdminMaterials = () => {
           
           setMaterials([newItem, ...materials]);
           console.log("New material saved:", newItem);
+          
+          // Show success message
+          toast({
+            title: "Material added",
+            description: "The new study material has been created successfully.",
+            duration: 3000,
+          });
         }
       } else {
         console.log("Updating existing material with data:", materialData);
@@ -230,6 +238,7 @@ export const useAdminMaterials = () => {
           throw error;
         }
 
+        // Update the materials list with the updated item
         setMaterials(materials.map(m => m.id === editingMaterial.id ? {
           ...m,
           title: editingMaterial.title,
@@ -240,17 +249,21 @@ export const useAdminMaterials = () => {
           isPremium: editingMaterial.isPremium,
           price: editingMaterial.price || 0
         } : m));
+        
         console.log("Material updated:", editingMaterial);
+        
+        // Show success message
+        toast({
+          title: "Material updated",
+          description: "The study material has been updated successfully.",
+          duration: 3000,
+        });
       }
       
+      // Reset the editing state
       setEditingMaterial(null);
       setNewMaterial(false);
       
-      toast({
-        title: "Changes saved",
-        description: "The study material has been updated successfully.",
-        duration: 3000,
-      });
     } catch (error: any) {
       console.error("Error in handleSave:", error);
       toast({
