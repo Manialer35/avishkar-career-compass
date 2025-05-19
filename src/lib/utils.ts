@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -13,6 +14,7 @@ export const loadRazorpay = (): Promise<any> => {
   return new Promise((resolve) => {
     if ((window as any).Razorpay) {
       // Razorpay is already loaded
+      console.log('Razorpay already loaded');
       resolve((window as any).Razorpay);
       return;
     }
@@ -21,6 +23,7 @@ export const loadRazorpay = (): Promise<any> => {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     script.onload = () => {
+      console.log('Razorpay loaded successfully');
       if ((window as any).Razorpay) {
         resolve((window as any).Razorpay);
       } else {

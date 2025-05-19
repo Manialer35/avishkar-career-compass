@@ -68,10 +68,10 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
 
       // 2. Configure Razorpay options
       const options = {
-        key: "rzp_test_YOUR_TEST_KEY", // Replace with your Razorpay test key ID
+        key: "rzp_test_7HEANb7LBNz7UT", // Test key - replace with your key in production
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'Academind Premium',
+        name: 'Study Academy Premium',
         description: productName,
         order_id: orderData.id,
         handler: async function (response: any) {
@@ -237,15 +237,26 @@ export const GooglePayButton: React.FC<{
   onSuccess: () => void;
   onCancel: () => void;
 }> = ({ productId, productName, price, onSuccess, onCancel }) => {
-  // This is a placeholder component for Google Pay integration
+  // Import the real GooglePayButton component
+  const RealGooglePayButton = React.lazy(() => import('./GooglePayButton'));
+  
   return (
-    <Button 
-      onClick={onSuccess}
-      className="w-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center gap-2 py-3"
-    >
-      <img src="/google-pay-logo.svg" alt="Google Pay" className="h-5 w-auto" />
-      <span>Pay with Google Pay</span>
-    </Button>
+    <React.Suspense fallback={
+      <Button 
+        disabled
+        className="w-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center gap-2 py-3"
+      >
+        <span>Loading Google Pay...</span>
+      </Button>
+    }>
+      <RealGooglePayButton 
+        productId={productId}
+        productName={productName}
+        price={price}
+        onSuccess={onSuccess}
+        onCancel={onCancel}
+      />
+    </React.Suspense>
   );
 };
 

@@ -1,3 +1,4 @@
+
 // src/components/payment/PurchaseProduct.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -6,7 +7,8 @@ import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { paymentService } from '@/services/PaymentService';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { loadRazorpay } from '@/lib/utils';
 
 const PurchaseProduct = () => {
   const { productId } = useParams();
@@ -103,79 +105,105 @@ const PurchaseProduct = () => {
     try {
       setProcessingPayment(true);
       
-      // Load Razorpay script
-      const scriptLoaded = await paymentService.loadRazorpayScript();
-      if (!scriptLoaded) {
+      console.log("Loading Razorpay script...");
+      // Load Razorpay directly
+      const Razorpay = await loadRazorpay();
+      
+      if (!Razorpay) {
         throw new Error("Failed to load Razorpay checkout script");
       }
+      
+      console.log("Razorpay loaded, creating order...");
 
-      // Create order
-      const orderData = await paymentService.createOrder({
+      // Create a mock order for this demo
+      const orderId = `order_${Date.now()}`;
+      
+      // Configure Razorpay
+      const options = {
+        key: "rzp_test_7HEANb7LBNz7UT", // Test key - replace with your key in production
         amount: product.price * 100, // Convert to paise
         currency: "INR",
-        productId: product.id,
-        productName: product.title,
-        customerId: user.id,
-        customerEmail: user.email,
-      });
-
-      // Open Razorpay checkout
-      paymentService.openRazorpayCheckout(
-        orderData,
-        product.title,
-        {
-          name: user.user_metadata?.full_name || user.email,
-          email: user.email,
-          phone: user.user_metadata?.phone || ""
-        },
-        // On payment success
-        async (paymentData) => {
+        name: "Study Academy",
+        description: `Payment for ${product.title}`,
+        order_id: orderId,
+        handler: async function(response: any) {
+          console.log("Payment successful:", response);
+          
           try {
-            await paymentService.verifyPayment(paymentData);
-            
             // Record purchase in database
-            await paymentService.recordPurchase(
-              user.id, 
-              product.id, 
-              paymentData.razorpay_payment_id,
-              product.price
-            );
+            const { error } = await supabase.from('user_purchases').insert({
+              user_id: user.id,
+              material_id: product.id,
+              payment_id: response.razorpay_payment_id,
+              amount: product.price,
+              purchased_at: new Date().toISOString()
+            });
+            
+            if (error) throw error;
             
             toast({
               title: "Purchase Successful",
               description: "You can now access this material",
-              variant: "default",
             });
             
             // Redirect to material page or download
             navigate(`/study-materials/${product.id}`);
           } catch (error) {
-            console.error('Payment verification failed:', error);
+            console.error('Error recording purchase:', error);
             toast({
-              title: "Payment Failed",
-              description: "Your payment could not be verified. Please try again.",
+              title: "Error",
+              description: "Payment was successful but we couldn't record your purchase. Please contact support.",
               variant: "destructive",
             });
           } finally {
             setProcessingPayment(false);
           }
         },
-        // On payment failure
-        (error) => {
-          console.error('Payment failed:', error);
-          toast({
-            title: "Payment Failed",
-            description: typeof error === 'string' ? error : "Your payment failed. Please try again.",
-            variant: "destructive",
-          });
-          setProcessingPayment(false);
+        prefill: {
+          name: user.user_metadata?.full_name || "",
+          email: user.email || "",
+          contact: user.user_metadata?.phone || "",
+        },
+        notes: {
+          productId: product.id,
+          userId: user.id,
+        },
+        theme: {
+          color: "#1e3a8a",
+        },
+        modal: {
+          ondismiss: function() {
+            console.log("Payment modal dismissed");
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment process.",
+              variant: "default",
+            });
+            setProcessingPayment(false);
+          }
         }
-      );
-    } catch (error) {
+      };
+
+      console.log("Opening Razorpay modal with options:", options);
+      // Open Razorpay checkout
+      const paymentObject = new Razorpay(options);
+      paymentObject.on('payment.failed', function(response: any) {
+        console.error('Payment failed:', response.error);
+        toast({
+          title: "Payment Failed",
+          description: response.error.description || "Your payment failed. Please try again.",
+          variant: "destructive",
+        });
+        setProcessingPayment(false);
+      });
+      
+      paymentObject.open();
+      
+    } catch (error: any) {
       console.error('Error processing payment:', error);
       toast({
         title: "Payment Error",
-        description: "There was an error processing your payment. Please try again later.",
+        description: error.message || "There was an error processing your payment. Please try again later.",
         variant: "destructive",
       });
       setProcessingPayment(false);
