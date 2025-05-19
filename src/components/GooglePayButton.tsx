@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -71,7 +70,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     try {
       console.log("Checking Google Pay availability...");
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION' // Changed from 'TEST' to 'PRODUCTION'
+        environment: 'TEST' // Changed back to 'TEST' for development
       });
 
       const isReadyToPayRequest = {
@@ -119,7 +118,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       console.log("Starting Google Pay payment process...");
       
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'PRODUCTION' // Changed from 'TEST' to 'PRODUCTION'
+        environment: 'TEST' // Changed back to 'TEST' for development
       });
 
       const paymentDataRequest = {
