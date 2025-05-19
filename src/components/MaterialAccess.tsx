@@ -1,8 +1,10 @@
+
+import React, { useEffect, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Download, CheckCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface MaterialDetail {
   id: string;
@@ -12,149 +14,149 @@ interface MaterialDetail {
   thumbnailUrl?: string;
 }
 
-const MaterialAccess = () => {
-  const { productId } = useParams();
+interface MaterialAccessProps {
+  productId?: string;
+  purchaseSuccess?: boolean;
+  productName?: string;
+}
+
+const MaterialAccess: React.FC<MaterialAccessProps> = ({ 
+  productId: propProductId,
+  purchaseSuccess: propPurchaseSuccess,
+  productName: propProductName
+}) => {
+  const { productId: paramProductId } = useParams();
   const location = useLocation();
+  const { toast } = useToast();
   const [material, setMaterial] = useState<MaterialDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessUrl, setAccessUrl] = useState<string | null>(null);
   
-  // Extract purchase success information from navigation state
-  const purchaseSuccess = location.state?.purchaseSuccess || false;
-  const productName = location.state?.productName || '';
-  
+  // Use props or URL params/state
+  const productId = propProductId || paramProductId;
+  const purchaseSuccess = propPurchaseSuccess || location.state?.purchaseSuccess || false;
+  const productName = propProductName || location.state?.productName || 'study material';
+
   useEffect(() => {
-    const fetchMaterialDetails = async () => {
-      if (!productId) {
-        setError('Material ID is missing');
+    if (purchaseSuccess) {
+      toast({
+        title: "Purchase Successful!",
+        description: `You have successfully purchased ${productName}`,
+      });
+    }
+
+    if (productId) {
+      fetchMaterialDetails(productId);
+    } else {
+      setLoading(false);
+    }
+  }, [productId, purchaseSuccess, productName]);
+
+  const fetchMaterialDetails = async (id: string) => {
+    try {
+      setLoading(true);
+      
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please login to access this content",
+          variant: "destructive",
+        });
+        setError("Authentication required");
         setLoading(false);
         return;
       }
 
-      try {
-        // First check if the user has purchased this material
-        const user = (await supabase.auth.getUser()).data.user;
-        
-        if (!user) {
-          setError('You must be signed in to access this content');
-          setLoading(false);
-          return;
-        }
-        
-        const { data: purchaseData, error: purchaseError } = await supabase
-          .from('purchases')
-          .select('*')
-          .eq('product_id', productId)
-          .eq('user_id', user.id)
-          .eq('status', 'completed')
-          .limit(1);
-          
-        if (purchaseError) {
-          throw purchaseError;
-        }
-        
-        // If no purchase record exists and we didn't just complete a purchase
-        if ((!purchaseData || purchaseData.length === 0) && !purchaseSuccess) {
-          setError('You have not purchased this material');
-          setLoading(false);
-          return;
-        }
-        
-        // Fetch the material details
-        const { data, error } = await supabase
-          .from('study_materials')
-          .select('id, title, description, downloadurl, thumbnailurl')
-          .eq('id', productId)
-          .single();
+      // Check if the user has purchased this material
+      const { data: purchase, error: purchaseError } = await supabase
+        .from('user_purchases')
+        .select('*')
+        .eq('material_id', id)
+        .eq('user_id', user.id)
+        .gte('expires_at', new Date().toISOString())
+        .single();
 
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          setMaterial({
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            downloadUrl: data.downloadurl,
-            thumbnailUrl: data.thumbnailurl
-          });
-        } else {
-          setError('Material not found');
-        }
-      } catch (err) {
-        console.error('Error fetching material details:', err);
-        setError('Error loading material details');
-      } finally {
+      if (purchaseError || !purchase) {
+        toast({
+          title: "Access Denied",
+          description: "You don't have access to this material or your access has expired",
+          variant: "destructive",
+        });
+        setError("Access denied");
         setLoading(false);
+        return;
       }
-    };
 
-    fetchMaterialDetails();
-  }, [productId, purchaseSuccess]);
+      // Fetch material details
+      const { data: materialData, error: materialError } = await supabase
+        .from('study_materials')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (materialError || !materialData) {
+        toast({
+          title: "Error",
+          description: "Failed to load material details",
+          variant: "destructive",
+        });
+        setError("Failed to load material details");
+        setLoading(false);
+        return;
+      }
+
+      setMaterial({
+        id: materialData.id,
+        title: materialData.title || materialData.name,
+        description: materialData.description || '',
+        downloadUrl: materialData.downloadurl || '',
+        thumbnailUrl: materialData.thumbnailurl
+      });
+      setAccessUrl(materialData.downloadurl);
+      setLoading(false);
+    } catch (error: any) {
+      console.error("Error fetching material access:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+      setError("An unexpected error occurred");
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" className="mr-4" asChild>
-            <Link to="/premium-materials">
-              <ArrowLeft className="h-6 w-6" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold text-academy-primary">Material Access</h1>
-        </div>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-pulse text-gray-500">Loading material details...</div>
-        </div>
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p>Loading material access...</p>
       </div>
     );
   }
 
-  if (error) {
+  if (!material || !accessUrl) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
           <Button variant="ghost" size="icon" className="mr-4" asChild>
-            <Link to="/premium-materials">
+            <Link to="/materials/premium">
               <ArrowLeft className="h-6 w-6" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-academy-primary">Access Error</h1>
+          <h1 className="text-2xl font-bold">Access Denied</h1>
         </div>
+        
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-red-600 text-lg font-medium mb-2">{error}</h2>
+          <h2 className="text-red-600 text-lg font-medium mb-2">{error || "Access Denied"}</h2>
           <p className="text-gray-600 mb-4">
-            {error === 'You have not purchased this material' 
-              ? 'You need to purchase this material before accessing it.'
-              : 'We encountered an issue while trying to load this material.'}
+            You don't have access to this content or your access has expired.
           </p>
           <Button asChild>
-            <Link to="/premium-materials">Return to Premium Materials</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!material) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" className="mr-4" asChild>
-            <Link to="/premium-materials">
-              <ArrowLeft className="h-6 w-6" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold text-academy-primary">Material Not Found</h1>
-        </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <h2 className="text-yellow-600 text-lg font-medium mb-2">Material Not Found</h2>
-          <p className="text-gray-600 mb-4">
-            We couldn't find the material you're looking for.
-          </p>
-          <Button asChild>
-            <Link to="/premium-materials">Return to Premium Materials</Link>
+            <Link to="/materials/premium">Browse Premium Materials</Link>
           </Button>
         </div>
       </div>
@@ -165,25 +167,25 @@ const MaterialAccess = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-6">
         <Button variant="ghost" size="icon" className="mr-4" asChild>
-          <Link to="/premium-materials">
+          <Link to="/materials/premium">
             <ArrowLeft className="h-6 w-6" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold text-academy-primary">Material Access</h1>
+        <h1 className="text-2xl font-bold">Material Access</h1>
       </div>
       
       {purchaseSuccess && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 flex items-center">
           <CheckCircle className="h-5 w-5 text-green-600 mr-2 flex-shrink-0" />
           <p className="text-green-800">
-            Thank you for your purchase of <strong>{productName || material.title}</strong>! You now have access to this premium material.
+            Thank you for your purchase of <strong>{productName}</strong>! You now have access to this premium material.
           </p>
         </div>
       )}
       
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2 text-academy-primary">{material.title}</h2>
+          <h2 className="text-xl font-semibold mb-2">{material.title}</h2>
           <p className="text-gray-600 mb-6">{material.description}</p>
           
           <div className="border-t border-gray-200 pt-6">

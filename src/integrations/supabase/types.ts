@@ -144,6 +144,66 @@ export type Database = {
         }
         Relationships: []
       }
+      classes: {
+        Row: {
+          class_capacity: number
+          class_category: string
+          class_date: string
+          class_description: string | null
+          class_duration: string
+          class_instructor: string
+          class_language: string
+          class_level: string
+          class_location: string
+          class_materials: string | null
+          class_price: number
+          class_time: string
+          class_title: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          class_capacity?: number
+          class_category: string
+          class_date: string
+          class_description?: string | null
+          class_duration: string
+          class_instructor: string
+          class_language: string
+          class_level: string
+          class_location: string
+          class_materials?: string | null
+          class_price?: number
+          class_time: string
+          class_title: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          class_capacity?: number
+          class_category?: string
+          class_date?: string
+          class_description?: string | null
+          class_duration?: string
+          class_instructor?: string
+          class_language?: string
+          class_level?: string
+          class_location?: string
+          class_materials?: string | null
+          class_price?: number
+          class_time?: string
+          class_title?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       image_metadata: {
         Row: {
           alt_text: string | null
@@ -485,6 +545,10 @@ export type Database = {
       has_active_access: {
         Args: { material_id: string; user_id: string }
         Returns: boolean
+      }
+      increment_material_downloads: {
+        Args: { material_id: string }
+        Returns: number
       }
       is_admin: {
         Args: { user_uuid: string }

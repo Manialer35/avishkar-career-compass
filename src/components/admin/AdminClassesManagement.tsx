@@ -188,9 +188,24 @@ const classSchema = z.object({
 type ClassFormValues = z.infer<typeof classSchema>;
 
 // Define a type for the class data
-interface ClassData extends ClassFormValues {
+interface ClassData {
   id: string;
+  class_title: string;
+  class_description: string | null;
+  class_date: string;
+  class_time: string;
+  class_duration: string;
+  class_price: number;
+  class_capacity: number;
+  class_category: string;
+  class_level: string;
+  class_language: string;
+  class_instructor: string;
+  class_location: string;
+  class_materials: string | null;
+  is_active: boolean;
   created_at: string;
+  created_by: string | null;
 }
 
 // Define a type for the props of the component
@@ -234,27 +249,32 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
     },
   });
 
-  // Function to handle form submission
+  // Function to handle form submission - updated for the new classes table
   const onSubmit = async (values: ClassFormValues) => {
     setLoading(true);
     setError(null);
 
     try {
+      const classData = {
+        ...values,
+        class_date: values.class_date.toISOString(),
+        created_by: user?.id
+      };
+
       if (isEditMode && selectedClass) {
         // Update existing class
         const { data, error } = await supabase
           .from('classes')
-          .update({ ...values })
+          .update(classData)
           .eq('id', selectedClass.id)
-          .select()
-          .single();
+          .select();
 
         if (error) {
           throw new Error(error.message);
         }
 
         // Update the classes state with the updated class
-        setClasses(classes.map(cls => cls.id === selectedClass.id ? { ...cls, ...values } : cls));
+        setClasses(classes.map(cls => cls.id === selectedClass.id ? { ...cls, ...classData } as ClassData : cls));
         toast({
           title: "Class updated successfully!",
         });
@@ -262,16 +282,18 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
         // Create new class
         const { data, error } = await supabase
           .from('classes')
-          .insert([{ ...values, created_by: user?.id }])
-          .select()
-          .single();
+          .insert([classData])
+          .select();
 
         if (error) {
           throw new Error(error.message);
         }
 
-        // Add the new class to the classes state
-        setClasses([...classes, data]);
+        if (data) {
+          // Add the new class to the classes state
+          setClasses([...classes, data[0] as ClassData]);
+        }
+        
         toast({
           title: "Class created successfully!",
         });
@@ -307,7 +329,7 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
         throw new Error(error.message);
       }
 
-      setClasses(data || []);
+      setClasses(data as ClassData[] || []);
     } catch (error: any) {
       setError(error.message);
       toast({
@@ -584,9 +606,6 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
 
       {/* Drawer to Create or Edit Class */}
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerTrigger asChild>
-          <Button variant="outline">Open</Button>
-        </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>{isEditMode ? "Edit Class" : "Create New Class"}</DrawerTitle>
@@ -663,9 +682,6 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
                             mode="single"
                             selected={field.value}
                             onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date()
-                            }
                             initialFocus
                           />
                         </PopoverContent>
