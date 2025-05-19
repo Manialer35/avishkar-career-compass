@@ -255,7 +255,7 @@ const EnrollmentDialog = ({
               <CardHeader>
                 <CardTitle>Payment Details</CardTitle>
                 <CardDescription>
-                  Amount: ${classAmount.toFixed(2)}
+                  Amount: ₹{classAmount.toFixed(2)}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -299,7 +299,7 @@ const EnrollmentDialog = ({
                 Back
               </Button>
               <Button type="submit" disabled={loading}>
-                {loading ? 'Processing Payment...' : `Pay $${classAmount.toFixed(2)}`}
+                {loading ? 'Processing Payment...' : `Pay ₹${classAmount.toFixed(2)}`}
               </Button>
             </div>
           </form>

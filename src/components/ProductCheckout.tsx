@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -148,7 +149,7 @@ const ProductCheckout = () => {
                 <h3 className="font-medium text-lg text-academy-primary">{product.name}</h3>
                 <p className="text-gray-600 mt-2">{product.description}</p>
                 <div className="mt-4">
-                  <span className="text-xl font-semibold">${product.price.toFixed(2)}</span>
+                  <span className="text-xl font-semibold">₹{product.price.toFixed(2)}</span>
                 </div>
               </div>
             </div>

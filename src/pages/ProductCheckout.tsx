@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -204,7 +203,7 @@ const ProductCheckout = () => {
                 <h3 className="font-medium text-lg text-academy-primary">{product?.name}</h3>
                 <p className="text-gray-600 mt-2">{product?.description}</p>
                 <div className="mt-4 flex justify-between items-center">
-                  <span className="text-xl font-semibold">${product?.price?.toFixed(2)}</span>
+                  <span className="text-xl font-semibold">₹{product?.price?.toFixed(2)}</span>
                   <span className="text-sm text-academy-secondary font-medium">
                     {formatDuration(product?.duration_months, product?.duration_type)}
                   </span>
@@ -225,11 +224,11 @@ const ProductCheckout = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Price</span>
-                <span>${product?.price?.toFixed(2)}</span>
+                <span>₹{product?.price?.toFixed(2)}</span>
               </div>
               <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between">
                 <span className="font-medium">Total</span>
-                <span className="font-semibold">${product?.price?.toFixed(2)}</span>
+                <span className="font-semibold">₹{product?.price?.toFixed(2)}</span>
               </div>
             </div>
             

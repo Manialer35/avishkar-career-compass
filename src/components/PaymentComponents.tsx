@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { loadRazorpay } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -146,7 +145,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({ amount, currency = 'INR',
 
   return (
     <Button onClick={handlePayment}>
-      Pay {amount} {currency}
+      Pay ₹{amount} {currency}
     </Button>
   );
 };
@@ -242,11 +241,11 @@ export const PaymentSummary: React.FC<{
       </div>
       <div className="flex justify-between text-sm">
         <span className="text-gray-500">Price</span>
-        <span>${price.toFixed(2)}</span>
+        <span>₹{price.toFixed(2)}</span>
       </div>
       <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between">
         <span className="font-medium">Total</span>
-        <span className="font-semibold">${price.toFixed(2)}</span>
+        <span className="font-semibold">₹{price.toFixed(2)}</span>
       </div>
     </div>
   );
