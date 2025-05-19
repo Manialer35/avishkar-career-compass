@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { loadRazorpay } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -159,7 +160,7 @@ interface DownloadButtonProps {
 export const DownloadButton: React.FC<DownloadButtonProps> = ({ materialId, downloadUrl, onDownloadComplete }) => {
   const { toast } = useToast();
 
-  const downloadMaterial = async (materialId) => {
+  const downloadMaterial = async (materialId: string) => {
     try {
       // Call the RPC function to increment the download count
       const { data, error } = await supabase.rpc('increment_material_downloads', { 
@@ -206,6 +207,48 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ materialId, down
     <Button onClick={() => downloadMaterial(materialId)}>
       Download Now
     </Button>
+  );
+};
+
+// Add these components for ProductCheckout.tsx
+export const GooglePayButton: React.FC<{
+  productId: string;
+  productName: string;
+  price: number;
+  onSuccess: () => void;
+  onCancel: () => void;
+}> = ({ productId, productName, price, onSuccess, onCancel }) => {
+  // This is a placeholder component for Google Pay integration
+  return (
+    <Button 
+      onClick={onSuccess}
+      className="w-full bg-gray-800 hover:bg-gray-700 flex items-center justify-center gap-2 py-3"
+    >
+      <img src="/google-pay-logo.svg" alt="Google Pay" className="h-5 w-auto" />
+      <span>Pay with Google Pay</span>
+    </Button>
+  );
+};
+
+export const PaymentSummary: React.FC<{
+  productName: string;
+  price: number;
+}> = ({ productName, price }) => {
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-500">Product</span>
+        <span>{productName}</span>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-500">Price</span>
+        <span>${price.toFixed(2)}</span>
+      </div>
+      <div className="border-t border-gray-200 pt-3 mt-3 flex justify-between">
+        <span className="font-medium">Total</span>
+        <span className="font-semibold">${price.toFixed(2)}</span>
+      </div>
+    </div>
   );
 };
 

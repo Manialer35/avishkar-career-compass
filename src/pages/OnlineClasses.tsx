@@ -1,274 +1,239 @@
-import { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Clock, Tag } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ClassRegistrationDialog from '@/components/classes/ClassRegistrationDialog';
-import EnrollmentDialog from '@/components/classes/EnrollmentDialog';
+import { useToast } from '@/hooks/use-toast';
+import { Calendar, Clock, Users } from 'lucide-react';
+import EnrollmentDialog from './EnrollmentDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { formatDistanceToNow } from 'date-fns';
 
-const OnlineClasses = () => {
-  const [activeTab, setActiveTab] = useState("upcoming");
-  const [selectedClass, setSelectedClass] = useState<any>(null);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isEnrollmentOpen, setIsEnrollmentOpen] = useState(false);
-  
-  // Sample class/event data - replace with actual data from backend
-  const upcomingClasses = [
-    {
-      id: "class1",
-      title: "Police Bharti Preparation Masterclass",
-      description: "Comprehensive overview of the Police Bharti exam pattern and preparation strategy.",
-      instructor: "Mahesh Khot",
-      date: "2025-05-15T18:30:00",
-      duration: "90",
-      price: 0,
-      tags: ["Free", "Beginner"]
-    },
-    {
-      id: "class2",
-      title: "Advanced Reasoning & Aptitude Workshop",
-      description: "In-depth practice session for reasoning puzzles and mathematical aptitude problems.",
-      instructor: "Atul Madkar",
-      date: "2025-05-20T17:00:00",
-      duration: "120",
-      price: 299,
-      tags: ["Premium", "Advanced"]
-    },
-    {
-      id: "class3",
-      title: "Current Affairs Discussion (Apr-May 2025)",
-      description: "Analysis of recent events and their importance for competitive exams.",
-      instructor: "Dr. Rajesh Sharma",
-      date: "2025-05-25T19:00:00",
-      duration: "60",
-      price: 199,
-      tags: ["Premium", "All Levels"]
-    }
-  ];
-  
-  const pastClasses = [
-    {
-      id: "past1",
-      title: "Mock Test Analysis Session",
-      description: "Detailed solution discussion for the recent mock test series.",
-      instructor: "Atul Madkar",
-      date: "2025-04-20T17:00:00",
-      duration: "120",
-      price: 0,
-      tags: ["Free", "All Levels"]
-    },
-    {
-      id: "past2",
-      title: "Interview Preparation Workshop",
-      description: "Tips and techniques for cracking the interview round of police recruitment.",
-      instructor: "Mahesh Khot",
-      date: "2025-04-15T18:30:00",
-      duration: "90",
-      price: 299,
-      tags: ["Premium", "Advanced"]
-    }
-  ];
-  
-  const handleRegister = (classItem: any) => {
-    setSelectedClass(classItem);
-    setIsRegistering(true);
-  };
-  
-  const handleEnroll = (classItem: any) => {
-    setSelectedClass(classItem);
-    setIsEnrollmentOpen(true);
-  };
-  
-  // Helper function to format date
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-IN', { 
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+interface ClassItem {
+  id: string;
+  class_title: string;
+  class_description: string;
+  class_date: string;
+  class_time: string;
+  class_duration: string;
+  class_price: number;
+  class_capacity: number;
+  class_category: string;
+  class_level: string;
+  class_language: string;
+}
+
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric'
     });
-  };
-  
-  // Helper function to format time
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-  
-  const renderUpcomingClassCard = (classItem: any) => (
-    <div key={classItem.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-semibold text-academy-primary">{classItem.title}</h3>
-          {classItem.price === 0 ? (
-            <Badge className="bg-green-500">Free</Badge>
-          ) : (
-            <Badge className="bg-academy-red">₹{classItem.price}</Badge>
-          )}
-        </div>
-        
-        <p className="text-gray-600 mb-4">{classItem.description}</p>
-        
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{formatDate(classItem.date)}</span>
-          </div>
-          <div className="flex items-center">
-            <Clock className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{formatTime(classItem.date)} ({classItem.duration} mins)</span>
-          </div>
-          <div className="flex items-center">
-            <Users className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{classItem.instructor}</span>
-          </div>
-          <div className="flex items-center">
-            <Tag className="h-4 w-4 text-academy-primary mr-2" />
-            <div className="flex gap-1">
-              {classItem.tags.map((tag: string, i: number) => (
-                <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <Button 
-          className={classItem.price === 0 
-            ? "w-full bg-academy-primary hover:bg-academy-primary/90" 
-            : "w-full bg-academy-red hover:bg-academy-red/90"
-          }
-          onClick={() => classItem.price === 0 ? handleRegister(classItem) : handleEnroll(classItem)}
-        >
-          {classItem.price === 0 ? "Register Now" : "Enroll Now"}
-        </Button>
-      </div>
-    </div>
-  );
-  
-  const renderPastClassCard = (classItem: any) => (
-    <div key={classItem.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h3 className="text-xl font-semibold text-academy-primary">{classItem.title}</h3>
-          {classItem.price === 0 ? (
-            <Badge className="bg-green-500">Free</Badge>
-          ) : (
-            <Badge className="bg-academy-red">₹{classItem.price}</Badge>
-          )}
-        </div>
-        
-        <p className="text-gray-600 mb-4">{classItem.description}</p>
-        
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-center">
-            <Calendar className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{formatDate(classItem.date)}</span>
-          </div>
-          <div className="flex items-center">
-            <Clock className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{formatTime(classItem.date)} ({classItem.duration} mins)</span>
-          </div>
-          <div className="flex items-center">
-            <Users className="h-4 w-4 text-academy-primary mr-2" />
-            <span className="text-sm">{classItem.instructor}</span>
-          </div>
-          <div className="flex items-center">
-            <Tag className="h-4 w-4 text-academy-primary mr-2" />
-            <div className="flex gap-1">
-              {classItem.tags.map((tag: string, i: number) => (
-                <span key={i} className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* No register/enroll button for past classes */}
-        <p className="text-center text-sm text-gray-500 italic mt-2">
-          This class has already taken place
-        </p>
-      </div>
-    </div>
-  );
-  
+  } catch (e) {
+    console.error('Error formatting date:', e);
+    return dateString;
+  }
+}
+
+function getDateFromNow(dateString: string): string {
+  try {
+    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  } catch (e) {
+    console.error('Error calculating relative date:', e);
+    return '';
+  }
+}
+
+function ClassesSkeleton() {
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold text-academy-primary mb-6">Online Classes & Events</h2>
-      
-      <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <p className="mb-4">
-          Join our online classes and events to enhance your preparation with live instruction from 
-          experienced faculty. Whether you're looking for comprehensive subject coverage, targeted practice, 
-          or doubt-solving sessions, we've got you covered.
-        </p>
-        <p>
-          Free sessions are available to all registered users, while premium sessions offer in-depth 
-          content, personal attention, and specialized preparation techniques.
-        </p>
-      </div>
-      
-      <Tabs defaultValue="upcoming" value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="upcoming">Upcoming Classes</TabsTrigger>
-            <TabsTrigger value="past">Past Classes</TabsTrigger>
-          </TabsList>
-          
-          {activeTab === "past" && (
-            <Link to="/events/archive">
-              <Button variant="link" className="text-academy-primary p-0">
-                View Full Archive
-              </Button>
-            </Link>
-          )}
-        </div>
-        
-        <TabsContent value="upcoming" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingClasses.map(renderUpcomingClassCard)}
-          </div>
-          
-          {upcomingClasses.length === 0 && (
-            <div className="text-center py-10">
-              <p className="text-gray-500">No upcoming classes scheduled right now.</p>
-              <p className="text-gray-500">Check back soon for new classes.</p>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <Card key={i} className="animate-pulse">
+          <CardHeader>
+            <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-24 bg-gray-200 rounded mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
             </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="past" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pastClasses.map(renderPastClassCard)}
-          </div>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Registration dialog */}
-      <ClassRegistrationDialog
-        isOpen={isRegistering}
-        onClose={() => setIsRegistering(false)}
-        classItem={selectedClass}
-      />
-
-      {/* Enrollment dialog */}
-      <EnrollmentDialog
-        open={isEnrollmentOpen} 
-        onClose={() => setIsEnrollmentOpen(false)}
-        classTitle={selectedClass?.title || ''}
-        classDate={selectedClass?.date || new Date()}
-        classId={selectedClass?.id || ''}
-        price={selectedClass?.price || 0}
-      />
+          </CardContent>
+          <CardFooter>
+            <div className="h-10 bg-gray-200 rounded w-full"></div>
+          </CardFooter>
+        </Card>
+      ))}
     </div>
   );
-};
+}
 
-export default OnlineClasses;
+function EmptyClassesMessage() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <Calendar className="h-16 w-16 text-gray-400 mb-4" />
+      <h3 className="text-xl font-medium text-gray-900">No Classes Available</h3>
+      <p className="mt-2 text-gray-500 max-w-md">
+        There are currently no upcoming classes scheduled. Please check back later for new class offerings.
+      </p>
+    </div>
+  );
+}
+
+export default function OnlineClasses() {
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [enrollmentOpen, setEnrollmentOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchClasses() {
+      try {
+        setLoading(true);
+        
+        // Get current date in ISO format
+        const today = new Date().toISOString();
+        
+        const { data, error } = await supabase
+          .from('classes')
+          .select('*')
+          .gte('class_date', today)
+          .eq('is_active', true)
+          .order('class_date', { ascending: true });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setClasses(data || []);
+      } catch (err: any) {
+        console.error('Error fetching classes:', err);
+        setError(err.message || 'Failed to load classes');
+        toast({
+          title: "Error loading classes",
+          description: "There was a problem fetching the classes. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchClasses();
+  }, [toast]);
+
+  const handleEnrollClick = (classItem: ClassItem) => {
+    setSelectedClass(classItem);
+    setEnrollmentOpen(true);
+  };
+
+  const handleCloseEnrollment = () => {
+    setEnrollmentOpen(false);
+  };
+
+  const filterBadgeColor = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'maths':
+      case 'mathematics':
+        return 'bg-blue-100 text-blue-800';
+      case 'science':
+        return 'bg-green-100 text-green-800';
+      case 'english':
+        return 'bg-purple-100 text-purple-800';
+      case 'hindi':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="container mx-auto py-8 px-4">
+      <div className="space-y-2 mb-8">
+        <h1 className="text-3xl font-bold">Online Classes</h1>
+        <p className="text-gray-600">Join our live interactive classes with experienced instructors</p>
+      </div>
+      
+      {loading ? (
+        <ClassesSkeleton />
+      ) : error ? (
+        <div className="bg-red-50 p-4 rounded-md text-red-800 text-center">
+          <p>{error}</p>
+          <Button 
+            variant="outline" 
+            className="mt-4" 
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </Button>
+        </div>
+      ) : classes.length === 0 ? (
+        <EmptyClassesMessage />
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {classes.map((classItem) => (
+            <Card key={classItem.id} className="overflow-hidden border border-gray-200 hover:border-gray-300 transition-all duration-200">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-xl">{classItem.class_title}</CardTitle>
+                    <CardDescription className="mt-1">{getDateFromNow(classItem.class_date)}</CardDescription>
+                  </div>
+                  <Badge className={`${filterBadgeColor(classItem.class_category)}`}>
+                    {classItem.class_category}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600 mb-4 line-clamp-3">{classItem.class_description}</p>
+                <div className="space-y-2">
+                  <div className="flex items-center text-sm">
+                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{formatDate(classItem.class_date)}</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Clock className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{classItem.class_time} ({classItem.class_duration})</span>
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <Users className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>Capacity: {classItem.class_capacity} students</span>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between items-center border-t bg-gray-50 px-6 py-3">
+                <div className="font-medium">
+                  {classItem.class_price > 0 ? (
+                    <span>₹{classItem.class_price}</span>
+                  ) : (
+                    <span className="text-green-600">Free</span>
+                  )}
+                </div>
+                <Button onClick={() => handleEnrollClick(classItem)}>
+                  Enroll Now
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {selectedClass && enrollmentOpen && (
+        <EnrollmentDialog
+          open={enrollmentOpen}
+          onClose={handleCloseEnrollment}
+          classTitle={selectedClass.class_title}
+          classDate={formatDate(selectedClass.class_date)}
+          classId={selectedClass.id}
+          price={selectedClass.class_price}
+        />
+      )}
+    </div>
+  );
+}
