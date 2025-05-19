@@ -257,9 +257,22 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
     setError(null);
 
     try {
+      // Ensure all required fields are present and properly typed
       const classData = {
-        ...values,
+        class_title: values.class_title,
+        class_description: values.class_description,
         class_date: values.class_date.toISOString(),
+        class_time: values.class_time,
+        class_duration: values.class_duration,
+        class_price: values.class_price,
+        class_capacity: values.class_capacity,
+        class_category: values.class_category,
+        class_level: values.class_level,
+        class_language: values.class_language,
+        class_instructor: values.class_instructor,
+        class_location: values.class_location,
+        class_materials: values.class_materials,
+        is_active: values.is_active,
         created_by: user?.id
       };
 
@@ -281,10 +294,10 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
           title: "Class updated successfully!",
         });
       } else {
-        // Create new class - FIX: Pass the object directly, not in an array
+        // Create new class - Pass the object directly, not in an array
         const { data, error } = await supabase
           .from('classes')
-          .insert(classData)  // Fixed: removed the array brackets
+          .insert(classData)
           .select();
 
         if (error) {
@@ -394,7 +407,7 @@ const AdminClassesManagement: React.FC<AdminClassesManagementProps> = () => {
     setIsEditMode(true);
     setIsDrawerOpen(true);
     
-    // FIX: Convert the string date to a Date object before setting in form
+    // Convert the string date to a Date object before setting in form
     form.reset({
       ...cls,
       class_date: new Date(cls.class_date), // Convert string to Date
