@@ -21,45 +21,45 @@ interface MaterialCardProps {
 
 const MaterialCard = ({ material, onEdit, onDelete }: MaterialCardProps) => {
   return (
-    <Card className="shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg">{material.title}</CardTitle>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={() => onEdit(material)}>
-            <Pencil size={16} />
+    <Card className="shadow-sm h-full">
+      <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+        <CardTitle className="text-sm sm:text-base line-clamp-1">{material.title}</CardTitle>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onEdit(material)}>
+            <Pencil size={14} />
           </Button>
-          <Button variant="outline" size="icon" className="text-red-500" onClick={() => onDelete(material.id)}>
-            <Trash size={16} />
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500" onClick={() => onDelete(material.id)}>
+            <Trash size={14} />
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="py-2 px-3">
         {material.thumbnailUrl && (
-          <div className="mb-3">
+          <div className="mb-2">
             <img 
               src={material.thumbnailUrl} 
               alt={`${material.title} thumbnail`} 
-              className="w-full h-32 object-cover rounded-md"
+              className="w-full h-24 object-cover rounded-md"
             />
           </div>
         )}
-        <p className="text-gray-600 mb-2">{material.description}</p>
+        <p className="text-gray-600 mb-2 text-xs sm:text-sm line-clamp-2">{material.description}</p>
         <div className="flex flex-wrap justify-between items-center gap-2">
           {material.isPremium ? (
-            <p className="font-semibold text-academy-primary">₹{material.price}</p>
+            <p className="font-semibold text-academy-primary text-sm">₹{material.price}</p>
           ) : (
             <div></div>
           )}
           <div className="flex items-center gap-2">
             {!material.thumbnailUrl && (
-              <span className="text-sm text-gray-500 flex items-center">
-                <Image size={14} className="mr-1" /> 
+              <span className="text-xs text-gray-500 flex items-center">
+                <Image size={12} className="mr-1" /> 
                 No thumbnail
               </span>
             )}
-            <a href={material.downloadUrl} className="text-academy-primary hover:underline text-sm flex items-center">
-              <File size={14} className="mr-1" /> 
-              Download Link
+            <a href={material.downloadUrl} className="text-academy-primary hover:underline text-xs flex items-center">
+              <File size={12} className="mr-1" /> 
+              Download
             </a>
           </div>
         </div>

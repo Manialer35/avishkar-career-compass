@@ -33,12 +33,12 @@ const AdminPanel = () => {
   } = useAdminMaterials();
   
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 overflow-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-academy-primary">Admin Panel</h1>
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 overflow-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-3">
+        <h1 className="text-lg sm:text-xl font-bold text-academy-primary">Admin Panel</h1>
         <Button asChild variant="outline" size="sm">
           <Link to="/admin/users" className="flex items-center">
-            <Users size={16} className="mr-2" />
+            <Users size={16} className="mr-1" />
             Manage Users
           </Link>
         </Button>
@@ -46,15 +46,15 @@ const AdminPanel = () => {
       
       <div className="w-full overflow-hidden">
         <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-4 sm:mb-6 overflow-x-auto flex w-full sm:justify-start gap-1 sm:gap-2">
-            <TabsTrigger value="free" className="whitespace-nowrap px-3">Free Materials</TabsTrigger>
-            <TabsTrigger value="premium" className="whitespace-nowrap px-3">Premium Materials</TabsTrigger>
-            <TabsTrigger value="videos" className="whitespace-nowrap px-3">Training Videos</TabsTrigger>
-            <TabsTrigger value="images" className="whitespace-nowrap px-3">Images</TabsTrigger>
-            <TabsTrigger value="registrations" className="whitespace-nowrap px-3">Class Registrations</TabsTrigger>
+          <TabsList className="mb-3 sm:mb-4 overflow-x-auto flex w-full sm:justify-start gap-1">
+            <TabsTrigger value="free" className="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">Free Materials</TabsTrigger>
+            <TabsTrigger value="premium" className="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">Premium Materials</TabsTrigger>
+            <TabsTrigger value="videos" className="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">Training Videos</TabsTrigger>
+            <TabsTrigger value="images" className="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">Images</TabsTrigger>
+            <TabsTrigger value="registrations" className="whitespace-nowrap px-2 py-1 text-xs sm:text-sm">Class Registrations</TabsTrigger>
           </TabsList>
           
-          <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border">
+          <div className="mt-4 bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
             <TabsContent value="free" className="min-w-0 mt-0">
               <FreeMaterialsTab 
                 materials={materials.filter(m => !m.isPremium)} 
@@ -63,7 +63,7 @@ const AdminPanel = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
-              <div className="mt-6">
+              <div className="mt-4">
                 <Pagination 
                   currentPage={currentPage} 
                   totalPages={totalPages}
@@ -80,7 +80,7 @@ const AdminPanel = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
               />
-              <div className="mt-6">
+              <div className="mt-4">
                 <Pagination 
                   currentPage={currentPage} 
                   totalPages={totalPages}
