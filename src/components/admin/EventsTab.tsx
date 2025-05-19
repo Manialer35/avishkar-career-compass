@@ -1,10 +1,9 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar, Edit, Trash, Plus, Eye } from 'lucide-react';
+import { Calendar, Edit, Trash, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
 import { 
   Card,
   CardHeader,
@@ -287,18 +286,10 @@ const EventsTab = () => {
             Manage upcoming events and special training programs
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
-            <Link to="/online-classes" className="flex items-center">
-              <Eye size={16} className="mr-1" />
-              View Events Page
-            </Link>
-          </Button>
-          <Button onClick={addNewEvent} size="sm" className="whitespace-nowrap">
-            <Plus size={16} className="mr-1" />
-            Add New Event
-          </Button>
-        </div>
+        <Button onClick={addNewEvent} size="sm" className="whitespace-nowrap">
+          <Plus size={16} className="mr-1" />
+          Add New Event
+        </Button>
       </div>
 
       {loading && !isDeleteDialogOpen && !isEditDialogOpen ? (
