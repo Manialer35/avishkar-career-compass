@@ -28,7 +28,7 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
   const freeMaterials = materials.filter(material => !material.isPremium);
   
   return (
-    <>
+    <div className="overflow-x-hidden">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
         <div>
           <h2 className="text-base sm:text-lg font-semibold">Free Study Materials</h2>
@@ -42,37 +42,39 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
         </Button>
       </div>
       
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 mt-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="border rounded-lg p-2 sm:p-3">
-              <Skeleton className="h-3 w-3/4 mb-2" />
-              <Skeleton className="h-16 w-full mb-2" />
-              <Skeleton className="h-3 w-full mb-2" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      ) : freeMaterials.length === 0 ? (
-        <Alert variant="default" className="bg-blue-50 border-blue-200">
-          <AlertCircle className="h-4 w-4 text-blue-500" />
-          <AlertDescription>
-            No free study materials found. Click "Add New" to create one.
-          </AlertDescription>
-        </Alert>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 mt-3">
-          {freeMaterials.map(material => (
-            <MaterialCard 
-              key={material.id}
-              material={material}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))}
-        </div>
-      )}
-    </>
+      <div className="overflow-y-auto max-h-[80vh] pb-4">
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mt-3">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="border rounded-lg p-2 sm:p-3">
+                <Skeleton className="h-3 w-3/4 mb-2" />
+                <Skeleton className="h-16 w-full mb-2" />
+                <Skeleton className="h-3 w-full mb-2" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : freeMaterials.length === 0 ? (
+          <Alert variant="default" className="bg-blue-50 border-blue-200">
+            <AlertCircle className="h-4 w-4 text-blue-500" />
+            <AlertDescription>
+              No free study materials found. Click "Add New" to create one.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 mt-3">
+            {freeMaterials.map(material => (
+              <MaterialCard 
+                key={material.id}
+                material={material}
+                onEdit={onEdit}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

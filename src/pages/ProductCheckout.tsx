@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import GooglePayButton from '@/components/GooglePayButton';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface PurchaseProduct {
   id: string;
@@ -24,6 +25,7 @@ const ProductCheckout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -82,8 +84,13 @@ const ProductCheckout = () => {
         });
       }
       
-      // Redirect to success page or material access page
-      navigate(`/material/${productId}/access`, { 
+      toast({
+        title: "Purchase Successful",
+        description: `You now have access to ${product?.name}`,
+      });
+      
+      // Redirect to materials page instead of a non-existent access page
+      navigate('/materials/my', { 
         state: { 
           purchaseSuccess: true,
           productName: product?.name 
@@ -91,13 +98,14 @@ const ProductCheckout = () => {
       });
     } catch (error) {
       console.error('Error recording purchase:', error);
-      // Still redirect to success page as payment was processed
-      navigate(`/material/${productId}/access`, { 
-        state: { 
-          purchaseSuccess: true,
-          productName: product?.name 
-        } 
+      toast({
+        title: "Error",
+        description: "There was an error recording your purchase. Please contact support.",
+        variant: "destructive",
       });
+      
+      // Still redirect to the materials page as payment was processed
+      navigate('/materials/my');
     }
   };
 

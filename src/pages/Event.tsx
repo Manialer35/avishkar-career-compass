@@ -1,94 +1,63 @@
 
-import { useState } from 'react';
-import { Calendar, MapPin, Clock, Users, FileText, Award } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Calendar, Clock, MapPin, User } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { isMobile } from '@/hooks/use-mobile';
+import MobileClassesSection from '@/components/mobile/MobileClassesSection';
 
-interface EventDetails {
+interface EventType {
   id: string;
-  title: string;
-  description: string;
-  date: string;
-  location: string;
-  time: string;
-  price: number;
+  class_title: string;
+  class_description: string;
+  class_date: string;
+  class_time: string;
+  class_duration: string;
+  class_price: number;
+  class_instructor: string;
+  class_location: string;
+  class_category: string;
 }
 
-// Mock paid event data
-const paidEventData: EventDetails = {
-  id: 'police-bharti-2025',
-  title: 'Police Bharti Special Training 2025',
-  description: 'Comprehensive coaching and preparation for Police Recruitment Examinations',
-  date: 'Starting from June 15, 2025',
-  location: 'Avishkar Career Academy, Main Campus, City Center',
-  time: 'Morning Batch: 7:00 AM - 11:00 AM | Evening Batch: 4:00 PM - 8:00 PM',
-  price: 4999
-};
-
-const EnrollmentForm = ({ event, onClose }: { event: EventDetails, onClose: () => void }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    batch: 'morning'
-  });
-  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
-  const [loading, setLoading] = useState(false);
+const Event = () => {
+  const [events, setEvents] = useState<EventType[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const mobile = isMobile();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
-  const handleGooglePay = async () => {
+  const fetchEvents = async () => {
     try {
-      setPaymentStatus('processing');
       setLoading(true);
-
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Record enrollment in Supabase
-      const { error } = await supabase
-        .from('class_enrollments')
-        .insert({
-          class_id: event.id,
-          class_title: event.title,
-          class_date: new Date().toISOString(),
-          student_name: formData.name,
-          student_email: formData.email,
-          student_phone: formData.phone,
-          student_address: formData.address,
-          amount_paid: event.price,
-          payment_status: 'completed',
-          payment_id: `google-pay-${Date.now()}`
-        });
-
+      
+      // Get current date in ISO format
+      const today = new Date().toISOString();
+      
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .gte('class_date', today)
+        .eq('is_active', true)
+        .order('class_date', { ascending: true });
+        
       if (error) {
         throw error;
       }
-
-      setPaymentStatus('success');
+      
+      console.log('Fetched events:', data);
+      setEvents(data || []);
+    } catch (err) {
+      console.error('Error fetching events:', err);
       toast({
-        title: "Enrollment Successful!",
-        description: "You have successfully enrolled in the class.",
-        variant: "default",
-      });
-
-      // Close the dialog after showing success message
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (error) {
-      console.error("Enrollment error:", error);
-      setPaymentStatus('error');
-      toast({
-        title: "Enrollment Failed",
-        description: "There was a problem processing your enrollment. Please try again.",
+        title: "Error",
+        description: "Failed to load events. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -96,267 +65,125 @@ const EnrollmentForm = ({ event, onClose }: { event: EventDetails, onClose: () =
     }
   };
 
-  if (paymentStatus === 'success') {
-    return (
-      <div className="text-center py-8">
-        <div className="bg-green-100 p-4 rounded-full inline-flex mb-4">
-          <svg className="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-bold mb-2">Enrollment Successful!</h3>
-        <p className="text-gray-600 mb-4">You have successfully enrolled in {event.title}.</p>
-        <p className="text-sm text-gray-500">A confirmation email has been sent to {formData.email}</p>
-      </div>
-    );
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  const getTimeRemaining = (dateString: string) => {
+    try {
+      const eventDate = new Date(dateString);
+      return formatDistanceToNow(eventDate, { addSuffix: true });
+    } catch (e) {
+      return '';
+    }
+  };
+
+  // If mobile, render the mobile-specific component
+  if (mobile) {
+    return <MobileClassesSection />;
   }
 
   return (
-    <div className="p-4">
-      <form className="space-y-4">
-        <div className="grid grid-cols-1 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Full Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Phone Number</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Address</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">Preferred Batch</label>
-            <select
-              name="batch"
-              value={formData.batch}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              required
-            >
-              <option value="morning">Morning (7:00 AM - 11:00 AM)</option>
-              <option value="evening">Evening (4:00 PM - 8:00 PM)</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="border-t pt-4 mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <span className="font-medium">Course Fee:</span>
-            <span className="font-bold text-lg">₹{event.price.toLocaleString()}</span>
-          </div>
-
-          <Button
-            type="button"
-            onClick={handleGooglePay}
-            disabled={loading || !formData.name || !formData.email || !formData.phone || !formData.address}
-            className="w-full flex items-center justify-center bg-black text-white hover:bg-gray-800 mb-2"
-          >
-            {loading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              <>
-                <img src="/google-pay-logo.svg" alt="Google Pay" className="h-6 mr-2" />
-                Pay with Google Pay
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-const Event = () => {
-  const [showEnrollForm, setShowEnrollForm] = useState(false);
-
-  return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-gradient-to-r from-academy-primary to-academy-secondary text-white p-6 rounded-lg shadow-lg mb-8">
-        <h2 className="text-2xl font-bold mb-2">{paidEventData.title}</h2>
-        <p className="text-lg">{paidEventData.description}</p>
+      <div className="flex items-center mb-6">
+        <Button variant="ghost" size="icon" className="mr-4" asChild>
+          <Link to="/">
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+        </Button>
+        <h1 className="text-2xl font-bold text-academy-primary">Upcoming Events</h1>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-5 flex items-start">
-          <Calendar className="h-6 w-6 text-academy-primary mr-3 flex-shrink-0" />
-          <div>
-            <h3 className="font-semibold mb-1">Date</h3>
-            <p>{paidEventData.date}</p>
-            <p className="text-sm text-gray-500">3-month intensive program</p>
-          </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-5 bg-gray-200 rounded w-3/4 mb-1"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </CardContent>
+              <CardFooter>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-5 flex items-start">
-          <MapPin className="h-6 w-6 text-academy-primary mr-3 flex-shrink-0" />
-          <div>
-            <h3 className="font-semibold mb-1">Location</h3>
-            <p>{paidEventData.location}</p>
-          </div>
+      ) : events.length === 0 ? (
+        <div className="text-center py-10">
+          <h3 className="text-lg font-medium text-gray-700 mb-2">No Events Scheduled</h3>
+          <p className="text-gray-500">There are no upcoming events at the moment. Please check back later.</p>
         </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-5 flex items-start">
-          <Clock className="h-6 w-6 text-academy-primary mr-3 flex-shrink-0" />
-          <div>
-            <h3 className="font-semibold mb-1">Timing</h3>
-            <p>{paidEventData.time}</p>
-          </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {events.map((event) => (
+            <Card key={event.id} className="shadow-lg border-0">
+              <CardHeader className="bg-academy-primary/5 pb-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="inline-block px-3 py-1 text-xs font-medium bg-academy-secondary text-white rounded-full mb-2">
+                      {event.class_category}
+                    </span>
+                    <CardTitle className="text-xl">{event.class_title}</CardTitle>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-academy-primary font-medium">
+                      {event.class_price > 0 ? `₹${event.class_price}` : 'Free'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {getTimeRemaining(event.class_date)}
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-gray-600 mb-4">
+                  {event.class_description}
+                </p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center text-gray-600">
+                    <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>{formatDate(event.class_date)}</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <Clock className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>{event.class_time} ({event.class_duration})</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>{event.class_location}</span>
+                  </div>
+                  <div className="flex items-center text-gray-600">
+                    <User className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span>{event.class_instructor}</span>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" asChild>
+                  <Link to={`/class-registration/${event.id}`} state={{ classData: event }}>
+                    Register Now
+                  </Link>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h3 className="text-xl font-semibold text-academy-primary mb-4">About the Program</h3>
-        <p className="mb-4">
-          Our Police Bharti Special Event is designed to provide comprehensive coaching and preparation for candidates 
-          aspiring to join the police force. The program covers all aspects of the selection process, including written 
-          examination, physical fitness test, and interview preparation.
-        </p>
-        <p>
-          The coaching is provided by experienced faculty members who have in-depth knowledge of the examination pattern 
-          and selection criteria. Our tailored approach ensures that candidates are well-prepared for all challenges they 
-          may face during the recruitment process.
-        </p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-academy-primary mb-4">Program Highlights</h3>
-          <ul className="space-y-3">
-            <li className="flex items-start">
-              <Users className="h-5 w-5 text-academy-secondary mr-2 mt-0.5 flex-shrink-0" />
-              <span>Expert faculty with experience in police recruitment training</span>
-            </li>
-            <li className="flex items-start">
-              <FileText className="h-5 w-5 text-academy-secondary mr-2 mt-0.5 flex-shrink-0" />
-              <span>Comprehensive study materials covering all subjects</span>
-            </li>
-            <li className="flex items-start">
-              <Award className="h-5 w-5 text-academy-secondary mr-2 mt-0.5 flex-shrink-0" />
-              <span>Special physical training sessions by fitness experts</span>
-            </li>
-            <li className="flex items-start">
-              <Clock className="h-5 w-5 text-academy-secondary mr-2 mt-0.5 flex-shrink-0" />
-              <span>Regular mock tests and performance assessment</span>
-            </li>
-          </ul>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-academy-primary mb-4">Course Fee</h3>
-          <div className="mb-6">
-            <div className="text-3xl font-bold text-academy-primary mb-2">₹{paidEventData.price.toLocaleString()}</div>
-            <div className="text-sm text-gray-500">Full course fee including study materials</div>
-          </div>
-          
-          <h4 className="font-medium mb-2">What's included:</h4>
-          <ul className="space-y-1 mb-6">
-            <li className="flex items-center">
-              <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Complete study materials
-            </li>
-            <li className="flex items-center">
-              <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Daily classes (3 months)
-            </li>
-            <li className="flex items-center">
-              <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Physical training sessions
-            </li>
-            <li className="flex items-center">
-              <svg className="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Mock tests & interview preparation
-            </li>
-          </ul>
-          
-          <Button 
-            onClick={() => setShowEnrollForm(true)}
-            className="w-full bg-academy-primary hover:bg-academy-secondary text-white"
-          >
-            Enroll Now with Google Pay
-          </Button>
-        </div>
-      </div>
-      
-      <div className="bg-academy-light p-6 rounded-lg shadow-md mb-8">
-        <h3 className="text-lg font-semibold text-academy-primary mb-3">Success Stories</h3>
-        <p className="mb-4">
-          Our Police Bharti Special Program has helped hundreds of candidates successfully join the police force. In the 
-          last recruitment drive, over 75% of our students were selected, many securing top ranks in their respective categories.
-        </p>
-        <div className="border-t pt-4 mt-4">
-          <p className="italic text-gray-700">
-            "The coaching and guidance provided by Avishkar Career Academy was instrumental in my selection. The faculty's 
-            support and the comprehensive preparation helped me excel in all stages of the recruitment process."
-          </p>
-          <p className="text-right mt-2 font-semibold">- Rajesh Sharma, Selected as Sub-Inspector</p>
-        </div>
-      </div>
-      
-      <Dialog open={showEnrollForm} onOpenChange={setShowEnrollForm}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enroll in {paidEventData.title}</DialogTitle>
-          </DialogHeader>
-          <EnrollmentForm event={paidEventData} onClose={() => setShowEnrollForm(false)} />
-          <DialogFooter className="sm:justify-start">
-            <Button variant="outline" onClick={() => setShowEnrollForm(false)}>
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      )}
     </div>
   );
 };
