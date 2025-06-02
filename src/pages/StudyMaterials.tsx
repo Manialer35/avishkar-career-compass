@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play } from 'lucide-react';
+import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play, Youtube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface StudyMaterial {
   id: string;
@@ -26,6 +28,32 @@ interface TrainingVideo {
   is_premium: boolean;
 }
 
+// Helper functions for YouTube integration
+const getYouTubeVideoId = (url: string): string | null => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+};
+
+const getYouTubeThumbnail = (videoId: string): string => {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+};
+
+const getYouTubeEmbedUrl = (videoId: string): string => {
+  return `https://www.youtube.com/embed/${videoId}`;
+};
+
+const isYouTubeUrl = (url: string): boolean => {
+  return url.includes('youtube.com') || url.includes('youtu.be');
+};
+
 // Icon mapping for different material types
 const getIconForMaterial = (title: string) => {
   const titleLower = title.toLowerCase();
@@ -45,6 +73,7 @@ const StudyMaterials = () => {
   const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
   const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<TrainingVideo | null>(null);
 
   useEffect(() => {
     fetchMaterials();
@@ -169,30 +198,58 @@ const StudyMaterials = () => {
   };
 
   const VideoCard = ({ video }: { video: TrainingVideo }) => {
+    const isYouTube = isYouTubeUrl(video.video_url);
+    const videoId = isYouTube ? getYouTubeVideoId(video.video_url) : null;
+    const thumbnailUrl = videoId ? getYouTubeThumbnail(videoId) : video.thumbnail_url;
+
     return (
-      <div className={`bg-white rounded-lg p-4 shadow-sm border transition-all hover:shadow-md cursor-pointer ${
-        video.is_premium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
-      }`}>
+      <div 
+        className={`bg-white rounded-lg p-4 shadow-sm border transition-all hover:shadow-md cursor-pointer ${
+          video.is_premium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
+        }`}
+        onClick={() => setSelectedVideo(video)}
+      >
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
-            {video.thumbnail_url ? (
+            {thumbnailUrl ? (
               <img 
-                src={video.thumbnail_url} 
+                src={thumbnailUrl} 
                 alt={video.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  if (videoId) {
+                    target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                <Video size={32} className="text-gray-400" />
+                {isYouTube ? (
+                  <Youtube size={32} className="text-red-500" />
+                ) : (
+                  <Video size={32} className="text-gray-400" />
+                )}
               </div>
             )}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className={`p-2 rounded-full bg-black bg-opacity-50 ${
                 video.is_premium ? 'text-academy-red' : 'text-white'
               }`}>
-                <Play size={20} fill="currentColor" />
+                {isYouTube ? (
+                  <Youtube size={20} className="text-red-500" fill="currentColor" />
+                ) : (
+                  <Play size={20} fill="currentColor" />
+                )}
               </div>
             </div>
+            {isYouTube && (
+              <div className="absolute top-2 right-2">
+                <div className="bg-red-600 text-white text-xs px-2 py-1 rounded">
+                  YouTube
+                </div>
+              </div>
+            )}
           </div>
           <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{video.title}</h3>
           {video.description && (
@@ -211,16 +268,62 @@ const StudyMaterials = () => {
                   ? 'text-academy-red hover:text-academy-red hover:bg-red-50' 
                   : 'text-academy-primary hover:text-academy-red hover:bg-gray-100'
               }`}
-              asChild
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedVideo(video);
+              }}
             >
-              <a href={video.video_url} target="_blank" rel="noopener noreferrer">
-                <Play className="h-3 w-3 mr-1" />
-                Watch Video
-              </a>
+              <Play className="h-3 w-3 mr-1" />
+              Watch Video
             </Button>
           </div>
         </div>
       </div>
+    );
+  };
+
+  const VideoPlayerDialog = ({ video, onClose }: { video: TrainingVideo; onClose: () => void }) => {
+    const isYouTube = isYouTubeUrl(video.video_url);
+    const videoId = isYouTube ? getYouTubeVideoId(video.video_url) : null;
+    const embedUrl = videoId ? getYouTubeEmbedUrl(videoId) : video.video_url;
+
+    return (
+      <Dialog open={!!video} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {video.title}
+              {isYouTube && <Youtube size={20} className="text-red-500" />}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="aspect-video w-full">
+            {isYouTube ? (
+              <iframe
+                src={embedUrl}
+                title={video.title}
+                className="w-full h-full rounded-lg"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video
+                src={video.video_url}
+                controls
+                className="w-full h-full rounded-lg"
+                poster={video.thumbnail_url}
+              >
+                Your browser does not support the video tag.
+              </video>
+            )}
+          </div>
+          {video.description && (
+            <div className="mt-4">
+              <h4 className="font-medium mb-2">Description</h4>
+              <p className="text-gray-600 text-sm">{video.description}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     );
   };
 
@@ -268,7 +371,7 @@ const StudyMaterials = () => {
             renderMaterialsLoadingState()
           ) : trainingVideos.length === 0 ? (
             <div className="text-center py-8">
-              <Video size={64} className="text-gray-400 mx-auto mb-4" />
+              <Youtube size={64} className="text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No Training Videos Yet</h3>
               <p className="text-gray-600">Training videos will be available here soon.</p>
             </div>
@@ -281,6 +384,14 @@ const StudyMaterials = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Video Player Dialog */}
+      {selectedVideo && (
+        <VideoPlayerDialog
+          video={selectedVideo}
+          onClose={() => setSelectedVideo(null)}
+        />
+      )}
     </div>
   );
 };
