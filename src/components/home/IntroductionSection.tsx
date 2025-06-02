@@ -1,4 +1,3 @@
-
 const IntroductionSection = () => {
   return (
     <div className="mb-6">
@@ -7,7 +6,7 @@ const IntroductionSection = () => {
         <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg">
           <iframe 
             className="w-full h-96 rounded-lg"
-            src="https://www.youtube.com/embed/dQw4w9WgXcQ" 
+            src="https://www.youtube.com/embed/ORfQrCZ0N8M" 
             title="Academy Introduction"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
