@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AuthForm from '@/components/auth/AuthForm';
-import TestCredentials from '@/components/auth/TestCredentials';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -37,7 +36,6 @@ const Auth = () => {
           </p>
         </div>
         <AuthForm />
-        <TestCredentials />
       </div>
     </div>
   );
