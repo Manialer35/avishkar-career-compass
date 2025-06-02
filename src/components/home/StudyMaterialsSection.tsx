@@ -1,5 +1,5 @@
 
-import { Book, Download, ExternalLink } from 'lucide-react';
+import { Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -21,6 +21,20 @@ interface StudyMaterialsSectionProps {
   paidMaterials?: StudyMaterial[];
   loading?: boolean;
 }
+
+// Icon mapping for different material types
+const getIconForMaterial = (title: string) => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('math') || titleLower.includes('गणित')) return Calculator;
+  if (titleLower.includes('current affairs') || titleLower.includes('समसामयिक')) return FileText;
+  if (titleLower.includes('exam') || titleLower.includes('परीक्षा')) return BookOpen;
+  if (titleLower.includes('age') || titleLower.includes('वय')) return Calendar;
+  if (titleLower.includes('geography') || titleLower.includes('भूगोल')) return MapPin;
+  if (titleLower.includes('history') || titleLower.includes('इतिहास')) return Building;
+  if (titleLower.includes('group') || titleLower.includes('समूह')) return Users;
+  if (titleLower.includes('education') || titleLower.includes('शिक्षण')) return GraduationCap;
+  return Book; // Default icon
+};
 
 const StudyMaterialsSection = ({ 
   freeMaterials: propFreeMaterials, 
@@ -76,17 +90,65 @@ const StudyMaterialsSection = ({
   };
 
   const renderMaterialsLoadingState = () => (
-    <div className="space-y-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {[1, 2, 3].map((_, index) => (
-        <div key={index} className="p-4 bg-gray-50 rounded-md">
-          <Skeleton className="w-full h-32 mb-2" />
-          <Skeleton className="w-3/4 h-5 mb-2" />
-          <Skeleton className="w-full h-4 mb-2" />
-          <Skeleton className="w-1/3 h-8" />
+        <div key={index} className="bg-gray-50 rounded-lg p-3">
+          <Skeleton className="w-10 h-10 mx-auto mb-2 rounded-lg" />
+          <Skeleton className="w-full h-3 mb-1" />
+          <Skeleton className="w-3/4 h-3 mx-auto" />
         </div>
       ))}
     </div>
   );
+
+  const MaterialCard = ({ material, isPremium = false }: { material: StudyMaterial; isPremium?: boolean }) => {
+    const IconComponent = getIconForMaterial(material.title);
+    
+    return (
+      <div className={`bg-gray-50 rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer ${
+        isPremium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
+      }`}>
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className={`p-2 rounded-lg ${
+            isPremium ? 'bg-academy-red/10' : 'bg-academy-primary/10'
+          }`}>
+            <IconComponent 
+              size={24} 
+              className={isPremium ? 'text-academy-red' : 'text-academy-primary'} 
+            />
+          </div>
+          <h5 className="font-semibold text-sm line-clamp-2 min-h-[2rem]">{material.title}</h5>
+          {isPremium && material.price && (
+            <div className="text-xs font-semibold text-academy-red">₹{material.price}</div>
+          )}
+          <div className="w-full">
+            {isPremium ? (
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="w-full bg-academy-red hover:bg-academy-red/90 text-white text-xs"
+                asChild
+              >
+                <Link to={`/premium-materials?materialId=${material.id}`}>Purchase</Link>
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-academy-primary hover:text-academy-red hover:bg-gray-100 text-xs"
+                asChild
+              >
+                <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer">
+                  <Download className="h-3 w-3 mr-1" />
+                  Download
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section className="mb-10">
@@ -105,30 +167,11 @@ const StudyMaterialsSection = ({
             ) : freeMaterials.length === 0 ? (
               <p className="text-center py-4 text-gray-500">No free materials available</p>
             ) : (
-              freeMaterials.map((material) => (
-                <div key={material.id} className="p-4 bg-gray-50 rounded-md">
-                  {material.thumbnailUrl && (
-                    <img 
-                      src={material.thumbnailUrl}
-                      alt={material.title}
-                      className="w-full h-32 object-cover rounded-md mb-2"
-                    />
-                  )}
-                  <h5 className="font-semibold">{material.title}</h5>
-                  <p className="text-sm text-gray-600 mt-1">{material.description}</p>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="mt-2 text-academy-primary hover:text-academy-red hover:bg-gray-100"
-                    asChild
-                  >
-                    <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer" className="flex items-center">
-                      <Download className="h-4 w-4 mr-1" />
-                      Download Now
-                    </a>
-                  </Button>
-                </div>
-              ))
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {freeMaterials.map((material) => (
+                  <MaterialCard key={material.id} material={material} />
+                ))}
+              </div>
             )}
           </div>
           
@@ -137,7 +180,7 @@ const StudyMaterialsSection = ({
             className="w-full mt-4 border-academy-primary text-academy-primary hover:bg-academy-light"
             asChild
           >
-            <Link to="/free-materials">
+            <Link to="/study-materials">
               <ExternalLink className="h-4 w-4 mr-1" /> Browse All Free Materials
             </Link>
           </Button>
@@ -155,30 +198,11 @@ const StudyMaterialsSection = ({
             ) : paidMaterials.length === 0 ? (
               <p className="text-center py-4 text-gray-500">No premium materials available</p>
             ) : (
-              paidMaterials.map((material) => (
-                <div key={material.id} className="p-4 bg-gray-50 rounded-md">
-                  {material.thumbnailUrl && (
-                    <img 
-                      src={material.thumbnailUrl}
-                      alt={material.title}
-                      className="w-full h-32 object-cover rounded-md mb-2"
-                    />
-                  )}
-                  <div className="flex justify-between">
-                    <h5 className="font-semibold">{material.title}</h5>
-                    <span className="font-semibold text-academy-red">₹{material.price}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{material.description}</p>
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="mt-2 bg-academy-red hover:bg-academy-red/90 text-white"
-                    asChild
-                  >
-                    <Link to={`/premium-materials?materialId=${material.id}`}>Purchase Now</Link>
-                  </Button>
-                </div>
-              ))
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {paidMaterials.map((material) => (
+                  <MaterialCard key={material.id} material={material} isPremium />
+                ))}
+              </div>
             )}
           </div>
           
@@ -186,7 +210,7 @@ const StudyMaterialsSection = ({
             className="w-full mt-4 bg-academy-red hover:bg-academy-red/90 text-white"
             asChild
           >
-            <Link to="/premium-materials">
+            <Link to="/study-materials">
               <ExternalLink className="h-4 w-4 mr-1" /> View All Premium Materials
             </Link>
           </Button>

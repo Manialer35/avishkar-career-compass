@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,8 +16,24 @@ interface ProductType {
   duration_type?: string;
 }
 
+// Icon mapping for different material types
+const getIconForMaterial = (title: string) => {
+  const titleLower = title.toLowerCase();
+  if (titleLower.includes('math') || titleLower.includes('गणित')) return Calculator;
+  if (titleLower.includes('current affairs') || titleLower.includes('समसामयिक')) return FileText;
+  if (titleLower.includes('exam') || titleLower.includes('परीक्षा')) return BookOpen;
+  if (titleLower.includes('age') || titleLower.includes('वय')) return Calendar;
+  if (titleLower.includes('geography') || titleLower.includes('भूगोल')) return MapPin;
+  if (titleLower.includes('history') || titleLower.includes('इतिहास')) return Building;
+  if (titleLower.includes('group') || titleLower.includes('समूह')) return Users;
+  if (titleLower.includes('education') || titleLower.includes('शिक्षण')) return GraduationCap;
+  return Book; // Default icon
+};
+
 // Product Card component
 const ProductCard = ({ product }: { product: ProductType }) => {
+  const IconComponent = getIconForMaterial(product.name);
+  
   const formatDuration = (months?: number, type?: string) => {
     if (type === 'lifetime') return 'Lifetime Access';
     if (!months) return '';
@@ -25,29 +41,31 @@ const ProductCard = ({ product }: { product: ProductType }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="h-48 overflow-hidden">
-        <img 
-          src={product.imageSrc} 
-          alt={product.name} 
-          className="w-full h-full object-cover"
-        />
-      </div>
+    <div className="bg-white rounded-lg shadow-md border-l-4 border-academy-red transition-all hover:shadow-lg">
       <div className="p-4">
-        <h3 className="text-lg font-semibold mb-1 text-academy-primary">{product.name}</h3>
-        <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
-        <div className="flex justify-between items-center mt-3">
-          <span className="text-lg font-bold text-academy-secondary">${product.price.toFixed(2)}</span>
-          <span className="text-sm text-academy-secondary font-medium">
-            {formatDuration(product.duration_months, product.duration_type)}
-          </span>
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="p-3 rounded-lg bg-academy-red/10">
+            <IconComponent size={32} className="text-academy-red" />
+          </div>
+          <h3 className="text-lg font-semibold text-academy-primary line-clamp-2">{product.name}</h3>
+          {product.description && (
+            <p className="text-gray-600 text-sm line-clamp-2">{product.description}</p>
+          )}
+          <div className="flex justify-between items-center w-full">
+            <span className="text-lg font-bold text-academy-red">₹{product.price.toFixed(2)}</span>
+            {(product.duration_months || product.duration_type) && (
+              <span className="text-sm text-academy-secondary font-medium">
+                {formatDuration(product.duration_months, product.duration_type)}
+              </span>
+            )}
+          </div>
+          <Button 
+            className="w-full bg-academy-red hover:bg-academy-red/90 text-white"
+            asChild
+          >
+            <Link to={`/purchase/${product.id}`}>Purchase</Link>
+          </Button>
         </div>
-        <Button 
-          className="w-full mt-3 bg-academy-primary hover:bg-academy-secondary"
-          asChild
-        >
-          <Link to={`/purchase/${product.id}`}>Purchase</Link>
-        </Button>
       </div>
     </div>
   );
@@ -56,7 +74,7 @@ const ProductCard = ({ product }: { product: ProductType }) => {
 // Product Grid component
 const ProductGrid = ({ products }: { products: ProductType[] }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
