@@ -1,5 +1,5 @@
 
-import { BookOpen, Users, Trophy, CheckCircle, GraduationCap } from 'lucide-react';
+import { BookOpen, Users, Trophy, CheckCircle, GraduationCap, Video, Phone, Youtube } from 'lucide-react';
 
 const About = () => {
   return (
@@ -94,6 +94,52 @@ const About = () => {
           <div className="border-l-4 border-academy-secondary pl-4">
             <h4 className="font-semibold text-lg text-gray-800">श्री. राजेश भराटे सर</h4>
             <p className="text-gray-600">G. K onliner या प्रसिद्ध पुस्तकाचे लेखक</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="flex items-center mb-4">
+          <Video className="h-8 w-8 text-academy-secondary mr-3" />
+          <h3 className="text-lg font-semibold">Academy Video</h3>
+        </div>
+        <div className="aspect-video w-full max-w-2xl mx-auto">
+          <iframe
+            src="https://www.youtube.com/embed/SCouRj8tZn4"
+            title="Avishkar Career Academy Video"
+            className="w-full h-full rounded-lg"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="flex items-center mb-4">
+          <Phone className="h-8 w-8 text-academy-secondary mr-3" />
+          <h3 className="text-lg font-semibold">Physical Lecturers</h3>
+        </div>
+        <div className="space-y-6">
+          <div className="border-l-4 border-academy-primary pl-4">
+            <h4 className="font-semibold text-lg text-gray-800">Ankush Ghuge Sir</h4>
+            <a 
+              href="tel:+919730972893" 
+              className="text-academy-primary hover:text-academy-red transition-colors flex items-center gap-2"
+            >
+              <Phone size={16} />
+              +91 97309 72893
+            </a>
+          </div>
+          
+          <div className="border-l-4 border-academy-primary pl-4">
+            <h4 className="font-semibold text-lg text-gray-800">Bhalerao Sir (Coach)</h4>
+            <a 
+              href="tel:+918308782102" 
+              className="text-academy-primary hover:text-academy-red transition-colors flex items-center gap-2"
+            >
+              <Phone size={16} />
+              +91 83087 82102
+            </a>
           </div>
         </div>
       </div>
