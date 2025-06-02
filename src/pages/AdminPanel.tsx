@@ -13,10 +13,36 @@ import EventsTab from '@/components/admin/EventsTab';
 import ImageManagementTab from '@/components/admin/ImageManagementTab';
 import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
 import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
+import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import { useAdminMaterials } from '@/hooks/useAdminMaterials';
 
 const AdminPanel = () => {
   const { session, userRole, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('free-materials');
+  
+  const {
+    allMaterials,
+    loading: materialsLoading,
+    savingMaterial,
+    editingMaterial,
+    setEditingMaterial,
+    newMaterial,
+    setNewMaterial,
+    handleEdit,
+    handleDelete,
+    handleAddNew,
+    handleSave,
+    setActiveTab: setMaterialsActiveTab
+  } = useAdminMaterials();
+
+  // Update materials active tab when admin panel tab changes
+  useEffect(() => {
+    if (activeTab === 'free-materials') {
+      setMaterialsActiveTab('free');
+    } else if (activeTab === 'premium-materials') {
+      setMaterialsActiveTab('premium');
+    }
+  }, [activeTab, setMaterialsActiveTab]);
 
   if (loading) {
     return (
@@ -97,7 +123,16 @@ const AdminPanel = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <FreeMaterialsTab />
+              <FreeMaterialsTab 
+                materials={allMaterials}
+                loading={materialsLoading}
+                onAddNew={() => {
+                  setMaterialsActiveTab('free');
+                  handleAddNew();
+                }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -111,7 +146,16 @@ const AdminPanel = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PremiumMaterialsTab />
+              <PremiumMaterialsTab 
+                materials={allMaterials}
+                loading={materialsLoading}
+                onAddNew={() => {
+                  setMaterialsActiveTab('premium');
+                  handleAddNew();
+                }}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -186,6 +230,19 @@ const AdminPanel = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {editingMaterial && (
+        <EditMaterialDialog
+          material={editingMaterial}
+          isNew={newMaterial}
+          onSave={handleSave}
+          onClose={() => {
+            setEditingMaterial(null);
+            setNewMaterial(false);
+          }}
+          saving={savingMaterial}
+        />
+      )}
     </div>
   );
 };
