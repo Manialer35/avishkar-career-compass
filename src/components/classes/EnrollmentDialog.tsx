@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { GooglePayButton } from '@/components/PaymentComponents';
+import { validateEmail, validatePhone, validateName, sanitizeInput, RateLimiter } from '@/utils/inputValidation';
+import { useAuth } from "@/hooks/useAuth";
 
 interface EnrollmentDialogProps {
   open: boolean;
@@ -25,6 +27,9 @@ interface EnrollmentDialogProps {
   classId: string;
   classAmount: number;
 }
+
+// Rate limiter for enrollment attempts
+const enrollmentRateLimiter = new RateLimiter(3, 300000); // 3 attempts per 5 minutes
 
 const EnrollmentDialog = ({
   open,
@@ -40,16 +45,56 @@ const EnrollmentDialog = ({
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [paymentStep, setPaymentStep] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const validateForm = (): boolean => {
+    const errors: {[key: string]: string} = {};
+    
+    const nameValidation = validateName(name);
+    if (!nameValidation.isValid) {
+      errors.name = nameValidation.error!;
+    }
+    
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      errors.email = emailValidation.error!;
+    }
+    
+    const phoneValidation = validatePhone(phone);
+    if (!phoneValidation.isValid) {
+      errors.phone = phoneValidation.error!;
+    }
+    
+    // Verify email matches authenticated user (if logged in)
+    if (user && user.email !== email) {
+      errors.email = "Email must match your account email";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Form validation
-    if (!name || !email || !phone) {
+    // Rate limiting check
+    const rateLimitKey = user?.id || email;
+    if (!enrollmentRateLimiter.isAllowed(rateLimitKey)) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
+        title: "Too Many Attempts",
+        description: "Please wait before trying again",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Form validation
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
         variant: "destructive",
       });
       return;
@@ -68,24 +113,56 @@ const EnrollmentDialog = ({
     try {
       setLoading(true);
       
-      const enrollment = {
-        student_name: name,
-        student_email: email,
-        student_phone: phone,
-        student_address: address,
-        class_title: classTitle,
+      // Sanitize all inputs
+      const sanitizedData = {
+        student_name: sanitizeInput(name),
+        student_email: sanitizeInput(email),
+        student_phone: sanitizeInput(phone),
+        student_address: sanitizeInput(address),
+        class_title: sanitizeInput(classTitle),
         class_date: classDate,
-        class_id: classId,
+        class_id: sanitizeInput(classId),
         amount_paid: classAmount,
         payment_status: paymentId ? 'completed' : 'waived',
         payment_id: paymentId,
         payment_method: paymentId ? 'GOOGLE_PAY' : 'FREE'
       };
       
+      // Additional security check: verify class exists and amount matches
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('id, class_price, is_active')
+        .eq('id', classId)
+        .single();
+      
+      if (classError || !classData) {
+        throw new Error("Class not found or inactive");
+      }
+      
+      if (Math.abs(classAmount - classData.class_price) > 0.01) {
+        throw new Error("Price mismatch detected");
+      }
+      
+      // Check for duplicate enrollments
+      const { data: existingEnrollment, error: duplicateError } = await supabase
+        .from('class_enrollments')
+        .select('id')
+        .eq('student_email', sanitizedData.student_email)
+        .eq('class_id', classId)
+        .maybeSingle();
+      
+      if (duplicateError) {
+        console.error('Error checking duplicate enrollment:', duplicateError);
+      }
+      
+      if (existingEnrollment) {
+        throw new Error("You are already enrolled in this class");
+      }
+      
       // Record both in class_enrollments for enrolled students
       const { error: enrollmentError } = await supabase
         .from('class_enrollments')
-        .insert(enrollment);
+        .insert(sanitizedData);
       
       if (enrollmentError) throw enrollmentError;
       
@@ -93,13 +170,13 @@ const EnrollmentDialog = ({
       const { error: registrationError } = await supabase
         .from('class_registrations')
         .insert({
-          student_name: name,
-          student_email: email,
-          student_phone: phone,
-          student_address: address,
-          class_title: classTitle,
-          class_date: classDate,
-          class_id: classId
+          student_name: sanitizedData.student_name,
+          student_email: sanitizedData.student_email,
+          student_phone: sanitizedData.student_phone,
+          student_address: sanitizedData.student_address,
+          class_title: sanitizedData.class_title,
+          class_date: sanitizedData.class_date,
+          class_id: sanitizedData.class_id
         });
       
       if (registrationError) throw registrationError;
@@ -116,6 +193,7 @@ const EnrollmentDialog = ({
       setEmail('');
       setPhone('');
       setAddress('');
+      setValidationErrors({});
     } catch (error: any) {
       console.error('Error submitting enrollment:', error);
       toast({
@@ -168,7 +246,11 @@ const EnrollmentDialog = ({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your full name"
                 required
+                className={validationErrors.name ? "border-red-500" : ""}
               />
+              {validationErrors.name && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
+              )}
             </div>
             
             <div>
@@ -182,7 +264,11 @@ const EnrollmentDialog = ({
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                className={validationErrors.email ? "border-red-500" : ""}
               />
+              {validationErrors.email && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+              )}
             </div>
             
             <div>
@@ -195,7 +281,11 @@ const EnrollmentDialog = ({
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Enter your phone number"
                 required
+                className={validationErrors.phone ? "border-red-500" : ""}
               />
+              {validationErrors.phone && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.phone}</p>
+              )}
             </div>
             
             <div>
@@ -208,6 +298,7 @@ const EnrollmentDialog = ({
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Enter your address"
                 rows={2}
+                maxLength={500}
               />
             </div>
             

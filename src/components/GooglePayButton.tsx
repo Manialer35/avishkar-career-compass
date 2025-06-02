@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +71,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     try {
       console.log("Checking Google Pay availability...");
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'TEST' // Changed back to 'TEST' for development
+        environment: 'TEST'
       });
 
       const isReadyToPayRequest = {
@@ -118,7 +119,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       console.log("Starting Google Pay payment process...");
       
       const paymentsClient = new window.google.payments.api.PaymentsClient({
-        environment: 'TEST' // Changed back to 'TEST' for development
+        environment: 'TEST'
       });
 
       const paymentDataRequest = {
@@ -155,30 +156,31 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
         const paymentData = await paymentsClient.loadPaymentData(paymentDataRequest);
         console.log('Payment data received:', paymentData);
         
-        // Send payment data to record the transaction
-        const { data, error } = await supabase
-          .from('user_purchases')
-          .insert([{
-            user_id: user.id,
-            material_id: productId,
-            payment_id: `google-pay-${Date.now()}`,
+        // SECURITY FIX: Send payment data to server for secure processing
+        const { data, error } = await supabase.functions.invoke('process-google-pay', {
+          body: {
+            paymentData: paymentData,
+            productId: productId,
             amount: price,
-            purchased_at: new Date().toISOString(),
-            payment_method: 'GOOGLE_PAY',
-            payment_status: 'COMPLETED'
-          }]);
+            customerEmail: user.email
+          }
+        });
         
         if (error) {
-          console.error("Database error recording payment:", error);
-          throw new Error("Failed to record payment");
+          console.error("Payment processing error:", error);
+          throw new Error("Failed to process payment on server");
         }
         
-        setIsLoading(false);
-        toast({
-          title: "Payment Successful",
-          description: "Your payment has been processed successfully.",
-        });
-        onSuccess();
+        if (data?.success) {
+          setIsLoading(false);
+          toast({
+            title: "Payment Successful",
+            description: "Your payment has been processed successfully.",
+          });
+          onSuccess();
+        } else {
+          throw new Error(data?.message || "Payment processing failed");
+        }
       } catch (error: any) {
         console.error('Google Pay error:', error);
         
