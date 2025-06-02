@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Icons } from '@/components/Icons';
 import ForgotPasswordForm from './ForgotPasswordForm';
-import { supabase } from '@/integrations/supabase/client';
 
 const AuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -39,63 +39,6 @@ const AuthForm = () => {
     return true;
   };
 
-  const handleTestUserSignIn = async () => {
-    try {
-      // For the test user, we'll manually set the session
-      const testUser = {
-        id: '550e8400-e29b-41d4-a716-446655440001',
-        email: 'test@aavishkar.academy',
-        aud: 'authenticated',
-        role: 'authenticated',
-        email_confirmed_at: new Date().toISOString(),
-        app_metadata: {},
-        user_metadata: {},
-        identities: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-
-      // Create a session token for the test user
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: 'test@aavishkar.academy',
-        password: 'test123456'
-      });
-
-      if (error) {
-        // If normal sign-in fails, try to sign up the test user first
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: 'test@aavishkar.academy',
-          password: 'test123456',
-          options: {
-            data: {
-              full_name: 'Test User'
-            }
-          }
-        });
-
-        if (signUpError) {
-          throw signUpError;
-        }
-
-        // Now try to sign in again
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: 'test@aavishkar.academy',
-          password: 'test123456'
-        });
-
-        if (signInError) {
-          throw signInError;
-        }
-
-        return signInData;
-      }
-
-      return data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -105,15 +48,8 @@ const AuthForm = () => {
 
     try {
       console.log('Attempting to sign in with:', { email });
-
-      // Check if this is the test user
-      if (email === 'test@aavishkar.academy' && password === 'test123456') {
-        const result = await handleTestUserSignIn();
-        console.log('Test user sign in result:', result);
-      } else {
-        const result = await signIn(email, password);
-        console.log('Regular sign in result:', result);
-      }
+      const result = await signIn(email, password);
+      console.log('Sign in result:', result);
       
       toast({
         title: 'Success',
