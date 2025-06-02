@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +42,16 @@ const AdminPanel = () => {
       setMaterialsActiveTab('premium');
     }
   }, [activeTab, setMaterialsActiveTab]);
+
+  // Handle material field changes
+  const handleMaterialChange = (field: string, value: any) => {
+    if (editingMaterial) {
+      setEditingMaterial({
+        ...editingMaterial,
+        [field]: value
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -236,11 +245,12 @@ const AdminPanel = () => {
           material={editingMaterial}
           isNew={newMaterial}
           onSave={handleSave}
-          onClose={() => {
+          onCancel={() => {
             setEditingMaterial(null);
             setNewMaterial(false);
           }}
-          saving={savingMaterial}
+          onChange={handleMaterialChange}
+          savingMaterial={savingMaterial}
         />
       )}
     </div>
