@@ -35,6 +35,17 @@ const Auth = () => {
             Sign in to your account or create a new one
           </p>
         </div>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">Steps to Login:</h3>
+          <ol className="text-sm text-blue-700 space-y-1">
+            <li>1. Sign Up and create an account</li>
+            <li>2. Go to your gmail and verify from there</li>
+            <li>3. When you click on the link to verify, it will display an error, no worry</li>
+            <li>4. Come back to app, and Sign In with the credentials you used</li>
+          </ol>
+        </div>
+        
         <AuthForm />
       </div>
     </div>
