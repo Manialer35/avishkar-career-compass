@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/edaf6c8a-99f4-4154-a62e-5ea9345f08e9
+**URL**: (https://avishkar-career-compass.lovable.app/auth)
 
 ## How can I edit this code?
 
