@@ -4,7 +4,7 @@ package app.lovable.avishkar
 import android.app.Application
 import app.lovable.avishkar.services.ImageManager
 
-class AvishkarApplication : Application() {
+class AavishkarApplication : Application() {
     
     override fun onCreate() {
         super.onCreate()

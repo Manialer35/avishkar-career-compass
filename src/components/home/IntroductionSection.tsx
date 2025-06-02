@@ -1,3 +1,4 @@
+
 const IntroductionSection = () => {
   return (
     <div className="mb-6">
@@ -17,7 +18,7 @@ const IntroductionSection = () => {
       
       <div className="bg-white p-6 rounded-lg shadow-md">
         <p className="mb-4">
-          Avishkar Career Academy is a premier coaching institute dedicated to preparing students for competitive examinations.
+          Aavishkar Career Academy is a premier coaching institute dedicated to preparing students for competitive examinations.
           With our experienced faculty, comprehensive study materials, and focused approach, we have helped thousands of students
           achieve their career goals.
         </p>

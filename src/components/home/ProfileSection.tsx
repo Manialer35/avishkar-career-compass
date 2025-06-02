@@ -77,7 +77,7 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
 
   return (
     <div className="mb-8">
-      <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Avishkar Career Academy</h2>
+      <h2 className="text-2xl font-bold text-academy-primary mb-4">Welcome to Aavishkar Career Academy</h2>
       
       <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
         {/* Profile cards in a row - updated for better mobile layout */}

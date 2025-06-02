@@ -1,15 +1,14 @@
-
 import { BookOpen, Users, Trophy, CheckCircle, GraduationCap, Video, Phone, Youtube } from 'lucide-react';
 
 const About = () => {
   return (
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold text-academy-primary mb-6">About Avishkar Career Academy</h2>
+      <h2 className="text-2xl font-bold text-academy-primary mb-6">About Aavishkar Career Academy</h2>
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <h3 className="text-xl font-semibold mb-4">Our Journey</h3>
         <p className="mb-4">
-          Avishkar Career Academy was established with a vision to provide quality education and coaching to students
+          Aavishkar Career Academy was established with a vision to provide quality education and coaching to students
           preparing for competitive examinations. Over the years, we have grown into one of the most trusted coaching
           institutes in the region, known for our dedication to student success.
         </p>
@@ -106,7 +105,7 @@ const About = () => {
         <div className="aspect-video w-full max-w-2xl mx-auto">
           <iframe
             src="https://www.youtube.com/embed/SCouRj8tZn4"
-            title="Avishkar Career Academy Video"
+            title="Aavishkar Career Academy Video"
             className="w-full h-full rounded-lg"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
