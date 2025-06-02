@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
+import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +14,16 @@ interface StudyMaterial {
   thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
+}
+
+interface TrainingVideo {
+  id: string;
+  title: string;
+  description: string;
+  video_url: string;
+  thumbnail_url?: string;
+  category: string;
+  is_premium: boolean;
 }
 
 // Icon mapping for different material types
@@ -34,10 +43,12 @@ const getIconForMaterial = (title: string) => {
 const StudyMaterials = () => {
   const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
   const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
+  const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchMaterials();
+    fetchTrainingVideos();
   }, []);
 
   const fetchMaterials = async () => {
@@ -70,6 +81,25 @@ const StudyMaterials = () => {
       console.error('Error fetching materials:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTrainingVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('training_videos')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        setTrainingVideos(data);
+      }
+    } catch (error) {
+      console.error('Error fetching training videos:', error);
     }
   };
 
@@ -138,6 +168,62 @@ const StudyMaterials = () => {
     );
   };
 
+  const VideoCard = ({ video }: { video: TrainingVideo }) => {
+    return (
+      <div className={`bg-white rounded-lg p-4 shadow-sm border transition-all hover:shadow-md cursor-pointer ${
+        video.is_premium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
+      }`}>
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+            {video.thumbnail_url ? (
+              <img 
+                src={video.thumbnail_url} 
+                alt={video.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                <Video size={32} className="text-gray-400" />
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className={`p-2 rounded-full bg-black bg-opacity-50 ${
+                video.is_premium ? 'text-academy-red' : 'text-white'
+              }`}>
+                <Play size={20} fill="currentColor" />
+              </div>
+            </div>
+          </div>
+          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{video.title}</h3>
+          {video.description && (
+            <p className="text-xs text-gray-600 line-clamp-2">{video.description}</p>
+          )}
+          <div className="text-xs text-gray-500 capitalize">{video.category}</div>
+          {video.is_premium && (
+            <div className="text-sm font-semibold text-academy-red">Premium</div>
+          )}
+          <div className="w-full pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-full text-xs ${
+                video.is_premium 
+                  ? 'text-academy-red hover:text-academy-red hover:bg-red-50' 
+                  : 'text-academy-primary hover:text-academy-red hover:bg-gray-100'
+              }`}
+              asChild
+            >
+              <a href={video.video_url} target="_blank" rel="noopener noreferrer">
+                <Play className="h-3 w-3 mr-1" />
+                Watch Video
+              </a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-academy-primary mb-6">Study Materials</h1>
@@ -146,6 +232,7 @@ const StudyMaterials = () => {
         <TabsList className="w-full mb-4">
           <TabsTrigger value="free" className="flex-1">Free Materials</TabsTrigger>
           <TabsTrigger value="premium" className="flex-1">Premium Materials</TabsTrigger>
+          <TabsTrigger value="videos" className="flex-1">Training Videos</TabsTrigger>
         </TabsList>
         
         <TabsContent value="free" className="mt-4">
@@ -171,6 +258,24 @@ const StudyMaterials = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {paidMaterials.map((material) => (
                 <MaterialCard key={material.id} material={material} isPremium />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="videos" className="mt-4">
+          {loading ? (
+            renderMaterialsLoadingState()
+          ) : trainingVideos.length === 0 ? (
+            <div className="text-center py-8">
+              <Video size={64} className="text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Training Videos Yet</h3>
+              <p className="text-gray-600">Training videos will be available here soon.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {trainingVideos.map((video) => (
+                <VideoCard key={video.id} video={video} />
               ))}
             </div>
           )}

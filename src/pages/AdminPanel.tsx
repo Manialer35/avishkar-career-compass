@@ -1,141 +1,191 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Book, Video, Users, Calendar, Image, FileText, Shield } from 'lucide-react';
 import FreeMaterialsTab from '@/components/admin/FreeMaterialsTab';
 import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
 import VideosTab from '@/components/admin/VideosTab';
-import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import EventsTab from '@/components/admin/EventsTab';
 import ImageManagementTab from '@/components/admin/ImageManagementTab';
 import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
-import EventsTab from '@/components/admin/EventsTab';
-import { useAdminMaterials } from '@/hooks/useAdminMaterials';
-import Pagination from '@/components/admin/classes/Pagination';
+import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
 
 const AdminPanel = () => {
-  const { 
-    materials, 
-    loading,
-    savingMaterial,
-    activeTab, 
-    setActiveTab,
-    editingMaterial,
-    setEditingMaterial,
-    newMaterial,
-    setNewMaterial,
-    handleAddNew,
-    handleEdit,
-    handleDelete,
-    handleSave,
-    currentPage,
-    totalPages,
-    handlePageChange
-  } = useAdminMaterials();
-  
-  return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 overflow-hidden">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-3">
-        <h1 className="text-lg sm:text-xl font-bold text-academy-primary">Admin Panel</h1>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/users" className="flex items-center">
-              <Users size={16} className="mr-1" />
-              Manage Users
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="bg-blue-50 hover:bg-blue-100 border-blue-200">
-            <Link to="/events" className="flex items-center">
-              <Calendar size={16} className="mr-1" />
-              View Events Page
-            </Link>
-          </Button>
+  const { session, userRole, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState('free-materials');
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <Skeleton className="h-8 w-48 mb-4" />
+          <Skeleton className="h-32 w-full max-w-4xl" />
         </div>
       </div>
-      
-      <div className="w-full overflow-hidden">
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="overflow-x-auto">
-            <TabsList className="mb-3 sm:mb-4 flex w-full sm:justify-start gap-1">
-              <TabsTrigger value="free" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Free Materials</TabsTrigger>
-              <TabsTrigger value="premium" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Premium Materials</TabsTrigger>
-              <TabsTrigger value="videos" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Training Videos</TabsTrigger>
-              <TabsTrigger value="images" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Images</TabsTrigger>
-              <TabsTrigger value="registrations" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Class Registrations</TabsTrigger>
-              <TabsTrigger value="events" className="whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm">Events</TabsTrigger>
-            </TabsList>
-          </div>
-          
-          <div className="mt-4 bg-white p-3 sm:p-4 rounded-lg shadow-sm border">
-            <TabsContent value="free" className="min-w-0 mt-0">
-              <FreeMaterialsTab 
-                materials={materials.filter(m => !m.isPremium)} 
-                loading={loading}
-                onAddNew={handleAddNew}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-              <div className="mt-4">
-                <Pagination 
-                  currentPage={currentPage} 
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="premium" className="min-w-0 mt-0">
-              <PremiumMaterialsTab 
-                materials={materials.filter(m => m.isPremium)} 
-                loading={loading}
-                onAddNew={handleAddNew}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-              <div className="mt-4">
-                <Pagination 
-                  currentPage={currentPage} 
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="videos" className="min-w-0 mt-0">
-              <VideosTab />
-            </TabsContent>
-            
-            <TabsContent value="images" className="min-w-0 mt-0">
-              <ImageManagementTab />
-            </TabsContent>
-            
-            <TabsContent value="registrations" className="min-w-0 mt-0">
-              <ClassRegistrationsTab />
-            </TabsContent>
-            
-            <TabsContent value="events" className="min-w-0 mt-0">
-              <EventsTab />
-            </TabsContent>
-          </div>
-        </Tabs>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (userRole?.role !== 'admin') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center text-center">
+              <Shield className="h-12 w-12 text-gray-400 mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <p className="text-gray-600">You don't have permission to access the admin panel.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      
-      {editingMaterial && (
-        <EditMaterialDialog
-          material={editingMaterial}
-          isNew={newMaterial}
-          savingMaterial={savingMaterial}
-          onSave={handleSave}
-          onCancel={() => {
-            setEditingMaterial(null);
-            setNewMaterial(false);
-          }}
-          onChange={(field, value) => 
-            setEditingMaterial({...editingMaterial, [field]: value})
-          }
-        />
-      )}
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center mb-8">
+        <Shield className="h-8 w-8 text-academy-primary mr-3" />
+        <h1 className="text-3xl font-bold text-academy-primary">Admin Panel</h1>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-8">
+          <TabsTrigger value="free-materials" className="flex items-center gap-2">
+            <Book className="h-4 w-4" />
+            <span className="hidden sm:inline">Free</span>
+          </TabsTrigger>
+          <TabsTrigger value="premium-materials" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Premium</span>
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="flex items-center gap-2">
+            <Video className="h-4 w-4" />
+            <span className="hidden sm:inline">Videos</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="classes" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Classes</span>
+          </TabsTrigger>
+          <TabsTrigger value="registrations" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Registrations</span>
+          </TabsTrigger>
+          <TabsTrigger value="images" className="flex items-center gap-2">
+            <Image className="h-4 w-4" />
+            <span className="hidden sm:inline">Images</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="free-materials">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Book className="h-5 w-5" />
+                Free Study Materials Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <FreeMaterialsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="premium-materials">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Premium Study Materials Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PremiumMaterialsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="videos">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Video className="h-5 w-5" />
+                Training Videos Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VideosTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="events">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Events Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EventsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="classes">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Classes Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminClassesManagement />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="registrations">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Class Registrations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClassRegistrationsTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="images">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Image Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ImageManagementTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
