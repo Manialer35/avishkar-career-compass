@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
 import { Button } from './ui/button';
@@ -17,8 +16,8 @@ const Navbar = () => {
   const { toast } = useToast();
   const isAdmin = userRole?.role === 'admin';
 
-  // Convert Google Drive link to direct image URL
-  const logoUrl = "https://drive.google.com/uc?export=view&id=18BjwKmVY2KyAddp9Ufhfd9iccFAdvNKm";
+  // Use the uploaded logo
+  const logoUrl = "/lovable-uploads/c735577b-85a5-4e24-a5fc-de37dc760f8b.png";
 
   console.log("Navbar - userRole:", userRole);
   console.log("Navbar - isAdmin:", isAdmin);
@@ -96,18 +95,17 @@ const Navbar = () => {
     return (
       <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
         <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <img
               src={logoUrl}
-              alt="Avishkar Academy Logo"
-              className="w-10 h-10 rounded-md object-cover"
+              alt="Aavishkar Academy Logo"
+              className="w-12 h-8 object-contain"
               onError={(e) => {
-                e.currentTarget.src = "/fallback-logo.png"; // Fallback image if Google Drive fails
-                console.log("Logo failed to load, using fallback");
+                console.log("Logo failed to load");
               }}
             />
             <h1 className="text-xl font-bold">
-              <span className="text-white">Avishkar</span>
+              <span className="text-white">Aavishkar</span>
               <span className="text-blue-300"> Career Academy</span>
             </h1>
           </div>
@@ -119,18 +117,17 @@ const Navbar = () => {
   return (
     <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <img
             src={logoUrl}
-            alt="Avishkar Academy Logo"
-            className="w-10 h-10 rounded-md object-cover"
+            alt="Aavishkar Academy Logo"
+            className="w-12 h-8 object-contain"
             onError={(e) => {
-              e.currentTarget.src = "/fallback-logo.png"; // Fallback image if Google Drive fails
-              console.log("Logo failed to load, using fallback");
+              console.log("Logo failed to load");
             }}
           />
           <h1 className="text-xl font-bold">
-            <span className="text-white">Avishkar</span>
+            <span className="text-white">Aavishkar</span>
             <span className="text-blue-300"> Career Academy</span>
           </h1>
           {isAdmin && !isMobile && (

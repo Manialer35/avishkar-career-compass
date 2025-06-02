@@ -22,83 +22,69 @@ const RefundPolicy = () => {
 
       <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
         <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">1. Refund Eligibility</h2>
-          <p className="text-gray-700 mb-2">Refunds are available under the following conditions:</p>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">1. Course Cancellation</h2>
+          <p className="text-gray-700 mb-2">
+            Students may cancel their course enrollment within 7 days of registration and receive a full refund, provided:
+          </p>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
-            <li>Course cancellation by Aavishkar Career Academy</li>
-            <li>Technical issues preventing access to purchased materials</li>
-            <li>Request made within 7 days of purchase (for digital materials)</li>
-            <li>Request made within 24 hours of purchase (for live classes)</li>
+            <li>No study materials have been downloaded</li>
+            <li>Less than 10% of the course content has been accessed</li>
+            <li>Original payment proof is provided</li>
           </ul>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">2. Non-Refundable Items</h2>
-          <p className="text-gray-700 mb-2">The following items are not eligible for refunds:</p>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">2. Refund Processing</h2>
+          <p className="text-gray-700">
+            Approved refunds will be processed within 7-10 business days. Refunds will be credited to the original payment method used during purchase.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">3. Non-Refundable Items</h2>
+          <p className="text-gray-700 mb-2">The following items are non-refundable:</p>
           <ul className="list-disc list-inside text-gray-700 space-y-1">
-            <li>Digital study materials after 7 days of purchase</li>
-            <li>Courses that have been substantially accessed (>50% completion)</li>
-            <li>Physical study materials (books, printed materials)</li>
-            <li>Special promotional offers and discounted courses</li>
+            <li>Downloaded study materials and PDFs</li>
+            <li>Completed courses (greater than 50% progress)</li>
+            <li>Personal coaching sessions that have been conducted</li>
+            <li>Examination fees paid to external boards</li>
           </ul>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">3. Cancellation Policy</h2>
-          <p className="text-gray-700 mb-2">Class cancellations:</p>
-          <ul className="list-disc list-inside text-gray-700 space-y-1">
-            <li>Students can cancel enrollment up to 24 hours before class starts</li>
-            <li>Cancellations made less than 24 hours before class: 50% refund</li>
-            <li>No-shows without prior notice: No refund</li>
-            <li>Academy reserves the right to cancel classes due to insufficient enrollment</li>
-          </ul>
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">4. Refund Process</h2>
-          <p className="text-gray-700 mb-2">To request a refund:</p>
-          <ol className="list-decimal list-inside text-gray-700 space-y-1">
-            <li>Contact us at khot.md@gmail.com with your order details</li>
-            <li>Provide reason for refund request</li>
-            <li>Allow 7-10 business days for processing</li>
-            <li>Refunds will be processed to the original payment method</li>
-          </ol>
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">5. Pricing Policy</h2>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-academy-primary mb-2">Current Pricing Structure:</h3>
-            <ul className="list-disc list-inside text-gray-700 space-y-1">
-              <li>Free Study Materials: ₹0 (No cost)</li>
-              <li>Premium Study Materials: ₹99 - ₹999 (depending on content)</li>
-              <li>Live Classes: ₹199 - ₹1,999 (per session or package)</li>
-              <li>Complete Course Packages: ₹2,999 - ₹9,999</li>
-              <li>One-on-One Mentorship: ₹1,500 per hour</li>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">4. Course Pricing</h2>
+          <div className="bg-academy-light p-4 rounded-lg">
+            <h3 className="font-semibold mb-2">Current Course Fees:</h3>
+            <ul className="text-gray-700 space-y-1">
+              <li>• Basic Study Materials: ₹500 - ₹2,000</li>
+              <li>• Premium Course Package: ₹3,000 - ₹8,000</li>
+              <li>• Complete Coaching Program: ₹10,000 - ₹25,000</li>
+              <li>• Personal Mentoring Sessions: ₹1,500 per session</li>
             </ul>
             <p className="text-sm text-gray-600 mt-2">
-              *Prices are subject to change. Special discounts may be available during promotional periods.
+              *Prices are subject to change. Current pricing will be displayed at the time of purchase.
             </p>
           </div>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">6. Force Majeure</h2>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">5. Technical Issues</h2>
           <p className="text-gray-700">
-            In case of events beyond our control (natural disasters, government restrictions, etc.), we may need to postpone or cancel services. In such cases, we will offer rescheduling or full refunds.
+            If you experience technical difficulties preventing access to purchased materials, please contact our support team. We will work to resolve the issue or provide appropriate compensation.
           </p>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-academy-primary mb-3">7. Contact for Refunds</h2>
+          <h2 className="text-xl font-semibold text-academy-primary mb-3">6. Contact for Refunds</h2>
           <p className="text-gray-700">
-            For refund requests and queries, contact:
+            To request a refund or cancellation, please contact us at:
             <br />
             Email: khot.md@gmail.com
             <br />
             Phone: +91 9049137731 / +91 9890555432
             <br />
-            Response time: Within 48 hours
+            <br />
+            Please include your order number and reason for refund in your request.
           </p>
         </section>
 
