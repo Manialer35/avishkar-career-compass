@@ -1,5 +1,6 @@
 
 import { MapPin, Phone, Mail, Globe, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const EnquiryFooter = () => {
   return (
@@ -8,7 +9,7 @@ const EnquiryFooter = () => {
         <div>
           <h4 className="text-lg font-semibold mb-4">About Us</h4>
           <p className="text-gray-300 text-sm">
-            Avishkar Career Academy is a leading coaching institute specializing in competitive exam preparation, with a special focus on Police Bharti examinations.
+            Aavishkar Career Academy is a leading coaching institute specializing in competitive exam preparation, with a special focus on Police Bharti examinations.
           </p>
           <div className="flex space-x-4 mt-4">
             <a href="#" className="text-white hover:text-academy-red transition-colors">
@@ -45,24 +46,21 @@ const EnquiryFooter = () => {
         <div>
           <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li><a href="/" className="hover:text-academy-red transition-colors">Home</a></li>
-            <li><a href="/about" className="hover:text-academy-red transition-colors">About Us</a></li>
-            <li><a href="/event" className="hover:text-academy-red transition-colors">Police Bharti Event</a></li>
-            <li><a href="/enquiry" className="hover:text-academy-red transition-colors">Contact Us</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">Privacy Policy</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">Terms & Conditions</a></li>
+            <li><Link to="/" className="hover:text-academy-red transition-colors">Home</Link></li>
+            <li><Link to="/about" className="hover:text-academy-red transition-colors">About Us</Link></li>
+            <li><Link to="/event" className="hover:text-academy-red transition-colors">Police Bharti Event</Link></li>
+            <li><Link to="/enquiry" className="hover:text-academy-red transition-colors">Contact Us</Link></li>
+            <li><Link to="/study-materials" className="hover:text-academy-red transition-colors">Study Materials</Link></li>
           </ul>
         </div>
         
         <div>
-          <h4 className="text-lg font-semibold mb-4">Courses</h4>
+          <h4 className="text-lg font-semibold mb-4">Policies</h4>
           <ul className="space-y-2 text-gray-300 text-sm">
-            <li><a href="#" className="hover:text-academy-red transition-colors">Police Bharti</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">SSC Exams</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">Banking Exams</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">Railway Exams</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">State Exams</a></li>
-            <li><a href="#" className="hover:text-academy-red transition-colors">UPSC Preparation</a></li>
+            <li><Link to="/privacy-policy" className="hover:text-academy-red transition-colors">Privacy Policy</Link></li>
+            <li><Link to="/terms-conditions" className="hover:text-academy-red transition-colors">Terms & Conditions</Link></li>
+            <li><Link to="/refund-policy" className="hover:text-academy-red transition-colors">Refund & Cancellation</Link></li>
+            <li><Link to="/shipping-policy" className="hover:text-academy-red transition-colors">Shipping Policy</Link></li>
           </ul>
         </div>
         
@@ -71,7 +69,7 @@ const EnquiryFooter = () => {
           <ul className="space-y-3 text-gray-300 text-sm">
             <li className="flex items-start">
               <MapPin className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
-              <span>123 Education Street, City Center, State - 123456</span>
+              <span>Swargate Chowk, Near HP Petrol Pump, Infront of Naik B Biyane, Panna Chambers, 3rd Floor</span>
             </li>
             <li className="flex items-center">
               <Phone className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
@@ -79,7 +77,7 @@ const EnquiryFooter = () => {
             </li>
             <li className="flex items-center">
               <Mail className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
-              <span>atulhmadkar@gmail.com</span>
+              <span>khot.md@gmail.com</span>
             </li>
             <li className="flex items-center">
               <Globe className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
@@ -109,9 +107,15 @@ const EnquiryFooter = () => {
         </div>
       </div>
       
-      <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
-        <p>&copy; {new Date().getFullYear()} Avishkar Career Academy. All rights reserved.</p>
-        <p className="mt-2">Designed & Developed for Success</p>
+      <div className="border-t border-gray-700 mt-8 pt-6">
+        <div className="text-center text-gray-400 text-sm space-y-2">
+          <div className="bg-academy-primary/10 rounded-lg p-3 mb-4">
+            <p className="text-academy-red font-semibold text-lg">AAVISHKAR CAREER ACADEMY</p>
+            <p className="text-gray-300">Official Billing Entity for All Transactions</p>
+          </div>
+          <p>&copy; {new Date().getFullYear()} Aavishkar Career Academy. All rights reserved.</p>
+          <p className="mt-2">Designed & Developed for Success</p>
+        </div>
       </div>
     </footer>
   );

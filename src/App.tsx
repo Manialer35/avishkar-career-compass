@@ -21,6 +21,10 @@ import StudyMaterials from "./pages/StudyMaterials";
 import PremiumStudyMaterials from "./pages/PremiumStudyMaterials";
 import AdminPanel from "./pages/AdminPanel";
 import UsersManagement from "./pages/UsersManagement";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
+import ShippingPolicy from "./pages/ShippingPolicy";
 import { useState } from "react";
 import PurchaseProduct from "@/components/payment/PurchaseProduct";
 
@@ -44,7 +48,8 @@ const MainLayout = () => {
   const { session } = useAuth();
   
   const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events'];
-  const isMainRoute = mainRoutes.includes(location.pathname);
+  const policyRoutes = ['/terms-conditions', '/privacy-policy', '/refund-policy', '/shipping-policy'];
+  const isMainRoute = mainRoutes.includes(location.pathname) || policyRoutes.includes(location.pathname);
   const showBottomNav = isMainRoute || location.pathname === '/home' 
     || location.pathname === '/study-materials' || location.pathname === '/premium-materials'
     || location.pathname === '/admin';
@@ -70,6 +75,11 @@ const MainLayout = () => {
           <Route path="/purchase/:productId" element={<PurchaseProduct />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin/users" element={<UsersManagement />} />
+          {/* Policy Pages */}
+          <Route path="/terms-conditions" element={<TermsAndConditions />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/shipping-policy" element={<ShippingPolicy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
