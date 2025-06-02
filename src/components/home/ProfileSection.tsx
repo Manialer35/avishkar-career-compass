@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -89,7 +90,7 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
               ) : (
                 <img
                   src={profileImages.maheshKhot}
-                  alt="Mahesh Khot"
+                  alt="श्री. महेश ज्ञानदेव खोत"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     // Fallback if image fails to load
@@ -98,7 +99,8 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
                 />
               )}
             </div>
-            <h3 className="text-sm font-semibold text-academy-primary">Mahesh Khot</h3>
+            <h3 className="text-sm font-semibold text-academy-primary">श्री. महेश ज्ञानदेव खोत</h3>
+            <p className="text-xs text-gray-600 mb-1">संस्थापक संचालक</p>
             <a href="tel:+919049137731" className="text-xs text-academy-primary hover:text-academy-secondary">
               +91 9049137731
             </a>
@@ -112,7 +114,7 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
               ) : (
                 <img
                   src={profileImages.atulMadkar}
-                  alt="Atul Madkar"
+                  alt="श्री. अतुल हिरालाल मडकर"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     // Fallback if image fails to load
@@ -121,7 +123,8 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
                 />
               )}
             </div>
-            <h3 className="text-sm font-semibold text-academy-primary">Atul Madkar</h3>
+            <h3 className="text-sm font-semibold text-academy-primary">श्री. अतुल हिरालाल मडकर</h3>
+            <p className="text-xs text-gray-600 mb-1">संचालक</p>
             <a href="tel:+919890555432" className="text-xs text-academy-primary hover:text-academy-secondary">
               +91 9890555432
             </a>
