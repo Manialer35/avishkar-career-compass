@@ -1,5 +1,5 @@
 
-import { BookOpen, Users, Trophy, CheckCircle } from 'lucide-react';
+import { BookOpen, Users, Trophy, CheckCircle, GraduationCap } from 'lucide-react';
 
 const About = () => {
   return (
@@ -72,6 +72,30 @@ const About = () => {
             <span>Modern infrastructure and conducive learning environment</span>
           </li>
         </ul>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="flex items-center mb-4">
+          <GraduationCap className="h-8 w-8 text-academy-secondary mr-3" />
+          <h3 className="text-lg font-semibold">Guest Lecturers</h3>
+        </div>
+        <div className="space-y-6">
+          <div className="border-l-4 border-academy-secondary pl-4">
+            <h4 className="font-semibold text-lg text-gray-800">श्री. विजय खेडकर सर</h4>
+            <p className="text-gray-600">सहायक संचालक वित्त व लेखा विभाग उल्हासनगर म. न. पा</p>
+          </div>
+          
+          <div className="border-l-4 border-academy-secondary pl-4">
+            <h4 className="font-semibold text-lg text-gray-800">श्रीमती कांचन वाघमारे</h4>
+            <p className="text-gray-600">वरिष्ठ समाज कल्याण निरीक्षक,</p>
+            <p className="text-gray-600">प्रादेशिक उपयुक्त कार्यालय, समाज कल्याण, मुंबई विभाग</p>
+          </div>
+          
+          <div className="border-l-4 border-academy-secondary pl-4">
+            <h4 className="font-semibold text-lg text-gray-800">श्री. राजेश भराटे सर</h4>
+            <p className="text-gray-600">G. K onliner या प्रसिद्ध पुस्तकाचे लेखक</p>
+          </div>
+        </div>
       </div>
       
       <div className="bg-white rounded-lg shadow-md p-6">
