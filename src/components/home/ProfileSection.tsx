@@ -134,7 +134,7 @@ const ProfileSection = ({ profileImages: propImages }: ProfileSectionProps = {})
       
       {/* Text section below the profiles */}
       <div className="text-center max-w-md mx-auto mb-4">
-        <h3 className="text-xl font-bold text-academy-primary">Empowering Dreams, Ensuring Success</h3>
+        <h3 className="text-xl font-bold text-academy-primary">Every Dream Needs Mentor</h3>
         <p className="text-sm text-gray-600 mt-2">Download our app and start your success journey today</p>
       </div>
     </div>
