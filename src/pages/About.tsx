@@ -100,23 +100,34 @@ const About = () => {
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <div className="flex items-center mb-4">
           <Video className="h-8 w-8 text-academy-secondary mr-3" />
-          <h3 className="text-lg font-semibold">Academy Video</h3>
+          <h3 className="text-lg font-semibold">Academy Videos</h3>
         </div>
-        <div className="aspect-video w-full max-w-2xl mx-auto">
-          <iframe
-            src="https://www.youtube.com/embed/SCouRj8tZn4"
-            title="Aavishkar Career Academy Video"
-            className="w-full h-full rounded-lg"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+        <div className="space-y-6">
+          <div className="aspect-video w-full max-w-2xl mx-auto">
+            <iframe
+              src="https://www.youtube.com/embed/SCouRj8tZn4"
+              title="Aavishkar Career Academy Video"
+              className="w-full h-full rounded-lg"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <div className="aspect-video w-full max-w-2xl mx-auto">
+            <iframe
+              src="https://www.youtube.com/embed/WRVlonjIpos"
+              title="Aavishkar Career Academy Video 2"
+              className="w-full h-full rounded-lg"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
         <div className="flex items-center mb-4">
           <Phone className="h-8 w-8 text-academy-secondary mr-3" />
-          <h3 className="text-lg font-semibold">Physical Lecturers</h3>
+          <h3 className="text-lg font-semibold">Physical Trainers</h3>
         </div>
         <div className="space-y-6">
           <div className="border-l-4 border-academy-primary pl-4">
