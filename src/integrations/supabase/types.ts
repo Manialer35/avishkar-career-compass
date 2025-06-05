@@ -383,6 +383,36 @@ export type Database = {
           },
         ]
       }
+      study_material_folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_premium: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       study_materials: {
         Row: {
           created_at: string
@@ -391,6 +421,7 @@ export type Database = {
           downloadurl: string | null
           duration_months: number | null
           duration_type: string | null
+          folder_id: string | null
           id: string
           ispremium: boolean | null
           name: string
@@ -405,6 +436,7 @@ export type Database = {
           downloadurl?: string | null
           duration_months?: number | null
           duration_type?: string | null
+          folder_id?: string | null
           id?: string
           ispremium?: boolean | null
           name: string
@@ -419,6 +451,7 @@ export type Database = {
           downloadurl?: string | null
           duration_months?: number | null
           duration_type?: string | null
+          folder_id?: string | null
           id?: string
           ispremium?: boolean | null
           name?: string
@@ -426,7 +459,15 @@ export type Database = {
           thumbnailurl?: string | null
           title?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "study_materials_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "study_material_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_videos: {
         Row: {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,7 +35,6 @@ const AdminPanel = () => {
     setActiveTab: setMaterialsActiveTab
   } = useAdminMaterials();
 
-  // Update materials active tab when admin panel tab changes
   useEffect(() => {
     if (activeTab === 'free-materials') {
       setMaterialsActiveTab('free');
@@ -43,7 +43,6 @@ const AdminPanel = () => {
     }
   }, [activeTab, setMaterialsActiveTab]);
 
-  // Handle material field changes
   const handleMaterialChange = (field: string, value: any) => {
     if (editingMaterial) {
       setEditingMaterial({

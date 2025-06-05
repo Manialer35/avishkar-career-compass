@@ -12,7 +12,8 @@ interface StudyMaterial {
   thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
-  name?: string; // Added name field
+  name?: string;
+  folder_id?: string;
 }
 
 export const useAdminMaterials = () => {
@@ -27,13 +28,11 @@ export const useAdminMaterials = () => {
   const { toast } = useToast();
   const { session } = useAuth();
 
-  // Memoize fetchMaterials to avoid recreating it on each render
   const fetchMaterials = useCallback(async () => {
     try {
       console.log("Fetching materials...");
       setLoading(true);
       
-      // First check if the session is valid
       if (!session) {
         console.log("No active session, cannot fetch materials");
         toast({
@@ -64,7 +63,8 @@ export const useAdminMaterials = () => {
           downloadUrl: item.downloadurl || "",
           thumbnailUrl: item.thumbnailurl || undefined,
           isPremium: item.ispremium || false,
-          price: item.price || 0
+          price: item.price || 0,
+          folder_id: item.folder_id || undefined
         }));
         
         setMaterials(formattedMaterials);
@@ -83,7 +83,6 @@ export const useAdminMaterials = () => {
     }
   }, [toast, session]);
 
-  // Using useEffect to fetch materials when the component mounts or session changes
   useEffect(() => {
     if (session) {
       fetchMaterials();
@@ -139,7 +138,8 @@ export const useAdminMaterials = () => {
       description: '',
       downloadUrl: '',
       isPremium: activeTab === 'premium',
-      price: activeTab === 'premium' ? 0 : undefined
+      price: activeTab === 'premium' ? 0 : undefined,
+      folder_id: undefined
     });
     setNewMaterial(true);
   };
@@ -161,7 +161,6 @@ export const useAdminMaterials = () => {
         return;
       }
       
-      // Make sure price is set for premium materials
       if (editingMaterial.isPremium && (!editingMaterial.price || editingMaterial.price <= 0)) {
         toast({
           title: "Invalid price",
@@ -171,7 +170,6 @@ export const useAdminMaterials = () => {
         return;
       }
 
-      // Make sure the title is defined
       if (!editingMaterial.title || editingMaterial.title.trim() === '') {
         toast({
           title: "Missing title",
@@ -181,15 +179,15 @@ export const useAdminMaterials = () => {
         return;
       }
 
-      // Fix: Prepare the material data with proper field names matching the database
       const materialData = {
         title: editingMaterial.title,
-        name: editingMaterial.title, // Use title as name if not provided
+        name: editingMaterial.title,
         description: editingMaterial.description,
-        downloadurl: editingMaterial.downloadUrl, // Note: lowercase 'url' to match DB column
-        thumbnailurl: editingMaterial.thumbnailUrl || null, // Note: lowercase 'url' to match DB column
-        ispremium: editingMaterial.isPremium, // Note: lowercase 'is' to match DB column
-        price: editingMaterial.isPremium ? editingMaterial.price : 0 // Always set a price value
+        downloadurl: editingMaterial.downloadUrl,
+        thumbnailurl: editingMaterial.thumbnailUrl || null,
+        ispremium: editingMaterial.isPremium,
+        price: editingMaterial.isPremium ? editingMaterial.price : 0,
+        folder_id: editingMaterial.folder_id || null
       };
 
       if (newMaterial) {
@@ -213,13 +211,13 @@ export const useAdminMaterials = () => {
             downloadUrl: data[0].downloadurl || "",
             thumbnailUrl: data[0].thumbnailurl || undefined,
             isPremium: data[0].ispremium || false,
-            price: data[0].price || 0
+            price: data[0].price || 0,
+            folder_id: data[0].folder_id || undefined
           };
           
           setMaterials([newItem, ...materials]);
           console.log("New material saved:", newItem);
           
-          // Show success message
           toast({
             title: "Material added",
             description: "The new study material has been created successfully.",
@@ -238,7 +236,6 @@ export const useAdminMaterials = () => {
           throw error;
         }
 
-        // Update the materials list with the updated item
         setMaterials(materials.map(m => m.id === editingMaterial.id ? {
           ...m,
           title: editingMaterial.title,
@@ -247,12 +244,12 @@ export const useAdminMaterials = () => {
           downloadUrl: editingMaterial.downloadUrl,
           thumbnailUrl: editingMaterial.thumbnailUrl,
           isPremium: editingMaterial.isPremium,
-          price: editingMaterial.price || 0
+          price: editingMaterial.price || 0,
+          folder_id: editingMaterial.folder_id
         } : m));
         
         console.log("Material updated:", editingMaterial);
         
-        // Show success message
         toast({
           title: "Material updated",
           description: "The study material has been updated successfully.",
@@ -260,7 +257,6 @@ export const useAdminMaterials = () => {
         });
       }
       
-      // Reset the editing state
       setEditingMaterial(null);
       setNewMaterial(false);
       
@@ -277,7 +273,6 @@ export const useAdminMaterials = () => {
     }
   };
   
-  // Get current materials for pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const filteredMaterials = materials.filter(m => 
