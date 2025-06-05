@@ -47,7 +47,7 @@ const MainLayout = () => {
   const location = useLocation();
   const { session } = useAuth();
   
-  const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events'];
+  const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events', '/online-classes'];
   const policyRoutes = ['/terms-conditions', '/privacy-policy', '/refund-policy', '/shipping-policy'];
   const isMainRoute = mainRoutes.includes(location.pathname) || policyRoutes.includes(location.pathname);
   const showBottomNav = isMainRoute || location.pathname === '/home' 
@@ -68,6 +68,7 @@ const MainLayout = () => {
           <Route path="/about" element={<About />} />
           <Route path="/event" element={<Event />} />
           <Route path="/events" element={<OnlineClasses />} />
+          <Route path="/online-classes" element={<OnlineClasses />} />
           <Route path="/enquiry" element={<Enquiry />} />
           <Route path="/study-materials" element={<StudyMaterials />} />
           <Route path="/free-materials" element={<Navigate to="/study-materials" replace />} />
