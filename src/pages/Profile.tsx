@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, User, Settings, Mail, Phone } from 'lucide-react';
+import { Shield, User, Settings, Mail, Phone, FileText, Lock, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   const { user } = useAuth();
@@ -157,36 +158,49 @@ const Profile = () => {
             <CardHeader>
               <CardTitle>App Settings</CardTitle>
               <CardDescription>
-                Manage your application preferences
+                Manage your application preferences and policies
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium">Privacy Policy</h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Our privacy policy outlines how we collect, use, and protect your personal information.
-                    We are committed to ensuring your data is secure and your privacy is respected.
-                  </p>
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-academy-primary mt-2"
-                  >
-                    Read Privacy Policy
-                  </Button>
-                </div>
-                
-                <div>
-                  <h3 className="text-lg font-medium">Terms of Service</h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Our terms of service establish the rules, guidelines, and obligations for using our platform.
-                  </p>
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-academy-primary mt-2"
-                  >
-                    View Terms of Service
-                  </Button>
+              <div className="space-y-6">
+                {/* Policy Links Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Legal & Policies</h3>
+                  
+                  <div className="space-y-3">
+                    <Link 
+                      to="/terms-conditions" 
+                      className="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+                    >
+                      <FileText className="h-5 w-5 text-academy-primary mr-3" />
+                      <div>
+                        <h4 className="font-medium text-gray-900">Terms and Conditions</h4>
+                        <p className="text-sm text-gray-500">View our terms of service</p>
+                      </div>
+                    </Link>
+
+                    <Link 
+                      to="/privacy-policy" 
+                      className="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+                    >
+                      <Lock className="h-5 w-5 text-academy-primary mr-3" />
+                      <div>
+                        <h4 className="font-medium text-gray-900">Privacy Policy</h4>
+                        <p className="text-sm text-gray-500">Learn how we protect your data</p>
+                      </div>
+                    </Link>
+
+                    <Link 
+                      to="/refund-policy" 
+                      className="flex items-center p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+                    >
+                      <CreditCard className="h-5 w-5 text-academy-primary mr-3" />
+                      <div>
+                        <h4 className="font-medium text-gray-900">Refund & Cancellation Policy</h4>
+                        <p className="text-sm text-gray-500">View our refund and cancellation terms</p>
+                      </div>
+                    </Link>
+                  </div>
                 </div>
               </div>
             </CardContent>
