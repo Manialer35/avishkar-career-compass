@@ -1,6 +1,7 @@
 
 import { Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,34 +110,38 @@ const StudyMaterialsSection = ({
     const IconComponent = getIconForMaterial(material.title);
     
     return (
-      <div className={`bg-gray-50 rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer ${
+      <div className={`bg-gray-50 rounded-lg p-3 transition-all hover:shadow-sm cursor-pointer relative ${
         isPremium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
       }`}>
+        {material.isUpcoming && (
+          <div className="absolute top-2 right-2 z-10">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs px-2 py-1">
+              <Clock className="h-3 w-3 mr-1" />
+              Coming Soon
+            </Badge>
+          </div>
+        )}
         <div className="flex flex-col items-center text-center space-y-2">
           <div className={`p-2 rounded-lg ${
             isPremium ? 'bg-academy-red/10' : 'bg-academy-primary/10'
-          }`}>
+          } ${material.isUpcoming ? 'opacity-60' : ''}`}>
             <IconComponent 
               size={24} 
-              className={isPremium ? 'text-academy-red' : 'text-academy-primary'} 
+              className={`${isPremium ? 'text-academy-red' : 'text-academy-primary'} ${material.isUpcoming ? 'opacity-60' : ''}`} 
             />
           </div>
-          <h5 className="font-semibold text-sm line-clamp-2 min-h-[2rem]">{material.title}</h5>
+          <h5 className={`font-semibold text-sm line-clamp-2 min-h-[2rem] ${material.isUpcoming ? 'text-gray-500' : ''}`}>
+            {material.title}
+          </h5>
           {isPremium && material.price && !material.isUpcoming && (
             <div className="text-xs font-semibold text-academy-red">₹{material.price}</div>
-          )}
-          {material.isUpcoming && (
-            <div className="flex items-center text-academy-secondary text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              Coming Soon
-            </div>
           )}
           <div className="w-full">
             {material.isUpcoming ? (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full text-xs cursor-not-allowed"
+                className="w-full text-xs cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300"
                 disabled
               >
                 Not Available Yet
