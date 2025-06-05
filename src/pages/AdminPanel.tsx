@@ -1,274 +1,171 @@
 
-import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Book, Video, Users, Calendar, Image, FileText, Shield } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BookOpen, Video, FileText, Users, ImageIcon, Clock } from 'lucide-react';
 import FreeMaterialsTab from '@/components/admin/FreeMaterialsTab';
 import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
+import UpcomingMaterialsTab from '@/components/admin/UpcomingMaterialsTab';
 import VideosTab from '@/components/admin/VideosTab';
 import EventsTab from '@/components/admin/EventsTab';
 import ImageManagementTab from '@/components/admin/ImageManagementTab';
-import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
-import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
-import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { Navigate } from 'react-router-dom';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
+import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
 
 const AdminPanel = () => {
-  const { session, userRole, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('free-materials');
-  
+  const { session, userRole } = useAuth();
   const {
+    materials,
     allMaterials,
-    loading: materialsLoading,
+    loading,
     savingMaterial,
     editingMaterial,
     setEditingMaterial,
     newMaterial,
     setNewMaterial,
+    activeTab,
+    setActiveTab,
+    currentPage,
+    totalPages,
+    handlePageChange,
     handleEdit,
     handleDelete,
     handleAddNew,
     handleSave,
-    setActiveTab: setMaterialsActiveTab
+    fetchMaterials
   } = useAdminMaterials();
 
-  useEffect(() => {
-    if (activeTab === 'free-materials') {
-      setMaterialsActiveTab('free');
-    } else if (activeTab === 'premium-materials') {
-      setMaterialsActiveTab('premium');
-    }
-  }, [activeTab, setMaterialsActiveTab]);
-
-  const handleMaterialChange = (field: string, value: any) => {
-    if (editingMaterial) {
-      setEditingMaterial({
-        ...editingMaterial,
-        [field]: value
-      });
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-center min-h-[50vh]">
-          <Skeleton className="h-8 w-48 mb-4" />
-          <Skeleton className="h-32 w-full max-w-4xl" />
-        </div>
-      </div>
-    );
-  }
-
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  if (userRole?.role !== 'admin') {
+  if (userRole !== 'admin') {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center text-center">
-              <Shield className="h-12 w-12 text-gray-400 mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-              <p className="text-gray-600">You don't have permission to access the admin panel.</p>
-            </div>
-          </CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle>Access Denied</CardTitle>
+            <CardDescription>You don't have permission to access the admin panel.</CardDescription>
+          </CardHeader>
         </Card>
       </div>
     );
   }
 
+  const handleAddNewMaterial = (type: 'free' | 'premium' | 'upcoming') => {
+    setEditingMaterial({
+      id: `new-${Date.now()}`,
+      title: '',
+      description: '',
+      downloadUrl: '',
+      isPremium: type === 'premium',
+      price: type === 'premium' ? 0 : undefined,
+      folder_id: undefined,
+      isUpcoming: type === 'upcoming'
+    });
+    setNewMaterial(true);
+  };
+
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex items-center px-4 py-8">
-        <Shield className="h-8 w-8 text-academy-primary mr-3" />
-        <h1 className="text-3xl font-bold text-academy-primary">Admin Panel</h1>
+    <div className="container mx-auto px-4 py-6 max-w-6xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-academy-primary mb-2">Admin Panel</h1>
+        <p className="text-gray-600">Manage study materials, videos, events, and more</p>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-8 mx-4">
-            <TabsTrigger value="free-materials" className="flex items-center gap-2">
-              <Book className="h-4 w-4" />
-              <span className="hidden sm:inline">Free</span>
-            </TabsTrigger>
-            <TabsTrigger value="premium-materials" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Premium</span>
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="flex items-center gap-2">
-              <Video className="h-4 w-4" />
-              <span className="hidden sm:inline">Videos</span>
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Events</span>
-            </TabsTrigger>
-            <TabsTrigger value="classes" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Classes</span>
-            </TabsTrigger>
-            <TabsTrigger value="registrations" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Registrations</span>
-            </TabsTrigger>
-            <TabsTrigger value="images" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
-              <span className="hidden sm:inline">Images</span>
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="free-materials" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 mb-6">
+          <TabsTrigger value="free-materials" className="flex items-center gap-1 text-xs">
+            <BookOpen size={14} />
+            <span className="hidden sm:inline">Free</span>
+          </TabsTrigger>
+          <TabsTrigger value="premium-materials" className="flex items-center gap-1 text-xs">
+            <FileText size={14} />
+            <span className="hidden sm:inline">Premium</span>
+          </TabsTrigger>
+          <TabsTrigger value="upcoming-materials" className="flex items-center gap-1 text-xs">
+            <Clock size={14} />
+            <span className="hidden sm:inline">Upcoming</span>
+          </TabsTrigger>
+          <TabsTrigger value="videos" className="flex items-center gap-1 text-xs">
+            <Video size={14} />
+            <span className="hidden sm:inline">Videos</span>
+          </TabsTrigger>
+          <TabsTrigger value="events" className="flex items-center gap-1 text-xs">
+            <Users size={14} />
+            <span className="hidden sm:inline">Events</span>
+          </TabsTrigger>
+          <TabsTrigger value="images" className="flex items-center gap-1 text-xs">
+            <ImageIcon size={14} />
+            <span className="hidden sm:inline">Images</span>
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="flex-1 overflow-hidden px-4">
-            <TabsContent value="free-materials" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Book className="h-5 w-5" />
-                    Free Study Materials Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <FreeMaterialsTab 
-                      materials={allMaterials}
-                      loading={materialsLoading}
-                      onAddNew={() => {
-                        setMaterialsActiveTab('free');
-                        handleAddNew();
-                      }}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+        <Card>
+          <CardContent className="p-4">
+            <TabsContent value="free-materials" className="mt-0">
+              <FreeMaterialsTab
+                materials={allMaterials}
+                loading={loading}
+                onAddNew={() => handleAddNewMaterial('free')}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </TabsContent>
 
-            <TabsContent value="premium-materials" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Premium Study Materials Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <PremiumMaterialsTab 
-                      materials={allMaterials}
-                      loading={materialsLoading}
-                      onAddNew={() => {
-                        setMaterialsActiveTab('premium');
-                        handleAddNew();
-                      }}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+            <TabsContent value="premium-materials" className="mt-0">
+              <PremiumMaterialsTab
+                materials={allMaterials}
+                loading={loading}
+                onAddNew={() => handleAddNewMaterial('premium')}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </TabsContent>
 
-            <TabsContent value="videos" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Video className="h-5 w-5" />
-                    Training Videos Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <VideosTab />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+            <TabsContent value="upcoming-materials" className="mt-0">
+              <UpcomingMaterialsTab
+                materials={allMaterials}
+                loading={loading}
+                onAddNew={() => handleAddNewMaterial('upcoming')}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
             </TabsContent>
 
-            <TabsContent value="events" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Events Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <EventsTab />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+            <TabsContent value="videos" className="mt-0">
+              <VideosTab />
             </TabsContent>
 
-            <TabsContent value="classes" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Classes Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
-                  <AdminClassesManagement />
-                </CardContent>
-              </Card>
+            <TabsContent value="events" className="mt-0">
+              <EventsTab />
+              <div className="mt-8">
+                <AdminClassesManagement />
+              </div>
             </TabsContent>
 
-            <TabsContent value="registrations" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Class Registrations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <ClassRegistrationsTab />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
+            <TabsContent value="images" className="mt-0">
+              <ImageManagementTab />
             </TabsContent>
+          </CardContent>
+        </Card>
+      </Tabs>
 
-            <TabsContent value="images" className="h-full">
-              <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Image className="h-5 w-5" />
-                    Image Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <ImageManagementTab />
-                  </ScrollArea>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
-        </Tabs>
-      </div>
-
-      {editingMaterial && (
-        <EditMaterialDialog
-          material={editingMaterial}
-          isNew={newMaterial}
-          onSave={handleSave}
-          onCancel={() => {
-            setEditingMaterial(null);
-            setNewMaterial(false);
-          }}
-          onChange={handleMaterialChange}
-          savingMaterial={savingMaterial}
-        />
-      )}
+      <EditMaterialDialog
+        isOpen={!!editingMaterial}
+        onClose={() => {
+          setEditingMaterial(null);
+          setNewMaterial(false);
+        }}
+        material={editingMaterial}
+        onMaterialChange={setEditingMaterial}
+        onSave={handleSave}
+        saving={savingMaterial}
+        isNew={newMaterial}
+      />
     </div>
   );
 };
