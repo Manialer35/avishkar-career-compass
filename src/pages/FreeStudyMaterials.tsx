@@ -1,10 +1,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
+import FolderCard from '@/components/FolderCard';
 
 interface StudyMaterial {
   id: string;
@@ -32,16 +33,14 @@ const getIconForMaterial = (title: string) => {
 const FreeStudyMaterials = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedFolderId = searchParams.get('folderId');
   const { folders } = useFolders();
 
   const freeFolders = folders.filter(folder => !folder.is_premium);
-  
-  const filteredMaterials = selectedFolder === 'all' 
-    ? materials
-    : selectedFolder === 'no-folder'
-    ? materials.filter(material => !material.folder_id)
-    : materials.filter(material => material.folder_id === selectedFolder);
+  const materialsInFolder = selectedFolderId 
+    ? materials.filter(material => material.folder_id === selectedFolderId)
+    : materials.filter(material => !material.folder_id);
 
   useEffect(() => {
     fetchMaterials();
@@ -76,6 +75,16 @@ const FreeStudyMaterials = () => {
       setLoading(false);
     }
   };
+
+  const handleFolderClick = (folderId: string) => {
+    setSearchParams({ folderId });
+  };
+
+  const handleBackToFolders = () => {
+    setSearchParams({});
+  };
+
+  const selectedFolder = freeFolders.find(f => f.id === selectedFolderId);
 
   const MaterialCard = ({ material }: { material: StudyMaterial }) => {
     const IconComponent = getIconForMaterial(material.title);
@@ -122,50 +131,77 @@ const FreeStudyMaterials = () => {
         <h1 className="text-2xl font-bold text-academy-primary">Free Study Materials</h1>
       </div>
 
-      {/* Folder Filter */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Button
-          variant={selectedFolder === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedFolder('all')}
-        >
-          All Materials
-        </Button>
-        <Button
-          variant={selectedFolder === 'no-folder' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedFolder('no-folder')}
-        >
-          No Folder
-        </Button>
-        {freeFolders.map((folder) => (
-          <Button
-            key={folder.id}
-            variant={selectedFolder === folder.id ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedFolder(folder.id)}
-            className="flex items-center gap-1"
-          >
-            <Folder size={12} />
-            {folder.name}
-          </Button>
-        ))}
-      </div>
+      {selectedFolderId ? (
+        // Show materials in selected folder
+        <div>
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              onClick={handleBackToFolders}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              Back to Folders
+            </Button>
+            <div className="flex items-center gap-2">
+              <Folder size={20} className="text-academy-primary" />
+              <h2 className="text-xl font-semibold">{selectedFolder?.name}</h2>
+            </div>
+          </div>
 
-      {loading ? (
-        <div className="text-center py-8">Loading materials...</div>
-      ) : filteredMaterials.length === 0 ? (
-        <div className="text-center py-8">
-          {selectedFolder === 'all' 
-            ? "No free study materials found"
-            : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
-          }
+          {loading ? (
+            <div className="text-center py-8">Loading materials...</div>
+          ) : materialsInFolder.length === 0 ? (
+            <div className="text-center py-8">
+              No materials found in this folder.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {materialsInFolder.map((material) => (
+                <MaterialCard key={material.id} material={material} />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredMaterials.map((material) => (
-            <MaterialCard key={material.id} material={material} />
-          ))}
+        // Show folders and loose materials
+        <div className="space-y-8">
+          {/* Folders Section */}
+          {freeFolders.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Folder className="text-academy-primary" />
+                Material Folders
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {freeFolders.map((folder) => (
+                  <FolderCard
+                    key={folder.id}
+                    folder={folder}
+                    onClick={() => handleFolderClick(folder.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loose Materials Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Other Materials</h2>
+            {loading ? (
+              <div className="text-center py-8">Loading materials...</div>
+            ) : materialsInFolder.length === 0 ? (
+              <div className="text-center py-8">
+                No other materials found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {materialsInFolder.map((material) => (
+                  <MaterialCard key={material.id} material={material} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

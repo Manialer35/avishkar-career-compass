@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play, Youtube, Folder } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFolders } from '@/hooks/useFolders';
+import FolderCard from '@/components/FolderCard';
 
 interface StudyMaterial {
   id: string;
@@ -75,24 +76,21 @@ const StudyMaterials = () => {
   const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<TrainingVideo | null>(null);
-  const [selectedFreeFolder, setSelectedFreeFolder] = useState<string>('all');
-  const [selectedPremiumFolder, setSelectedPremiumFolder] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedFolderId = searchParams.get('folderId');
+  const tab = searchParams.get('tab') || 'free';
   const { folders } = useFolders();
 
   const freeFolders = folders.filter(folder => !folder.is_premium);
   const premiumFolders = folders.filter(folder => folder.is_premium);
-  
-  const filteredFreeMaterials = selectedFreeFolder === 'all' 
-    ? freeMaterials
-    : selectedFreeFolder === 'no-folder'
-    ? freeMaterials.filter(material => !material.folder_id)
-    : freeMaterials.filter(material => material.folder_id === selectedFreeFolder);
 
-  const filteredPaidMaterials = selectedPremiumFolder === 'all' 
-    ? paidMaterials
-    : selectedPremiumFolder === 'no-folder'
-    ? paidMaterials.filter(material => !material.folder_id)
-    : paidMaterials.filter(material => material.folder_id === selectedPremiumFolder);
+  const freeMaterialsInFolder = selectedFolderId 
+    ? freeMaterials.filter(material => material.folder_id === selectedFolderId)
+    : freeMaterials.filter(material => !material.folder_id);
+
+  const paidMaterialsInFolder = selectedFolderId 
+    ? paidMaterials.filter(material => material.folder_id === selectedFolderId)
+    : paidMaterials.filter(material => !material.folder_id);
 
   useEffect(() => {
     fetchMaterials();
@@ -151,6 +149,28 @@ const StudyMaterials = () => {
       console.error('Error fetching training videos:', error);
     }
   };
+
+  const handleFolderClick = (folderId: string, tabName: string) => {
+    setSearchParams({ folderId, tab: tabName });
+  };
+
+  const handleBackToFolders = () => {
+    setSearchParams({ tab });
+  };
+
+  const handleTabChange = (newTab: string) => {
+    setSearchParams({ tab: newTab });
+  };
+
+  const getCurrentFolders = () => {
+    return tab === 'premium' ? premiumFolders : freeFolders;
+  };
+
+  const getCurrentMaterials = () => {
+    return tab === 'premium' ? paidMaterialsInFolder : freeMaterialsInFolder;
+  };
+
+  const selectedFolder = getCurrentFolders().find(f => f.id === selectedFolderId);
 
   const renderMaterialsLoadingState = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -351,7 +371,7 @@ const StudyMaterials = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-academy-primary mb-6">Study Materials</h1>
       
-      <Tabs defaultValue="free" className="w-full">
+      <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full mb-4">
           <TabsTrigger value="free" className="flex-1">Free Materials</TabsTrigger>
           <TabsTrigger value="premium" className="flex-1">Premium Materials</TabsTrigger>
@@ -359,99 +379,153 @@ const StudyMaterials = () => {
         </TabsList>
         
         <TabsContent value="free" className="mt-4">
-          {/* Free Materials Folder Filter */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              variant={selectedFreeFolder === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedFreeFolder('all')}
-            >
-              All Materials
-            </Button>
-            <Button
-              variant={selectedFreeFolder === 'no-folder' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedFreeFolder('no-folder')}
-            >
-              No Folder
-            </Button>
-            {freeFolders.map((folder) => (
-              <Button
-                key={folder.id}
-                variant={selectedFreeFolder === folder.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedFreeFolder(folder.id)}
-                className="flex items-center gap-1"
-              >
-                <Folder size={12} />
-                {folder.name}
-              </Button>
-            ))}
-          </div>
+          {selectedFolderId ? (
+            // Show materials in selected folder
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleBackToFolders}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft size={16} />
+                  Back to Folders
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Folder size={20} className="text-academy-primary" />
+                  <h2 className="text-xl font-semibold">{selectedFolder?.name}</h2>
+                </div>
+              </div>
 
-          {loading ? (
-            renderMaterialsLoadingState()
-          ) : filteredFreeMaterials.length === 0 ? (
-            <div className="text-center py-8">
-              {selectedFreeFolder === 'all' 
-                ? "No free study materials found"
-                : `No materials found in this ${selectedFreeFolder === 'no-folder' ? 'section' : 'folder'}.`
-              }
+              {loading ? (
+                renderMaterialsLoadingState()
+              ) : freeMaterialsInFolder.length === 0 ? (
+                <div className="text-center py-8">
+                  No materials found in this folder.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {freeMaterialsInFolder.map((material) => (
+                    <MaterialCard key={material.id} material={material} />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredFreeMaterials.map((material) => (
-                <MaterialCard key={material.id} material={material} />
-              ))}
+            // Show folders and loose materials
+            <div className="space-y-8">
+              {/* Folders Section */}
+              {freeFolders.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Folder className="text-academy-primary" />
+                    Material Folders
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    {freeFolders.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        onClick={() => handleFolderClick(folder.id, 'free')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Loose Materials Section */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Other Materials</h2>
+                {loading ? (
+                  renderMaterialsLoadingState()
+                ) : freeMaterialsInFolder.length === 0 ? (
+                  <div className="text-center py-8">
+                    No other materials found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {freeMaterialsInFolder.map((material) => (
+                      <MaterialCard key={material.id} material={material} />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </TabsContent>
         
         <TabsContent value="premium" className="mt-4">
-          {/* Premium Materials Folder Filter */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <Button
-              variant={selectedPremiumFolder === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPremiumFolder('all')}
-            >
-              All Materials
-            </Button>
-            <Button
-              variant={selectedPremiumFolder === 'no-folder' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedPremiumFolder('no-folder')}
-            >
-              No Folder
-            </Button>
-            {premiumFolders.map((folder) => (
-              <Button
-                key={folder.id}
-                variant={selectedPremiumFolder === folder.id ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedPremiumFolder(folder.id)}
-                className="flex items-center gap-1"
-              >
-                <Folder size={12} />
-                {folder.name}
-              </Button>
-            ))}
-          </div>
+          {selectedFolderId ? (
+            // Show materials in selected folder
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleBackToFolders}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft size={16} />
+                  Back to Folders
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Folder size={20} className="text-academy-red" />
+                  <h2 className="text-xl font-semibold">{selectedFolder?.name}</h2>
+                </div>
+              </div>
 
-          {loading ? (
-            renderMaterialsLoadingState()
-          ) : filteredPaidMaterials.length === 0 ? (
-            <div className="text-center py-8">
-              {selectedPremiumFolder === 'all' 
-                ? "No premium study materials found"
-                : `No materials found in this ${selectedPremiumFolder === 'no-folder' ? 'section' : 'folder'}.`
-              }
+              {loading ? (
+                renderMaterialsLoadingState()
+              ) : paidMaterialsInFolder.length === 0 ? (
+                <div className="text-center py-8">
+                  No materials found in this folder.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {paidMaterialsInFolder.map((material) => (
+                    <MaterialCard key={material.id} material={material} isPremium />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredPaidMaterials.map((material) => (
-                <MaterialCard key={material.id} material={material} isPremium />
-              ))}
+            // Show folders and loose materials
+            <div className="space-y-8">
+              {/* Folders Section */}
+              {premiumFolders.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Folder className="text-academy-red" />
+                    Premium Folders
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    {premiumFolders.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={folder}
+                        onClick={() => handleFolderClick(folder.id, 'premium')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Loose Materials Section */}
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Other Premium Materials</h2>
+                {loading ? (
+                  renderMaterialsLoadingState()
+                ) : paidMaterialsInFolder.length === 0 ? (
+                  <div className="text-center py-8">
+                    No other premium materials found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {paidMaterialsInFolder.map((material) => (
+                      <MaterialCard key={material.id} material={material} isPremium />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </TabsContent>

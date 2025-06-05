@@ -1,10 +1,11 @@
 
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
+import FolderCard from '@/components/FolderCard';
 
 // Define the interface for a product
 interface ProductType {
@@ -73,30 +74,17 @@ const ProductCard = ({ product }: { product: ProductType }) => {
   );
 };
 
-// Product Grid component
-const ProductGrid = ({ products }: { products: ProductType[] }) => {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </div>
-  );
-};
-
 const PremiumStudyMaterials = () => {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedFolderId = searchParams.get('folderId');
   const { folders } = useFolders();
 
   const premiumFolders = folders.filter(folder => folder.is_premium);
-  
-  const filteredProducts = selectedFolder === 'all' 
-    ? products
-    : selectedFolder === 'no-folder'
-    ? products.filter(product => !product.folder_id)
-    : products.filter(product => product.folder_id === selectedFolder);
+  const productsInFolder = selectedFolderId 
+    ? products.filter(product => product.folder_id === selectedFolderId)
+    : products.filter(product => !product.folder_id);
 
   useEffect(() => {
     fetchPremiumMaterials();
@@ -135,6 +123,16 @@ const PremiumStudyMaterials = () => {
     }
   };
 
+  const handleFolderClick = (folderId: string) => {
+    setSearchParams({ folderId });
+  };
+
+  const handleBackToFolders = () => {
+    setSearchParams({});
+  };
+
+  const selectedFolder = premiumFolders.find(f => f.id === selectedFolderId);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-6">
@@ -151,47 +149,78 @@ const PremiumStudyMaterials = () => {
         <h1 className="text-2xl font-bold text-academy-primary">Premium Study Materials</h1>
       </div>
 
-      {/* Folder Filter */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Button
-          variant={selectedFolder === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedFolder('all')}
-        >
-          All Materials
-        </Button>
-        <Button
-          variant={selectedFolder === 'no-folder' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setSelectedFolder('no-folder')}
-        >
-          No Folder
-        </Button>
-        {premiumFolders.map((folder) => (
-          <Button
-            key={folder.id}
-            variant={selectedFolder === folder.id ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedFolder(folder.id)}
-            className="flex items-center gap-1"
-          >
-            <Folder size={12} />
-            {folder.name}
-          </Button>
-        ))}
-      </div>
-      
-      {loading ? (
-        <div className="text-center py-8">Loading premium materials...</div>
-      ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-8">
-          {selectedFolder === 'all' 
-            ? "No premium study materials found"
-            : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
-          }
+      {selectedFolderId ? (
+        // Show materials in selected folder
+        <div>
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="ghost"
+              onClick={handleBackToFolders}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft size={16} />
+              Back to Folders
+            </Button>
+            <div className="flex items-center gap-2">
+              <Folder size={20} className="text-academy-red" />
+              <h2 className="text-xl font-semibold">{selectedFolder?.name}</h2>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-8">Loading premium materials...</div>
+          ) : productsInFolder.length === 0 ? (
+            <div className="text-center py-8">
+              No materials found in this folder.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {productsInFolder.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <ProductGrid products={filteredProducts} />
+        // Show folders and loose materials
+        <div className="space-y-8">
+          {/* Folders Section */}
+          {premiumFolders.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Folder className="text-academy-red" />
+                Premium Folders
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {premiumFolders.map((folder) => (
+                  <FolderCard
+                    key={folder.id}
+                    folder={folder}
+                    onClick={() => handleFolderClick(folder.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Loose Materials Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Other Premium Materials</h2>
+            {loading ? (
+              <div className="text-center py-8">Loading premium materials...</div>
+            ) : productsInFolder.length === 0 ? (
+              <div className="text-center py-8">
+                No other premium materials found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {productsInFolder.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
