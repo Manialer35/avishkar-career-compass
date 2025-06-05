@@ -1,9 +1,10 @@
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
+import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFolders } from '@/hooks/useFolders';
 
 // Define the interface for a product
 interface ProductType {
@@ -14,6 +15,7 @@ interface ProductType {
   imageSrc: string;
   duration_months?: number;
   duration_type?: string;
+  folder_id?: string;
 }
 
 // Icon mapping for different material types
@@ -85,6 +87,16 @@ const ProductGrid = ({ products }: { products: ProductType[] }) => {
 const PremiumStudyMaterials = () => {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const { folders } = useFolders();
+
+  const premiumFolders = folders.filter(folder => folder.is_premium);
+  
+  const filteredProducts = selectedFolder === 'all' 
+    ? products
+    : selectedFolder === 'no-folder'
+    ? products.filter(product => !product.folder_id)
+    : products.filter(product => product.folder_id === selectedFolder);
 
   useEffect(() => {
     fetchPremiumMaterials();
@@ -111,7 +123,8 @@ const PremiumStudyMaterials = () => {
           price: item.price || 0,
           imageSrc: item.thumbnailurl || "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=" + encodeURIComponent(item.title || item.name),
           duration_months: item.duration_months,
-          duration_type: item.duration_type
+          duration_type: item.duration_type,
+          folder_id: item.folder_id
         }));
         setProducts(products);
       }
@@ -137,13 +150,48 @@ const PremiumStudyMaterials = () => {
         </Button>
         <h1 className="text-2xl font-bold text-academy-primary">Premium Study Materials</h1>
       </div>
+
+      {/* Folder Filter */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Button
+          variant={selectedFolder === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedFolder('all')}
+        >
+          All Materials
+        </Button>
+        <Button
+          variant={selectedFolder === 'no-folder' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedFolder('no-folder')}
+        >
+          No Folder
+        </Button>
+        {premiumFolders.map((folder) => (
+          <Button
+            key={folder.id}
+            variant={selectedFolder === folder.id ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedFolder(folder.id)}
+            className="flex items-center gap-1"
+          >
+            <Folder size={12} />
+            {folder.name}
+          </Button>
+        ))}
+      </div>
       
       {loading ? (
         <div className="text-center py-8">Loading premium materials...</div>
-      ) : products.length === 0 ? (
-        <div className="text-center py-8">No premium study materials found</div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="text-center py-8">
+          {selectedFolder === 'all' 
+            ? "No premium study materials found"
+            : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
+          }
+        </div>
       ) : (
-        <ProductGrid products={products} />
+        <ProductGrid products={filteredProducts} />
       )}
     </div>
   );

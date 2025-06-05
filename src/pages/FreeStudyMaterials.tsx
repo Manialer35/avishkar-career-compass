@@ -1,9 +1,10 @@
 
 import { Button } from '@/components/ui/button';
-import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
+import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useFolders } from '@/hooks/useFolders';
 
 interface StudyMaterial {
   id: string;
@@ -11,6 +12,7 @@ interface StudyMaterial {
   description: string;
   downloadUrl: string;
   thumbnailUrl?: string;
+  folder_id?: string;
 }
 
 // Icon mapping for different material types
@@ -30,6 +32,16 @@ const getIconForMaterial = (title: string) => {
 const FreeStudyMaterials = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const { folders } = useFolders();
+
+  const freeFolders = folders.filter(folder => !folder.is_premium);
+  
+  const filteredMaterials = selectedFolder === 'all' 
+    ? materials
+    : selectedFolder === 'no-folder'
+    ? materials.filter(material => !material.folder_id)
+    : materials.filter(material => material.folder_id === selectedFolder);
 
   useEffect(() => {
     fetchMaterials();
@@ -54,7 +66,8 @@ const FreeStudyMaterials = () => {
           title: item.title,
           description: item.description,
           downloadUrl: item.downloadurl,
-          thumbnailUrl: item.thumbnailurl
+          thumbnailUrl: item.thumbnailurl,
+          folder_id: item.folder_id
         })));
       }
     } catch (error) {
@@ -109,13 +122,48 @@ const FreeStudyMaterials = () => {
         <h1 className="text-2xl font-bold text-academy-primary">Free Study Materials</h1>
       </div>
 
+      {/* Folder Filter */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <Button
+          variant={selectedFolder === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedFolder('all')}
+        >
+          All Materials
+        </Button>
+        <Button
+          variant={selectedFolder === 'no-folder' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSelectedFolder('no-folder')}
+        >
+          No Folder
+        </Button>
+        {freeFolders.map((folder) => (
+          <Button
+            key={folder.id}
+            variant={selectedFolder === folder.id ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedFolder(folder.id)}
+            className="flex items-center gap-1"
+          >
+            <Folder size={12} />
+            {folder.name}
+          </Button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="text-center py-8">Loading materials...</div>
-      ) : materials.length === 0 ? (
-        <div className="text-center py-8">No free study materials found</div>
+      ) : filteredMaterials.length === 0 ? (
+        <div className="text-center py-8">
+          {selectedFolder === 'all' 
+            ? "No free study materials found"
+            : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
+          }
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {materials.map((material) => (
+          {filteredMaterials.map((material) => (
             <MaterialCard key={material.id} material={material} />
           ))}
         </div>

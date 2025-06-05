@@ -14,6 +14,7 @@ interface StudyMaterial {
   thumbnailUrl?: string;
   isPremium: boolean;
   price?: number;
+  folder_id?: string;
 }
 
 interface StudyMaterialsSectionProps {
@@ -76,7 +77,8 @@ const StudyMaterialsSection = ({
           downloadUrl: item.downloadurl || "",
           thumbnailUrl: item.thumbnailurl,
           isPremium: item.ispremium,
-          price: item.price
+          price: item.price,
+          folder_id: item.folder_id
         }));
 
         setFreeMaterials(materials.filter(m => !m.isPremium).slice(0, 3));
