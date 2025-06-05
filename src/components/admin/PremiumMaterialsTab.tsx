@@ -18,6 +18,7 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 interface PremiumMaterialsTabProps {
@@ -31,16 +32,33 @@ interface PremiumMaterialsTabProps {
 const PremiumMaterialsTab = ({ materials, loading, onAddNew, onDelete, onEdit }: PremiumMaterialsTabProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [materialType, setMaterialType] = useState<string>('available');
   const { folders, refetchFolders } = useFolders();
   
   const premiumMaterials = materials.filter(material => material.isPremium);
   const premiumFolders = folders.filter(folder => folder.is_premium);
   
-  const filteredMaterials = selectedFolder === 'all' 
-    ? premiumMaterials
-    : selectedFolder === 'no-folder'
-    ? premiumMaterials.filter(material => !material.folder_id)
-    : premiumMaterials.filter(material => material.folder_id === selectedFolder);
+  const getFilteredMaterials = () => {
+    let filtered = premiumMaterials;
+    
+    // Filter by type (available/upcoming)
+    if (materialType === 'available') {
+      filtered = filtered.filter(material => !material.isUpcoming);
+    } else if (materialType === 'upcoming') {
+      filtered = filtered.filter(material => material.isUpcoming);
+    }
+    
+    // Filter by folder
+    if (selectedFolder === 'all') {
+      return filtered;
+    } else if (selectedFolder === 'no-folder') {
+      return filtered.filter(material => !material.folder_id);
+    } else {
+      return filtered.filter(material => material.folder_id === selectedFolder);
+    }
+  };
+  
+  const filteredMaterials = getFilteredMaterials();
   
   useEffect(() => {
     if (containerRef.current) {
@@ -75,6 +93,31 @@ const PremiumMaterialsTab = ({ materials, loading, onAddNew, onDelete, onEdit }:
             <Button onClick={onAddNew} size="sm" className="whitespace-nowrap h-8">
               <Plus size={14} className="mr-1" />
               Add New
+            </Button>
+          </div>
+
+          {/* Material Type Filter */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={materialType === 'available' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('available')}
+            >
+              Available
+            </Button>
+            <Button
+              variant={materialType === 'upcoming' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('upcoming')}
+            >
+              Coming Soon
+            </Button>
+            <Button
+              variant={materialType === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('all')}
+            >
+              All
             </Button>
           </div>
 
@@ -123,9 +166,9 @@ const PremiumMaterialsTab = ({ materials, loading, onAddNew, onDelete, onEdit }:
             ) : filteredMaterials.length === 0 ? (
               <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-100">
                 <p className="text-gray-500">
-                  {selectedFolder === 'all' 
+                  {materialType === 'all' 
                     ? "No premium study materials found. Click \"Add New\" to create one."
-                    : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
+                    : `No ${materialType} materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
                   }
                 </p>
               </div>

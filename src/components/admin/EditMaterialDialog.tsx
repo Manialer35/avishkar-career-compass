@@ -17,6 +17,7 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 interface EditMaterialDialogProps {
@@ -96,13 +97,17 @@ const EditMaterialDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="downloadUrl">Download URL *</Label>
+            <Label htmlFor="downloadUrl">Download URL {!material.isUpcoming && '*'}</Label>
             <Input
               id="downloadUrl"
               value={material.downloadUrl}
               onChange={(e) => onChange('downloadUrl', e.target.value)}
               placeholder="https://example.com/file.pdf"
+              disabled={material.isUpcoming}
             />
+            {material.isUpcoming && (
+              <p className="text-sm text-gray-500">Download URL is not required for upcoming materials</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -124,7 +129,16 @@ const EditMaterialDialog = ({
             <Label htmlFor="isPremium">Premium Material</Label>
           </div>
 
-          {material.isPremium && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isUpcoming"
+              checked={material.isUpcoming || false}
+              onCheckedChange={(checked) => onChange('isUpcoming', checked)}
+            />
+            <Label htmlFor="isUpcoming">Coming Soon Material</Label>
+          </div>
+
+          {material.isPremium && !material.isUpcoming && (
             <div className="space-y-2">
               <Label htmlFor="price">Price (₹) *</Label>
               <Input
@@ -136,6 +150,22 @@ const EditMaterialDialog = ({
                 min="0"
                 step="0.01"
               />
+            </div>
+          )}
+
+          {material.isPremium && material.isUpcoming && (
+            <div className="space-y-2">
+              <Label htmlFor="price">Expected Price (₹)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={material.price || ''}
+                onChange={(e) => onChange('price', parseFloat(e.target.value) || 0)}
+                placeholder="0"
+                min="0"
+                step="0.01"
+              />
+              <p className="text-sm text-gray-500">Optional: Set expected price for upcoming premium materials</p>
             </div>
           )}
 

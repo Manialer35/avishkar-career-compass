@@ -20,6 +20,7 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 interface FreeMaterialsTabProps {
@@ -34,15 +35,32 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
   const freeMaterials = materials.filter(material => !material.isPremium);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
+  const [materialType, setMaterialType] = useState<string>('available');
   const { folders, refetchFolders } = useFolders();
   
   const freeFolders = folders.filter(folder => !folder.is_premium);
   
-  const filteredMaterials = selectedFolder === 'all' 
-    ? freeMaterials
-    : selectedFolder === 'no-folder'
-    ? freeMaterials.filter(material => !material.folder_id)
-    : freeMaterials.filter(material => material.folder_id === selectedFolder);
+  const getFilteredMaterials = () => {
+    let filtered = freeMaterials;
+    
+    // Filter by type (available/upcoming)
+    if (materialType === 'available') {
+      filtered = filtered.filter(material => !material.isUpcoming);
+    } else if (materialType === 'upcoming') {
+      filtered = filtered.filter(material => material.isUpcoming);
+    }
+    
+    // Filter by folder
+    if (selectedFolder === 'all') {
+      return filtered;
+    } else if (selectedFolder === 'no-folder') {
+      return filtered.filter(material => !material.folder_id);
+    } else {
+      return filtered.filter(material => material.folder_id === selectedFolder);
+    }
+  };
+  
+  const filteredMaterials = getFilteredMaterials();
   
   useEffect(() => {
     if (containerRef.current) {
@@ -77,6 +95,31 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
             <Button onClick={onAddNew} size="sm" className="whitespace-nowrap h-8">
               <Plus size={14} className="mr-1" />
               Add New
+            </Button>
+          </div>
+
+          {/* Material Type Filter */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              variant={materialType === 'available' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('available')}
+            >
+              Available
+            </Button>
+            <Button
+              variant={materialType === 'upcoming' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('upcoming')}
+            >
+              Coming Soon
+            </Button>
+            <Button
+              variant={materialType === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMaterialType('all')}
+            >
+              All
             </Button>
           </div>
 
@@ -126,9 +169,9 @@ const FreeMaterialsTab = ({ materials, loading, onAddNew, onEdit, onDelete }: Fr
               <Alert variant="default" className="bg-blue-50 border-blue-200">
                 <AlertCircle className="h-4 w-4 text-blue-500" />
                 <AlertDescription>
-                  {selectedFolder === 'all' 
+                  {materialType === 'all' 
                     ? "No free study materials found. Click \"Add New\" to create one."
-                    : `No materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
+                    : `No ${materialType} materials found in this ${selectedFolder === 'no-folder' ? 'section' : 'folder'}.`
                   }
                 </AlertDescription>
               </Alert>

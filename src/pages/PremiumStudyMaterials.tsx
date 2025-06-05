@@ -1,11 +1,12 @@
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
+import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder, Clock } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Define the interface for a product
 interface ProductType {
@@ -17,6 +18,7 @@ interface ProductType {
   duration_months?: number;
   duration_type?: string;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 // Icon mapping for different material types
@@ -55,19 +57,36 @@ const ProductCard = ({ product }: { product: ProductType }) => {
             <p className="text-gray-600 text-sm line-clamp-2">{product.description}</p>
           )}
           <div className="flex justify-between items-center w-full">
-            <span className="text-lg font-bold text-academy-red">₹{product.price.toFixed(2)}</span>
+            <span className="text-lg font-bold text-academy-red">
+              {product.isUpcoming && product.price === 0 ? 'Price TBA' : `₹${product.price.toFixed(2)}`}
+            </span>
             {(product.duration_months || product.duration_type) && (
               <span className="text-sm text-academy-secondary font-medium">
                 {formatDuration(product.duration_months, product.duration_type)}
               </span>
             )}
           </div>
-          <Button 
-            className="w-full bg-academy-red hover:bg-academy-red/90 text-white"
-            asChild
-          >
-            <Link to={`/purchase/${product.id}`}>Purchase</Link>
-          </Button>
+          {product.isUpcoming ? (
+            <div className="w-full">
+              <div className="flex items-center justify-center text-academy-secondary text-sm mb-2">
+                <Clock className="h-4 w-4 mr-1" />
+                Coming Soon
+              </div>
+              <Button 
+                className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
+                disabled
+              >
+                Not Available Yet
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              className="w-full bg-academy-red hover:bg-academy-red/90 text-white"
+              asChild
+            >
+              <Link to={`/purchase/${product.id}`}>Purchase</Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -82,9 +101,14 @@ const PremiumStudyMaterials = () => {
   const { folders } = useFolders();
 
   const premiumFolders = folders.filter(folder => folder.is_premium);
-  const productsInFolder = selectedFolderId 
-    ? products.filter(product => product.folder_id === selectedFolderId)
-    : products.filter(product => !product.folder_id);
+  const availableProducts = products.filter(product => !product.isUpcoming);
+  const upcomingProducts = products.filter(product => product.isUpcoming);
+
+  const getFilteredProducts = (productsArray: ProductType[]) => {
+    return selectedFolderId 
+      ? productsArray.filter(product => product.folder_id === selectedFolderId)
+      : productsArray.filter(product => !product.folder_id);
+  };
 
   useEffect(() => {
     fetchPremiumMaterials();
@@ -112,7 +136,8 @@ const PremiumStudyMaterials = () => {
           imageSrc: item.thumbnailurl || "https://via.placeholder.com/350x200/1e3a8a/ffffff?text=" + encodeURIComponent(item.title || item.name),
           duration_months: item.duration_months,
           duration_type: item.duration_type,
-          folder_id: item.folder_id
+          folder_id: item.folder_id,
+          isUpcoming: item.is_upcoming
         }));
         setProducts(products);
       }
@@ -167,19 +192,44 @@ const PremiumStudyMaterials = () => {
             </div>
           </div>
 
-          {loading ? (
-            <div className="text-center py-8">Loading premium materials...</div>
-          ) : productsInFolder.length === 0 ? (
-            <div className="text-center py-8">
-              No materials found in this folder.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {productsInFolder.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          )}
+          <Tabs defaultValue="available" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="available">Available ({getFilteredProducts(availableProducts).length})</TabsTrigger>
+              <TabsTrigger value="upcoming">Coming Soon ({getFilteredProducts(upcomingProducts).length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="available">
+              {loading ? (
+                <div className="text-center py-8">Loading premium materials...</div>
+              ) : getFilteredProducts(availableProducts).length === 0 ? (
+                <div className="text-center py-8">
+                  No available materials found in this folder.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {getFilteredProducts(availableProducts).map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="upcoming">
+              {loading ? (
+                <div className="text-center py-8">Loading premium materials...</div>
+              ) : getFilteredProducts(upcomingProducts).length === 0 ? (
+                <div className="text-center py-8">
+                  No upcoming materials found in this folder.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {getFilteredProducts(upcomingProducts).map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       ) : (
         // Show folders and loose materials
@@ -203,22 +253,46 @@ const PremiumStudyMaterials = () => {
             </div>
           )}
 
-          {/* Loose Materials Section */}
+          {/* Materials Section with Tabs */}
           <div>
-            <h2 className="text-xl font-semibold mb-4">Other Premium Materials</h2>
-            {loading ? (
-              <div className="text-center py-8">Loading premium materials...</div>
-            ) : productsInFolder.length === 0 ? (
-              <div className="text-center py-8">
-                No other premium materials found.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productsInFolder.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            )}
+            <Tabs defaultValue="available" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="available">Available Materials ({getFilteredProducts(availableProducts).length})</TabsTrigger>
+                <TabsTrigger value="upcoming">Coming Soon ({getFilteredProducts(upcomingProducts).length})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="available">
+                {loading ? (
+                  <div className="text-center py-8">Loading premium materials...</div>
+                ) : getFilteredProducts(availableProducts).length === 0 ? (
+                  <div className="text-center py-8">
+                    No available premium materials found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {getFilteredProducts(availableProducts).map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="upcoming">
+                {loading ? (
+                  <div className="text-center py-8">Loading premium materials...</div>
+                ) : getFilteredProducts(upcomingProducts).length === 0 ? (
+                  <div className="text-center py-8">
+                    No upcoming premium materials found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {getFilteredProducts(upcomingProducts).map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       )}
