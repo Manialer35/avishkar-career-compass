@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play, Youtube, Folder } from 'lucide-react';
+import { ArrowLeft, Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Video, Play, Youtube, Folder, Clock } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
+import { Badge } from '@/components/ui/badge';
 
 interface StudyMaterial {
   id: string;
@@ -18,6 +19,7 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 interface TrainingVideo {
@@ -92,6 +94,12 @@ const StudyMaterials = () => {
     ? paidMaterials.filter(material => material.folder_id === selectedFolderId)
     : paidMaterials.filter(material => !material.folder_id);
 
+  // Split materials into available and upcoming
+  const availableFreeMaterials = freeMaterialsInFolder.filter(material => !material.isUpcoming);
+  const upcomingFreeMaterials = freeMaterialsInFolder.filter(material => material.isUpcoming);
+  const availablePaidMaterials = paidMaterialsInFolder.filter(material => !material.isUpcoming);
+  const upcomingPaidMaterials = paidMaterialsInFolder.filter(material => material.isUpcoming);
+
   useEffect(() => {
     fetchMaterials();
     fetchTrainingVideos();
@@ -118,7 +126,8 @@ const StudyMaterials = () => {
           thumbnailUrl: item.thumbnailurl || undefined,
           isPremium: item.ispremium || false,
           price: item.price,
-          folder_id: item.folder_id
+          folder_id: item.folder_id,
+          isUpcoming: item.is_upcoming
         }));
 
         setFreeMaterials(materials.filter(m => !m.isPremium));
@@ -166,10 +175,6 @@ const StudyMaterials = () => {
     return tab === 'premium' ? premiumFolders : freeFolders;
   };
 
-  const getCurrentMaterials = () => {
-    return tab === 'premium' ? paidMaterialsInFolder : freeMaterialsInFolder;
-  };
-
   const selectedFolder = getCurrentFolders().find(f => f.id === selectedFolderId);
 
   const renderMaterialsLoadingState = () => (
@@ -188,27 +193,44 @@ const StudyMaterials = () => {
     const IconComponent = getIconForMaterial(material.title);
     
     return (
-      <div className={`bg-white rounded-lg p-4 shadow-sm border transition-all hover:shadow-md cursor-pointer ${
+      <div className={`bg-white rounded-lg p-4 shadow-sm border transition-all hover:shadow-md cursor-pointer relative ${
         isPremium ? 'border-l-4 border-l-academy-red' : 'border-l-4 border-l-academy-primary'
       }`}>
+        {material.isUpcoming && (
+          <div className="absolute top-2 right-2 z-10">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs px-2 py-1">
+              <Clock className="h-3 w-3 mr-1" />
+              Coming Soon
+            </Badge>
+          </div>
+        )}
         <div className="flex flex-col items-center text-center space-y-2">
           <div className={`p-3 rounded-lg ${
             isPremium ? 'bg-academy-red/10' : 'bg-academy-primary/10'
-          }`}>
+          } ${material.isUpcoming ? 'opacity-60' : ''}`}>
             <IconComponent 
               size={32} 
-              className={isPremium ? 'text-academy-red' : 'text-academy-primary'} 
+              className={`${isPremium ? 'text-academy-red' : 'text-academy-primary'} ${material.isUpcoming ? 'opacity-60' : ''}`} 
             />
           </div>
-          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{material.title}</h3>
+          <h3 className={`font-semibold text-sm line-clamp-2 min-h-[2.5rem] ${material.isUpcoming ? 'text-gray-500' : ''}`}>{material.title}</h3>
           {material.description && (
-            <p className="text-xs text-gray-600 line-clamp-2">{material.description}</p>
+            <p className={`text-xs text-gray-600 line-clamp-2 ${material.isUpcoming ? 'opacity-60' : ''}`}>{material.description}</p>
           )}
-          {isPremium && material.price && (
+          {isPremium && material.price && !material.isUpcoming && (
             <div className="text-sm font-semibold text-academy-red">₹{material.price}</div>
           )}
           <div className="w-full pt-2">
-            {isPremium ? (
+            {material.isUpcoming ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300"
+                disabled
+              >
+                Not Available Yet
+              </Button>
+            ) : isPremium ? (
               <Button 
                 size="sm" 
                 className="w-full bg-academy-red hover:bg-academy-red/90 text-white text-xs"
@@ -397,19 +419,48 @@ const StudyMaterials = () => {
                 </div>
               </div>
 
-              {loading ? (
-                renderMaterialsLoadingState()
-              ) : freeMaterialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {freeMaterialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} />
-                  ))}
-                </div>
-              )}
+              <div className="space-y-8">
+                {/* Available Materials Section */}
+                {availableFreeMaterials.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Available Materials ({availableFreeMaterials.length})</h3>
+                    {loading ? (
+                      renderMaterialsLoadingState()
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {availableFreeMaterials.map((material) => (
+                          <MaterialCard key={material.id} material={material} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Coming Soon Materials Section */}
+                {upcomingFreeMaterials.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="text-yellow-600" />
+                      Coming Soon ({upcomingFreeMaterials.length})
+                    </h3>
+                    {loading ? (
+                      renderMaterialsLoadingState()
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {upcomingFreeMaterials.map((material) => (
+                          <MaterialCard key={material.id} material={material} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!loading && availableFreeMaterials.length === 0 && upcomingFreeMaterials.length === 0 && (
+                  <div className="text-center py-8">
+                    No materials found in this folder.
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             // Show folders and loose materials
@@ -433,23 +484,46 @@ const StudyMaterials = () => {
                 </div>
               )}
 
-              {/* Loose Materials Section */}
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Other Materials</h2>
-                {loading ? (
-                  renderMaterialsLoadingState()
-                ) : freeMaterialsInFolder.length === 0 ? (
-                  <div className="text-center py-8">
-                    No other materials found.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {freeMaterialsInFolder.map((material) => (
-                      <MaterialCard key={material.id} material={material} />
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Available Materials Section */}
+              {availableFreeMaterials.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Available Materials ({availableFreeMaterials.length})</h2>
+                  {loading ? (
+                    renderMaterialsLoadingState()
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {availableFreeMaterials.map((material) => (
+                        <MaterialCard key={material.id} material={material} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Coming Soon Materials Section */}
+              {upcomingFreeMaterials.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="text-yellow-600" />
+                    Coming Soon ({upcomingFreeMaterials.length})
+                  </h2>
+                  {loading ? (
+                    renderMaterialsLoadingState()
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {upcomingFreeMaterials.map((material) => (
+                        <MaterialCard key={material.id} material={material} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!loading && availableFreeMaterials.length === 0 && upcomingFreeMaterials.length === 0 && freeFolders.length === 0 && (
+                <div className="text-center py-8">
+                  No free materials found.
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
@@ -473,19 +547,48 @@ const StudyMaterials = () => {
                 </div>
               </div>
 
-              {loading ? (
-                renderMaterialsLoadingState()
-              ) : paidMaterialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {paidMaterialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} isPremium />
-                  ))}
-                </div>
-              )}
+              <div className="space-y-8">
+                {/* Available Materials Section */}
+                {availablePaidMaterials.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Available Materials ({availablePaidMaterials.length})</h3>
+                    {loading ? (
+                      renderMaterialsLoadingState()
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {availablePaidMaterials.map((material) => (
+                          <MaterialCard key={material.id} material={material} isPremium />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Coming Soon Materials Section */}
+                {upcomingPaidMaterials.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Clock className="text-yellow-600" />
+                      Coming Soon ({upcomingPaidMaterials.length})
+                    </h3>
+                    {loading ? (
+                      renderMaterialsLoadingState()
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {upcomingPaidMaterials.map((material) => (
+                          <MaterialCard key={material.id} material={material} isPremium />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!loading && availablePaidMaterials.length === 0 && upcomingPaidMaterials.length === 0 && (
+                  <div className="text-center py-8">
+                    No materials found in this folder.
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             // Show folders and loose materials
@@ -509,23 +612,46 @@ const StudyMaterials = () => {
                 </div>
               )}
 
-              {/* Loose Materials Section */}
-              <div>
-                <h2 className="text-xl font-semibold mb-4">Other Premium Materials</h2>
-                {loading ? (
-                  renderMaterialsLoadingState()
-                ) : paidMaterialsInFolder.length === 0 ? (
-                  <div className="text-center py-8">
-                    No other premium materials found.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {paidMaterialsInFolder.map((material) => (
-                      <MaterialCard key={material.id} material={material} isPremium />
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Available Materials Section */}
+              {availablePaidMaterials.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Available Premium Materials ({availablePaidMaterials.length})</h2>
+                  {loading ? (
+                    renderMaterialsLoadingState()
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {availablePaidMaterials.map((material) => (
+                        <MaterialCard key={material.id} material={material} isPremium />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Coming Soon Materials Section */}
+              {upcomingPaidMaterials.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="text-yellow-600" />
+                    Coming Soon ({upcomingPaidMaterials.length})
+                  </h2>
+                  {loading ? (
+                    renderMaterialsLoadingState()
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {upcomingPaidMaterials.map((material) => (
+                        <MaterialCard key={material.id} material={material} isPremium />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!loading && availablePaidMaterials.length === 0 && upcomingPaidMaterials.length === 0 && premiumFolders.length === 0 && (
+                <div className="text-center py-8">
+                  No premium materials found.
+                </div>
+              )}
             </div>
           )}
         </TabsContent>

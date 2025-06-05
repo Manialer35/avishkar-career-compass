@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder, Clock } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -7,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 interface StudyMaterial {
   id: string;
@@ -48,6 +48,9 @@ const FreeStudyMaterials = () => {
       ? materialsArray.filter(material => material.folder_id === selectedFolderId)
       : materialsArray.filter(material => !material.folder_id);
   };
+
+  const filteredAvailable = getFilteredMaterials(availableMaterials);
+  const filteredUpcoming = getFilteredMaterials(upcomingMaterials);
 
   useEffect(() => {
     fetchMaterials();
@@ -98,30 +101,34 @@ const FreeStudyMaterials = () => {
     const IconComponent = getIconForMaterial(material.title);
     
     return (
-      <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-academy-primary transition-all hover:shadow-lg">
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="p-3 rounded-lg bg-academy-primary/10">
-            <IconComponent size={32} className="text-academy-primary" />
+      <div className={`bg-white rounded-lg p-4 shadow-md border-l-4 border-academy-primary transition-all hover:shadow-lg relative ${
+        material.isUpcoming ? 'opacity-75' : ''
+      }`}>
+        {material.isUpcoming && (
+          <div className="absolute top-2 right-2 z-10">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs px-2 py-1">
+              <Clock className="h-3 w-3 mr-1" />
+              Coming Soon
+            </Badge>
           </div>
-          <h3 className="font-semibold text-lg line-clamp-2">{material.title}</h3>
+        )}
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className={`p-3 rounded-lg bg-academy-primary/10 ${material.isUpcoming ? 'opacity-60' : ''}`}>
+            <IconComponent size={32} className={`text-academy-primary ${material.isUpcoming ? 'opacity-60' : ''}`} />
+          </div>
+          <h3 className={`font-semibold text-lg line-clamp-2 ${material.isUpcoming ? 'text-gray-500' : ''}`}>{material.title}</h3>
           {material.description && (
-            <p className="text-gray-600 text-sm line-clamp-2">{material.description}</p>
+            <p className={`text-gray-600 text-sm line-clamp-2 ${material.isUpcoming ? 'opacity-60' : ''}`}>{material.description}</p>
           )}
           {material.isUpcoming ? (
-            <div className="w-full">
-              <div className="flex items-center justify-center text-academy-secondary text-sm mb-2">
-                <Clock className="h-4 w-4 mr-1" />
-                Coming Soon
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled
-              >
-                Not Available Yet
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full cursor-not-allowed bg-gray-100 text-gray-500 border-gray-300"
+              disabled
+            >
+              Not Available Yet
+            </Button>
           ) : (
             <Button
               variant="ghost"
@@ -174,44 +181,48 @@ const FreeStudyMaterials = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="available">Available ({getFilteredMaterials(availableMaterials).length})</TabsTrigger>
-              <TabsTrigger value="upcoming">Coming Soon ({getFilteredMaterials(upcomingMaterials).length})</TabsTrigger>
-            </TabsList>
+          <div className="space-y-8">
+            {/* Available Materials Section */}
+            {filteredAvailable.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Available Materials ({filteredAvailable.length})</h3>
+                {loading ? (
+                  <div className="text-center py-8">Loading materials...</div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {filteredAvailable.map((material) => (
+                      <MaterialCard key={material.id} material={material} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <TabsContent value="available">
-              {loading ? (
-                <div className="text-center py-8">Loading materials...</div>
-              ) : getFilteredMaterials(availableMaterials).length === 0 ? (
-                <div className="text-center py-8">
-                  No available materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {getFilteredMaterials(availableMaterials).map((material) => (
-                    <MaterialCard key={material.id} material={material} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
+            {/* Coming Soon Materials Section */}
+            {filteredUpcoming.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Clock className="text-yellow-600" />
+                  Coming Soon ({filteredUpcoming.length})
+                </h3>
+                {loading ? (
+                  <div className="text-center py-8">Loading materials...</div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {filteredUpcoming.map((material) => (
+                      <MaterialCard key={material.id} material={material} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <TabsContent value="upcoming">
-              {loading ? (
-                <div className="text-center py-8">Loading materials...</div>
-              ) : getFilteredMaterials(upcomingMaterials).length === 0 ? (
-                <div className="text-center py-8">
-                  No upcoming materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {getFilteredMaterials(upcomingMaterials).map((material) => (
-                    <MaterialCard key={material.id} material={material} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+            {!loading && filteredAvailable.length === 0 && filteredUpcoming.length === 0 && (
+              <div className="text-center py-8">
+                No materials found in this folder.
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         // Show folders and loose materials
@@ -235,47 +246,46 @@ const FreeStudyMaterials = () => {
             </div>
           )}
 
-          {/* Materials Section with Tabs */}
-          <div>
-            <Tabs defaultValue="available" className="w-full">
-              <TabsList className="mb-4">
-                <TabsTrigger value="available">Available Materials ({getFilteredMaterials(availableMaterials).length})</TabsTrigger>
-                <TabsTrigger value="upcoming">Coming Soon ({getFilteredMaterials(upcomingMaterials).length})</TabsTrigger>
-              </TabsList>
+          {/* Available Materials Section */}
+          {filteredAvailable.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Available Materials ({filteredAvailable.length})</h2>
+              {loading ? (
+                <div className="text-center py-8">Loading materials...</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {filteredAvailable.map((material) => (
+                    <MaterialCard key={material.id} material={material} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-              <TabsContent value="available">
-                {loading ? (
-                  <div className="text-center py-8">Loading materials...</div>
-                ) : getFilteredMaterials(availableMaterials).length === 0 ? (
-                  <div className="text-center py-8">
-                    No available materials found.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {getFilteredMaterials(availableMaterials).map((material) => (
-                      <MaterialCard key={material.id} material={material} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
+          {/* Coming Soon Materials Section */}
+          {filteredUpcoming.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Clock className="text-yellow-600" />
+                Coming Soon ({filteredUpcoming.length})
+              </h2>
+              {loading ? (
+                <div className="text-center py-8">Loading materials...</div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {filteredUpcoming.map((material) => (
+                    <MaterialCard key={material.id} material={material} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
-              <TabsContent value="upcoming">
-                {loading ? (
-                  <div className="text-center py-8">Loading materials...</div>
-                ) : getFilteredMaterials(upcomingMaterials).length === 0 ? (
-                  <div className="text-center py-8">
-                    No upcoming materials found.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {getFilteredMaterials(upcomingMaterials).map((material) => (
-                      <MaterialCard key={material.id} material={material} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
+          {!loading && filteredAvailable.length === 0 && filteredUpcoming.length === 0 && freeFolders.length === 0 && (
+            <div className="text-center py-8">
+              No free materials found.
+            </div>
+          )}
         </div>
       )}
     </div>
