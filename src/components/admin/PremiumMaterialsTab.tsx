@@ -40,7 +40,7 @@ const PremiumMaterialsTab = ({ materials, loading, onAddNew, onDelete, onEdit }:
         <div>
           <h2 className="text-base sm:text-lg font-semibold">Premium Study Materials</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Manage premium study materials for purchase
+            Manage premium study materials for purchase (Secure viewing only)
           </p>
         </div>
         <Button onClick={onAddNew} size="sm" className="whitespace-nowrap h-8">

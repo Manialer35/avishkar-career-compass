@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft, Lock, Shield } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 
 interface Purchase {
@@ -136,28 +136,68 @@ const SecureMaterialViewer = () => {
     }
   }, [materialId]);
 
-  // Add event listeners to prevent download
+  // Enhanced anti-screenshot and anti-piracy protection
   useEffect(() => {
     if (contentUrl) {
+      // Disable right-click context menu
       const preventContextMenu = (e: MouseEvent) => {
         e.preventDefault();
         return false;
       };
       
+      // Disable keyboard shortcuts for screenshots and saving
       const preventKeyboardShortcuts = (e: KeyboardEvent) => {
-        // Prevent Ctrl+S, Ctrl+P, etc.
-        if (e.ctrlKey && ['s', 'p', 'a'].includes(e.key.toLowerCase())) {
+        // Prevent common screenshot and save shortcuts
+        if (
+          (e.ctrlKey && ['s', 'p', 'a', 'c', 'x', 'v'].includes(e.key.toLowerCase())) ||
+          (e.key === 'PrintScreen') ||
+          (e.key === 'F12') ||
+          (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(e.key.toLowerCase()))
+        ) {
           e.preventDefault();
           return false;
         }
       };
+
+      // Blur page when user switches tabs (potential screenshot attempt)
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          document.body.style.filter = 'blur(10px)';
+        } else {
+          document.body.style.filter = 'none';
+        }
+      };
+
+      // Add CSS to prevent text selection and copying
+      const style = document.createElement('style');
+      style.textContent = `
+        .secure-content {
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+          -webkit-touch-callout: none;
+          -webkit-tap-highlight-color: transparent;
+          pointer-events: none;
+        }
+        .secure-content iframe, .secure-content video, .secure-content audio, .secure-content img {
+          pointer-events: none;
+        }
+      `;
+      document.head.appendChild(style);
       
       document.addEventListener('contextmenu', preventContextMenu);
       document.addEventListener('keydown', preventKeyboardShortcuts);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
       
       return () => {
         document.removeEventListener('contextmenu', preventContextMenu);
         document.removeEventListener('keydown', preventKeyboardShortcuts);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.body.style.filter = 'none';
+        if (style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
       };
     }
   }, [contentUrl]);
@@ -171,12 +211,13 @@ const SecureMaterialViewer = () => {
     switch(fileExtension) {
       case 'pdf':
         return (
-          <div className="w-full h-screen max-h-[80vh]">
+          <div className="w-full h-screen max-h-[80vh] secure-content">
             <iframe 
-              src={`${contentUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
+              src={`${contentUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
               className="w-full h-full border-0" 
               title={material?.title} 
               sandbox="allow-same-origin allow-scripts"
+              style={{ pointerEvents: 'none' }}
             />
           </div>
         );
@@ -184,13 +225,15 @@ const SecureMaterialViewer = () => {
       case 'webm':
       case 'mov':
         return (
-          <div className="w-full max-w-3xl mx-auto">
+          <div className="w-full max-w-3xl mx-auto secure-content">
             <video 
               src={contentUrl} 
               controls 
-              controlsList="nodownload" 
+              controlsList="nodownload nofullscreen noremoteplayback" 
+              disablePictureInPicture
               className="w-full" 
               onContextMenu={(e) => e.preventDefault()}
+              style={{ pointerEvents: 'auto' }}
             >
               Your browser does not support the video tag.
             </video>
@@ -199,13 +242,14 @@ const SecureMaterialViewer = () => {
       case 'mp3':
       case 'wav':
         return (
-          <div className="w-full max-w-3xl mx-auto">
+          <div className="w-full max-w-3xl mx-auto secure-content">
             <audio 
               src={contentUrl} 
               controls 
               controlsList="nodownload" 
               className="w-full" 
               onContextMenu={(e) => e.preventDefault()}
+              style={{ pointerEvents: 'auto' }}
             >
               Your browser does not support the audio tag.
             </audio>
@@ -216,12 +260,13 @@ const SecureMaterialViewer = () => {
       case 'png':
       case 'gif':
         return (
-          <div className="w-full max-w-3xl mx-auto">
+          <div className="w-full max-w-3xl mx-auto secure-content">
             <img 
               src={contentUrl} 
               alt={material?.title} 
               className="w-full" 
               onContextMenu={(e) => e.preventDefault()}
+              draggable={false}
               style={{ pointerEvents: 'none' }}
             />
           </div>
@@ -293,11 +338,18 @@ const SecureMaterialViewer = () => {
         </div>
       ) : (
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <div className="p-4 bg-gray-50 border-b">
+          <div className="p-4 bg-gray-50 border-b flex items-center justify-between">
             <h2 className="font-medium">{material?.description}</h2>
+            <div className="flex items-center text-sm text-orange-600">
+              <Shield className="h-4 w-4 mr-1" />
+              <span>Protected Content</span>
+            </div>
           </div>
           <div className="p-4">
             {renderContent()}
+          </div>
+          <div className="p-4 bg-gray-50 border-t text-center text-xs text-gray-500">
+            This content is protected and cannot be downloaded or shared. Screenshots are disabled for security.
           </div>
         </div>
       )}

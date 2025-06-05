@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Pencil, Trash, File, Image } from 'lucide-react';
+import { Pencil, Trash, File, Image, Eye, Shield } from 'lucide-react';
 
 interface StudyMaterial {
   id: string;
@@ -46,7 +46,10 @@ const MaterialCard = ({ material, onEdit, onDelete }: MaterialCardProps) => {
         <p className="text-gray-600 mb-2 text-xs line-clamp-2">{material.description}</p>
         <div className="flex flex-wrap justify-between items-center gap-1 text-xs">
           {material.isPremium ? (
-            <p className="font-semibold text-academy-primary">₹{material.price}</p>
+            <div className="flex items-center gap-1">
+              <p className="font-semibold text-academy-primary">₹{material.price}</p>
+              <Shield size={10} className="text-orange-500" title="Secure viewing only" />
+            </div>
           ) : (
             <div></div>
           )}
@@ -57,10 +60,17 @@ const MaterialCard = ({ material, onEdit, onDelete }: MaterialCardProps) => {
                 No thumbnail
               </span>
             )}
-            <a href={material.downloadUrl} className="text-academy-primary hover:underline text-[10px] sm:text-xs flex items-center">
-              <File size={10} className="mr-0.5" /> 
-              Download
-            </a>
+            {material.isPremium ? (
+              <span className="text-[10px] text-orange-600 flex items-center">
+                <Eye size={10} className="mr-0.5" /> 
+                View Only
+              </span>
+            ) : (
+              <a href={material.downloadUrl} className="text-academy-primary hover:underline text-[10px] sm:text-xs flex items-center">
+                <File size={10} className="mr-0.5" /> 
+                Download
+              </a>
+            )}
           </div>
         </div>
       </CardContent>

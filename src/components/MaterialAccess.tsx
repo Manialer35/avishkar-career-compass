@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Download, AlertTriangle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Eye, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface MaterialAccessProps {
   productId?: string;
@@ -62,25 +62,30 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
     }
   };
   
-  const handleDownload = () => {
-    if (!material?.downloadurl) {
-      toast({
-        title: "Download Error",
-        description: "Download URL not available.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Open in new tab or trigger download
-    window.open(material.downloadurl, '_blank');
-    
-    // Record download
-    if (productId) {
-      supabase.rpc('increment_material_downloads', { material_id: productId })
-        .then(({ data, error }) => {
-          if (error) console.error('Error recording download:', error);
+  const handleViewMaterial = () => {
+    if (material?.ispremium) {
+      // Redirect to secure viewer for premium materials
+      navigate(`/secure-material/${productId}`);
+    } else {
+      // For free materials, allow direct download
+      if (!material?.downloadurl) {
+        toast({
+          title: "Download Error",
+          description: "Download URL not available.",
+          variant: "destructive",
         });
+        return;
+      }
+      
+      window.open(material.downloadurl, '_blank');
+      
+      // Record download
+      if (productId) {
+        supabase.rpc('increment_material_downloads', { material_id: productId })
+          .then(({ data, error }) => {
+            if (error) console.error('Error recording download:', error);
+          });
+      }
     }
   };
 
@@ -128,12 +133,18 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
                 <p className="text-gray-600 mb-6">{material.description}</p>
                 
                 <Button 
-                  onClick={handleDownload} 
+                  onClick={handleViewMaterial} 
                   className="w-full sm:w-auto flex items-center gap-2"
                 >
-                  <Download size={18} />
-                  Download Material
+                  <Eye size={18} />
+                  {material.ispremium ? 'View Material Securely' : 'Download Material'}
                 </Button>
+                
+                {material.ispremium && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    Premium materials can only be viewed within the app for security.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -156,7 +167,7 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="font-medium">Type:</span>
-                    <span>{material.ispremium ? 'Premium' : 'Free'}</span>
+                    <span>{material.ispremium ? 'Premium (Secure)' : 'Free'}</span>
                   </div>
                   {material.ispremium && (
                     <div className="flex justify-between">

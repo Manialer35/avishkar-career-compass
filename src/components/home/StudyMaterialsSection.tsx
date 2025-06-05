@@ -138,10 +138,10 @@ const StudyMaterialsSection = ({
                 className="w-full text-academy-primary hover:text-academy-red hover:bg-gray-100 text-xs"
                 asChild
               >
-                <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer">
+                <Link to={`/material/${material.id}/access`}>
                   <Download className="h-3 w-3 mr-1" />
                   Download
-                </a>
+                </Link>
               </Button>
             )}
           </div>
