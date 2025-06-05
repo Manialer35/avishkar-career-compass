@@ -14,7 +14,6 @@ interface StudyMaterial {
   price?: number;
   name?: string;
   folder_id?: string;
-  isUpcoming?: boolean;
 }
 
 export const useAdminMaterials = () => {
@@ -65,8 +64,7 @@ export const useAdminMaterials = () => {
           thumbnailUrl: item.thumbnailurl || undefined,
           isPremium: item.ispremium || false,
           price: item.price || 0,
-          folder_id: item.folder_id || undefined,
-          isUpcoming: item.is_upcoming || false
+          folder_id: item.folder_id || undefined
         }));
         
         setMaterials(formattedMaterials);
@@ -141,8 +139,7 @@ export const useAdminMaterials = () => {
       downloadUrl: '',
       isPremium: activeTab === 'premium',
       price: activeTab === 'premium' ? 0 : undefined,
-      folder_id: undefined,
-      isUpcoming: false
+      folder_id: undefined
     });
     setNewMaterial(true);
   };
@@ -190,8 +187,7 @@ export const useAdminMaterials = () => {
         thumbnailurl: editingMaterial.thumbnailUrl || null,
         ispremium: editingMaterial.isPremium,
         price: editingMaterial.isPremium ? editingMaterial.price : 0,
-        folder_id: editingMaterial.folder_id || null,
-        is_upcoming: editingMaterial.isUpcoming || false
+        folder_id: editingMaterial.folder_id || null
       };
 
       if (newMaterial) {
@@ -216,8 +212,7 @@ export const useAdminMaterials = () => {
             thumbnailUrl: data[0].thumbnailurl || undefined,
             isPremium: data[0].ispremium || false,
             price: data[0].price || 0,
-            folder_id: data[0].folder_id || undefined,
-            isUpcoming: data[0].is_upcoming || false
+            folder_id: data[0].folder_id || undefined
           };
           
           setMaterials([newItem, ...materials]);
@@ -250,8 +245,7 @@ export const useAdminMaterials = () => {
           thumbnailUrl: editingMaterial.thumbnailUrl,
           isPremium: editingMaterial.isPremium,
           price: editingMaterial.price || 0,
-          folder_id: editingMaterial.folder_id,
-          isUpcoming: editingMaterial.isUpcoming || false
+          folder_id: editingMaterial.folder_id
         } : m));
         
         console.log("Material updated:", editingMaterial);

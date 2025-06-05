@@ -423,7 +423,6 @@ export type Database = {
           duration_type: string | null
           folder_id: string | null
           id: string
-          is_upcoming: boolean
           ispremium: boolean | null
           name: string
           price: number
@@ -439,7 +438,6 @@ export type Database = {
           duration_type?: string | null
           folder_id?: string | null
           id?: string
-          is_upcoming?: boolean
           ispremium?: boolean | null
           name: string
           price: number
@@ -455,7 +453,6 @@ export type Database = {
           duration_type?: string | null
           folder_id?: string | null
           id?: string
-          is_upcoming?: boolean
           ispremium?: boolean | null
           name?: string
           price?: number

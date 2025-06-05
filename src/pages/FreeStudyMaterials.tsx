@@ -1,12 +1,11 @@
 
 import { Button } from '@/components/ui/button';
-import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder, Clock } from 'lucide-react';
+import { Download, ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface StudyMaterial {
   id: string;
@@ -15,7 +14,6 @@ interface StudyMaterial {
   downloadUrl: string;
   thumbnailUrl?: string;
   folder_id?: string;
-  isUpcoming?: boolean;
 }
 
 // Icon mapping for different material types
@@ -40,16 +38,9 @@ const FreeStudyMaterials = () => {
   const { folders } = useFolders();
 
   const freeFolders = folders.filter(folder => !folder.is_premium);
-  const availableMaterials = materials.filter(material => !material.isUpcoming);
-  const upcomingMaterials = materials.filter(material => material.isUpcoming);
-  
   const materialsInFolder = selectedFolderId 
-    ? availableMaterials.filter(material => material.folder_id === selectedFolderId)
-    : availableMaterials.filter(material => !material.folder_id);
-
-  const upcomingMaterialsInFolder = selectedFolderId 
-    ? upcomingMaterials.filter(material => material.folder_id === selectedFolderId)
-    : upcomingMaterials.filter(material => !material.folder_id);
+    ? materials.filter(material => material.folder_id === selectedFolderId)
+    : materials.filter(material => !material.folder_id);
 
   useEffect(() => {
     fetchMaterials();
@@ -75,8 +66,7 @@ const FreeStudyMaterials = () => {
           description: item.description,
           downloadUrl: item.downloadurl,
           thumbnailUrl: item.thumbnailurl,
-          folder_id: item.folder_id,
-          isUpcoming: item.is_upcoming
+          folder_id: item.folder_id
         })));
       }
     } catch (error) {
@@ -96,40 +86,30 @@ const FreeStudyMaterials = () => {
 
   const selectedFolder = freeFolders.find(f => f.id === selectedFolderId);
 
-  const MaterialCard = ({ material, isUpcoming = false }: { material: StudyMaterial; isUpcoming?: boolean }) => {
+  const MaterialCard = ({ material }: { material: StudyMaterial }) => {
     const IconComponent = getIconForMaterial(material.title);
     
     return (
-      <div className={`bg-white rounded-lg p-4 shadow-md transition-all hover:shadow-lg ${
-        isUpcoming ? 'border-l-4 border-orange-500' : 'border-l-4 border-academy-primary'
-      }`}>
+      <div className="bg-white rounded-lg p-4 shadow-md border-l-4 border-academy-primary transition-all hover:shadow-lg">
         <div className="flex flex-col items-center text-center space-y-3">
-          <div className={`p-3 rounded-lg ${isUpcoming ? 'bg-orange-100' : 'bg-academy-primary/10'}`}>
-            {isUpcoming ? (
-              <Clock size={32} className="text-orange-500" />
-            ) : (
-              <IconComponent size={32} className="text-academy-primary" />
-            )}
+          <div className="p-3 rounded-lg bg-academy-primary/10">
+            <IconComponent size={32} className="text-academy-primary" />
           </div>
           <h3 className="font-semibold text-lg line-clamp-2">{material.title}</h3>
           {material.description && (
             <p className="text-gray-600 text-sm line-clamp-2">{material.description}</p>
           )}
-          {isUpcoming ? (
-            <div className="text-orange-600 font-medium text-sm">Coming Soon</div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-academy-primary hover:text-academy-red hover:bg-gray-100"
-              asChild
-            >
-              <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer">
-                <Download className="h-4 w-4 mr-2" />
-                Download Now
-              </a>
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-academy-primary hover:text-academy-red hover:bg-gray-100"
+            asChild
+          >
+            <a href={material.downloadUrl} target="_blank" rel="noopener noreferrer">
+              <Download className="h-4 w-4 mr-2" />
+              Download Now
+            </a>
+          </Button>
         </div>
       </div>
     );
@@ -169,44 +149,19 @@ const FreeStudyMaterials = () => {
             </div>
           </div>
 
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="available">Available ({materialsInFolder.length})</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming ({upcomingMaterialsInFolder.length})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="available">
-              {loading ? (
-                <div className="text-center py-8">Loading materials...</div>
-              ) : materialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No available materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {materialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="upcoming">
-              {loading ? (
-                <div className="text-center py-8">Loading upcoming materials...</div>
-              ) : upcomingMaterialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No upcoming materials found in this folder.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {upcomingMaterialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} isUpcoming />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          {loading ? (
+            <div className="text-center py-8">Loading materials...</div>
+          ) : materialsInFolder.length === 0 ? (
+            <div className="text-center py-8">
+              No materials found in this folder.
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {materialsInFolder.map((material) => (
+                <MaterialCard key={material.id} material={material} />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         // Show folders and loose materials
@@ -230,47 +185,23 @@ const FreeStudyMaterials = () => {
             </div>
           )}
 
-          {/* Materials Tabs */}
-          <Tabs defaultValue="available" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="available">Available Materials ({materialsInFolder.length})</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming Materials ({upcomingMaterialsInFolder.length})</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="available">
-              <h2 className="text-xl font-semibold mb-4">Available Materials</h2>
-              {loading ? (
-                <div className="text-center py-8">Loading materials...</div>
-              ) : materialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No other materials found.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {materialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="upcoming">
-              <h2 className="text-xl font-semibold mb-4">Upcoming Materials</h2>
-              {loading ? (
-                <div className="text-center py-8">Loading upcoming materials...</div>
-              ) : upcomingMaterialsInFolder.length === 0 ? (
-                <div className="text-center py-8">
-                  No upcoming materials found.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {upcomingMaterialsInFolder.map((material) => (
-                    <MaterialCard key={material.id} material={material} isUpcoming />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          {/* Loose Materials Section */}
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Other Materials</h2>
+            {loading ? (
+              <div className="text-center py-8">Loading materials...</div>
+            ) : materialsInFolder.length === 0 ? (
+              <div className="text-center py-8">
+                No other materials found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {materialsInFolder.map((material) => (
+                  <MaterialCard key={material.id} material={material} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

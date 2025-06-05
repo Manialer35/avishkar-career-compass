@@ -1,11 +1,11 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useFolders } from '@/hooks/useFolders';
 
 interface StudyMaterial {
@@ -17,109 +17,101 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
-  isUpcoming?: boolean;
 }
 
 interface EditMaterialDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
   material: StudyMaterial | null;
-  onMaterialChange: (material: StudyMaterial) => void;
-  onSave: () => void;
-  saving: boolean;
   isNew: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+  onChange: (field: string, value: any) => void;
+  savingMaterial: boolean;
 }
 
 const EditMaterialDialog = ({
-  isOpen,
-  onClose,
   material,
-  onMaterialChange,
+  isNew,
   onSave,
-  saving,
-  isNew
+  onCancel,
+  onChange,
+  savingMaterial
 }: EditMaterialDialogProps) => {
   const { folders } = useFolders();
-  
+
   if (!material) return null;
 
   const relevantFolders = folders.filter(folder => folder.is_premium === material.isPremium);
 
-  const handleInputChange = (field: keyof StudyMaterial, value: any) => {
-    onMaterialChange({
-      ...material,
-      [field]: value
-    });
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+    <Dialog open={!!material} onOpenChange={() => onCancel()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isNew ? 'Add New Material' : 'Edit Material'}
+            {isNew ? 'Add New Study Material' : 'Edit Study Material'}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={material.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="Material title"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={material.title}
+                onChange={(e) => onChange('title', e.target.value)}
+                placeholder="Material title"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="folder">Folder</Label>
+              <Select
+                value={material.folder_id || ''}
+                onValueChange={(value) => onChange('folder_id', value || null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a folder (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No Folder</SelectItem>
+                  {relevantFolders.map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={material.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => onChange('description', e.target.value)}
               placeholder="Material description"
               rows={3}
             />
           </div>
 
-          <div>
-            <Label htmlFor="folder">Folder (Optional)</Label>
-            <Select 
-              value={material.folder_id || "no-folder"} 
-              onValueChange={(value) => handleInputChange('folder_id', value === 'no-folder' ? undefined : value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a folder" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="no-folder">No Folder</SelectItem>
-                {relevantFolders.map((folder) => (
-                  <SelectItem key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="downloadUrl">Download URL</Label>
+          <div className="space-y-2">
+            <Label htmlFor="downloadUrl">Download URL *</Label>
             <Input
               id="downloadUrl"
               value={material.downloadUrl}
-              onChange={(e) => handleInputChange('downloadUrl', e.target.value)}
-              placeholder="https://..."
+              onChange={(e) => onChange('downloadUrl', e.target.value)}
+              placeholder="https://example.com/file.pdf"
             />
           </div>
 
-          <div>
-            <Label htmlFor="thumbnailUrl">Thumbnail URL (Optional)</Label>
+          <div className="space-y-2">
+            <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
             <Input
               id="thumbnailUrl"
               value={material.thumbnailUrl || ''}
-              onChange={(e) => handleInputChange('thumbnailUrl', e.target.value)}
-              placeholder="https://..."
+              onChange={(e) => onChange('thumbnailUrl', e.target.value)}
+              placeholder="https://example.com/thumbnail.jpg"
             />
           </div>
 
@@ -127,28 +119,19 @@ const EditMaterialDialog = ({
             <Switch
               id="isPremium"
               checked={material.isPremium}
-              onCheckedChange={(checked) => handleInputChange('isPremium', checked)}
+              onCheckedChange={(checked) => onChange('isPremium', checked)}
             />
             <Label htmlFor="isPremium">Premium Material</Label>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="isUpcoming"
-              checked={material.isUpcoming || false}
-              onCheckedChange={(checked) => handleInputChange('isUpcoming', checked)}
-            />
-            <Label htmlFor="isUpcoming">Upcoming Material</Label>
-          </div>
-
           {material.isPremium && (
-            <div>
-              <Label htmlFor="price">Price (₹)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="price">Price (₹) *</Label>
               <Input
                 id="price"
                 type="number"
-                value={material.price || 0}
-                onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                value={material.price || ''}
+                onChange={(e) => onChange('price', parseFloat(e.target.value) || 0)}
                 placeholder="0"
                 min="0"
                 step="0.01"
@@ -157,11 +140,11 @@ const EditMaterialDialog = ({
           )}
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onCancel} disabled={savingMaterial}>
               Cancel
             </Button>
-            <Button onClick={onSave} disabled={saving}>
-              {saving ? 'Saving...' : 'Save'}
+            <Button onClick={onSave} disabled={savingMaterial}>
+              {savingMaterial ? 'Saving...' : (isNew ? 'Create' : 'Update')}
             </Button>
           </div>
         </div>
