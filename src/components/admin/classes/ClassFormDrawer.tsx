@@ -7,6 +7,7 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@/components/ui/drawer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ClassForm from './ClassForm';
 import { ClassFormValues } from './types';
 
@@ -29,21 +30,21 @@ const ClassFormDrawer: React.FC<ClassFormDrawerProps> = ({
 }) => {
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerContent>
+      <DrawerContent className="max-h-[90vh]">
         <DrawerHeader>
           <DrawerTitle>{isEditMode ? "Edit Class" : "Create New Class"}</DrawerTitle>
           <DrawerDescription>
             {isEditMode ? "Edit the details of the selected class." : "Create a new class by entering the details below."}
           </DrawerDescription>
         </DrawerHeader>
-        <div className="px-6 pb-4">
+        <ScrollArea className="flex-1 px-6 pb-4">
           <ClassForm
             defaultValues={defaultValues}
             isEditMode={isEditMode}
             loading={loading}
             onSubmit={onSubmit}
           />
-        </div>
+        </ScrollArea>
       </DrawerContent>
     </Drawer>
   );

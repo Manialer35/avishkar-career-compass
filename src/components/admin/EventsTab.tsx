@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Edit, Trash, Plus } from 'lucide-react';
@@ -22,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface Event {
   id: string;
@@ -383,113 +383,117 @@ const EventsTab = () => {
 
       {/* Edit Event Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{selectedEvent ? 'Edit Event' : 'Create New Event'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Event Title</label>
-              <input
-                name="title"
-                value={editFormData.title}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
-              <textarea
-                name="description"
-                value={editFormData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          <ScrollArea className="flex-1 pr-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Date (YYYY-MM-DD)</label>
+                <label className="block text-sm font-medium mb-1">Event Title</label>
                 <input
-                  name="date"
-                  type="date"
-                  value={editFormData.date}
+                  name="title"
+                  value={editFormData.title}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Time</label>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  name="description"
+                  value={editFormData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date (YYYY-MM-DD)</label>
+                  <input
+                    name="date"
+                    type="date"
+                    value={editFormData.date}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Time</label>
+                  <input
+                    name="time"
+                    value={editFormData.time}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <input
+                    name="class_category"
+                    value={editFormData.class_category}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Capacity</label>
+                  <input
+                    type="number"
+                    name="class_capacity"
+                    value={editFormData.class_capacity}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Location</label>
                 <input
-                  name="time"
-                  value={editFormData.time}
+                  name="location"
+                  value={editFormData.location}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <input
-                  name="class_category"
-                  value={editFormData.class_category}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Capacity</label>
+                <label className="block text-sm font-medium mb-1">Price (₹)</label>
                 <input
                   type="number"
-                  name="class_capacity"
-                  value={editFormData.class_capacity}
+                  name="price"
+                  value={editFormData.price}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Location</label>
-              <input
-                name="location"
-                value={editFormData.location}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Price (₹)</label>
-              <input
-                type="number"
-                name="price"
-                value={editFormData.price}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                required
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => setIsEditDialogOpen(false)}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : (selectedEvent ? "Update" : "Create")}
-              </Button>
-            </DialogFooter>
-          </form>
+              <div className="pt-4">
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setIsEditDialogOpen(false)}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Saving..." : (selectedEvent ? "Update" : "Create")}
+                  </Button>
+                </DialogFooter>
+              </div>
+            </form>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
