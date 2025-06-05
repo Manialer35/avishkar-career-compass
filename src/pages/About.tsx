@@ -1,3 +1,4 @@
+
 import { BookOpen, Users, Trophy, CheckCircle, GraduationCap, Video, Phone, Youtube } from 'lucide-react';
 
 const About = () => {
@@ -92,7 +93,7 @@ const About = () => {
           
           <div className="border-l-4 border-academy-secondary pl-4">
             <h4 className="font-semibold text-lg text-gray-800">श्री. राजेश भराटे सर</h4>
-            <p className="text-gray-600">G. K onliner या प्रसिद्ध पुस्तकाचे लेखक</p>
+            <p className="text-gray-600">G. K वनलायनर या प्रसिद्ध पुस्तकाचे लेखक</p>
           </div>
         </div>
       </div>
@@ -131,24 +132,26 @@ const About = () => {
         </div>
         <div className="space-y-6">
           <div className="border-l-4 border-academy-primary pl-4">
-            <h4 className="font-semibold text-lg text-gray-800">Ankush Ghuge Sir</h4>
+            <h4 className="font-semibold text-lg text-gray-800">मार्गदर्शक :- Shri Ankush Ghuge Sir</h4>
+            <p className="text-gray-600 mb-2">आगाशे ग्राउंड, स्वारगेट</p>
             <a 
               href="tel:+919730972893" 
               className="text-academy-primary hover:text-academy-red transition-colors flex items-center gap-2"
             >
               <Phone size={16} />
-              +91 97309 72893
+              कॉन्टॅक्ट:- +91 97309 72893
             </a>
           </div>
           
           <div className="border-l-4 border-academy-primary pl-4">
-            <h4 className="font-semibold text-lg text-gray-800">Bhalerao Sir (Coach)</h4>
+            <h4 className="font-semibold text-lg text-gray-800">मार्गदर्शक :- Shri Mangesh Bhalerao Sir ( Coach )</h4>
+            <p className="text-gray-600 mb-2">वेताळ टेकडी कोथरूड पुणे.</p>
             <a 
               href="tel:+918308782102" 
               className="text-academy-primary hover:text-academy-red transition-colors flex items-center gap-2"
             >
               <Phone size={16} />
-              +91 83087 82102
+              कॉन्टॅक्ट :- +91 83087 82102
             </a>
           </div>
         </div>
