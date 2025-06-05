@@ -1,5 +1,5 @@
 
-import { Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building } from 'lucide-react';
+import { Book, Download, ExternalLink, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -15,6 +15,7 @@ interface StudyMaterial {
   isPremium: boolean;
   price?: number;
   folder_id?: string;
+  isUpcoming?: boolean;
 }
 
 interface StudyMaterialsSectionProps {
@@ -78,7 +79,8 @@ const StudyMaterialsSection = ({
           thumbnailUrl: item.thumbnailurl,
           isPremium: item.ispremium,
           price: item.price,
-          folder_id: item.folder_id
+          folder_id: item.folder_id,
+          isUpcoming: item.is_upcoming || false
         }));
 
         setFreeMaterials(materials.filter(m => !m.isPremium).slice(0, 3));
@@ -120,11 +122,26 @@ const StudyMaterialsSection = ({
             />
           </div>
           <h5 className="font-semibold text-sm line-clamp-2 min-h-[2rem]">{material.title}</h5>
-          {isPremium && material.price && (
+          {isPremium && material.price && !material.isUpcoming && (
             <div className="text-xs font-semibold text-academy-red">₹{material.price}</div>
           )}
+          {material.isUpcoming && (
+            <div className="flex items-center text-academy-secondary text-xs">
+              <Clock className="h-3 w-3 mr-1" />
+              Coming Soon
+            </div>
+          )}
           <div className="w-full">
-            {isPremium ? (
+            {material.isUpcoming ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-xs cursor-not-allowed"
+                disabled
+              >
+                Not Available Yet
+              </Button>
+            ) : isPremium ? (
               <Button 
                 variant="default" 
                 size="sm" 
