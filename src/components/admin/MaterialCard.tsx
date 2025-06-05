@@ -48,7 +48,7 @@ const MaterialCard = ({ material, onEdit, onDelete }: MaterialCardProps) => {
           {material.isPremium ? (
             <div className="flex items-center gap-1">
               <p className="font-semibold text-academy-primary">₹{material.price}</p>
-              <Shield size={10} className="text-orange-500" title="Secure viewing only" />
+              <Shield size={10} className="text-orange-500" />
             </div>
           ) : (
             <div></div>
