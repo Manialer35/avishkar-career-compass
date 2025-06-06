@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,15 @@ interface TrainingVideo {
   thumbnail_url?: string;
   category: string;
   is_premium: boolean;
+  folder_id?: string;
+}
+
+interface TrainingVideoFolder {
+  id: string;
+  name: string;
+  description?: string;
+  is_premium: boolean;
+  videoCount?: number;
 }
 
 // Helper functions for YouTube integration
@@ -76,6 +86,7 @@ const StudyMaterials = () => {
   const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
   const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
   const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
+  const [videoFolders, setVideoFolders] = useState<TrainingVideoFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<TrainingVideo | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -85,6 +96,8 @@ const StudyMaterials = () => {
 
   const freeFolders = folders.filter(folder => !folder.is_premium);
   const premiumFolders = folders.filter(folder => folder.is_premium);
+  const freeVideoFolders = videoFolders.filter(folder => !folder.is_premium);
+  const premiumVideoFolders = videoFolders.filter(folder => folder.is_premium);
 
   const freeMaterialsInFolder = selectedFolderId 
     ? freeMaterials.filter(material => material.folder_id === selectedFolderId)
@@ -93,6 +106,10 @@ const StudyMaterials = () => {
   const paidMaterialsInFolder = selectedFolderId 
     ? paidMaterials.filter(material => material.folder_id === selectedFolderId)
     : paidMaterials.filter(material => !material.folder_id);
+
+  const videosInFolder = selectedFolderId 
+    ? trainingVideos.filter(video => video.folder_id === selectedFolderId)
+    : trainingVideos.filter(video => !video.folder_id);
 
   // Split materials into available and upcoming
   const availableFreeMaterials = freeMaterialsInFolder.filter(material => !material.isUpcoming);
@@ -103,6 +120,7 @@ const StudyMaterials = () => {
   useEffect(() => {
     fetchMaterials();
     fetchTrainingVideos();
+    fetchVideoFolders();
   }, []);
 
   const fetchMaterials = async () => {
@@ -159,6 +177,41 @@ const StudyMaterials = () => {
     }
   };
 
+  const fetchVideoFolders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('training_video_folders')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        // Add video count to each folder
+        const foldersWithCount = data.map(folder => ({
+          ...folder,
+          videoCount: trainingVideos.filter(video => video.folder_id === folder.id).length
+        }));
+        setVideoFolders(foldersWithCount);
+      }
+    } catch (error) {
+      console.error('Error fetching video folders:', error);
+    }
+  };
+
+  // Update folder video counts when videos change
+  useEffect(() => {
+    if (videoFolders.length > 0 && trainingVideos.length > 0) {
+      const updatedFolders = videoFolders.map(folder => ({
+        ...folder,
+        videoCount: trainingVideos.filter(video => video.folder_id === folder.id).length
+      }));
+      setVideoFolders(updatedFolders);
+    }
+  }, [trainingVideos]);
+
   const handleFolderClick = (folderId: string, tabName: string) => {
     setSearchParams({ folderId, tab: tabName });
   };
@@ -172,7 +225,14 @@ const StudyMaterials = () => {
   };
 
   const getCurrentFolders = () => {
+    if (tab === 'videos') {
+      return videoFolders;
+    }
     return tab === 'premium' ? premiumFolders : freeFolders;
+  };
+
+  const getCurrentVideoFolders = () => {
+    return videoFolders;
   };
 
   const selectedFolder = getCurrentFolders().find(f => f.id === selectedFolderId);
@@ -386,6 +446,52 @@ const StudyMaterials = () => {
           )}
         </DialogContent>
       </Dialog>
+    );
+  };
+
+  const VideosByFolder = () => {
+    const videosWithoutFolder = videosInFolder.filter(v => !v.folder_id);
+    
+    return (
+      <div className="space-y-8">
+        {/* Videos without folder */}
+        {videosWithoutFolder.length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4 text-gray-700">Unorganized Videos</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {videosWithoutFolder.map(video => (
+                <VideoCard key={video.id} video={video} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Videos by folder */}
+        {videoFolders.map(folder => {
+          const folderVideos = trainingVideos.filter(v => v.folder_id === folder.id);
+          if (folderVideos.length === 0) return null;
+
+          return (
+            <div key={folder.id}>
+              <div className="flex items-center gap-2 mb-4">
+                <Folder size={20} className="text-academy-primary" />
+                <h3 className="text-lg font-medium text-academy-primary">{folder.name}</h3>
+                {folder.is_premium && (
+                  <span className="text-xs bg-academy-red text-white px-2 py-1 rounded-full">
+                    Premium
+                  </span>
+                )}
+                <span className="text-sm text-gray-500">({folderVideos.length} videos)</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {folderVideos.map(video => (
+                  <VideoCard key={video.id} video={video} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     );
   };
 
@@ -657,19 +763,74 @@ const StudyMaterials = () => {
         </TabsContent>
 
         <TabsContent value="videos" className="mt-4">
-          {loading ? (
-            renderMaterialsLoadingState()
-          ) : trainingVideos.length === 0 ? (
-            <div className="text-center py-8">
-              <Youtube size={64} className="text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Training Videos Yet</h3>
-              <p className="text-gray-600">Training videos will be available here soon.</p>
+          {selectedFolderId ? (
+            // Show videos in selected folder
+            <div>
+              <div className="flex items-center gap-4 mb-6">
+                <Button
+                  variant="ghost"
+                  onClick={handleBackToFolders}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft size={16} />
+                  Back to Folders
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Folder size={20} className="text-academy-primary" />
+                  <h2 className="text-xl font-semibold">{selectedFolder?.name}</h2>
+                </div>
+              </div>
+
+              {videosInFolder.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {videosInFolder.map((video) => (
+                    <VideoCard key={video.id} video={video} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  No videos found in this folder.
+                </div>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {trainingVideos.map((video) => (
-                <VideoCard key={video.id} video={video} />
-              ))}
+            // Show video folders and loose videos
+            <div className="space-y-8">
+              {/* Video Folders Section */}
+              {videoFolders.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Folder className="text-academy-primary" />
+                    Video Folders
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                    {videoFolders.map((folder) => (
+                      <FolderCard
+                        key={folder.id}
+                        folder={{
+                          ...folder,
+                          materialCount: folder.videoCount
+                        }}
+                        onClick={() => handleFolderClick(folder.id, 'videos')}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {loading ? (
+                renderMaterialsLoadingState()
+              ) : (
+                <VideosByFolder />
+              )}
+
+              {!loading && trainingVideos.length === 0 && videoFolders.length === 0 && (
+                <div className="text-center py-8">
+                  <Youtube size={64} className="text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No Training Videos Yet</h3>
+                  <p className="text-gray-600">Training videos will be available here soon.</p>
+                </div>
+              )}
             </div>
           )}
         </TabsContent>
