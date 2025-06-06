@@ -13,19 +13,6 @@ interface GooglePayButtonProps {
   onCancel: () => void;
 }
 
-declare global {
-  interface Window {
-    google?: {
-      payments: {
-        api: {
-          PaymentsClient: new (options: any) => any;
-        }
-      }
-    };
-    Razorpay?: any;
-  }
-}
-
 const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }: GooglePayButtonProps) => {
   const { toast } = useToast();
   const [paymentAvailable, setPaymentAvailable] = useState<boolean>(false);
