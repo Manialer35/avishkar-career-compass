@@ -72,6 +72,7 @@ export type Database = {
           created_at: string
           id: string
           payment_id: string | null
+          payment_method: string | null
           payment_status: string | null
           student_address: string
           student_email: string
@@ -86,6 +87,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_id?: string | null
+          payment_method?: string | null
           payment_status?: string | null
           student_address: string
           student_email: string
@@ -100,6 +102,7 @@ export type Database = {
           created_at?: string
           id?: string
           payment_id?: string | null
+          payment_method?: string | null
           payment_status?: string | null
           student_address?: string
           student_email?: string

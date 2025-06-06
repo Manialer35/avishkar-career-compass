@@ -70,7 +70,20 @@ serve(async (req) => {
 
     console.log('Payment signature verified successfully');
 
-    // Update payment status in database
+    // Get order details first to get the amount
+    const { data: orderData, error: orderError } = await supabase
+      .from('payment_orders')
+      .select('amount, product_id')
+      .eq('order_id', razorpay_order_id)
+      .single();
+
+    if (orderError) {
+      console.error('Error fetching order data:', orderError);
+    }
+
+    const orderAmount = orderData?.amount || 0;
+
+    // Update payment status in payment_orders table
     const { error: updateError } = await supabase
       .from('payment_orders')
       .update({
@@ -84,13 +97,13 @@ serve(async (req) => {
       console.error('Error updating payment status:', updateError);
     }
 
-    // Record user purchase
+    // Record user purchase with proper amount
     const { error: purchaseError } = await supabase
       .from('user_purchases')
       .insert({
         user_id: userData.user.id,
         material_id: productId,
-        amount: 0, // Will be updated from order data
+        amount: orderAmount / 100, // Convert paise to rupees
         payment_id: razorpay_payment_id,
         purchased_at: new Date().toISOString(),
       });
@@ -99,7 +112,7 @@ serve(async (req) => {
       console.error('Error recording user purchase:', purchaseError);
     }
 
-    // Also record in material_purchases for tracking
+    // Record material purchase with proper amount and all required fields
     const { error: materialPurchaseError } = await supabase
       .from('material_purchases')
       .insert({
@@ -107,13 +120,38 @@ serve(async (req) => {
         user_id: userData.user.id,
         user_email: userData.user.email || '',
         user_name: userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'Customer',
-        amount: 0, // Will be updated from order data
+        amount: orderAmount / 100, // Convert paise to rupees
         payment_id: razorpay_payment_id,
         payment_status: 'completed',
       });
 
     if (materialPurchaseError) {
       console.error('Error recording material purchase:', materialPurchaseError);
+    }
+
+    // Update class enrollments if this is a class payment
+    // First check if there's a class enrollment for this order
+    const { data: enrollmentData, error: enrollmentFetchError } = await supabase
+      .from('class_enrollments')
+      .select('id')
+      .eq('payment_id', razorpay_payment_id)
+      .maybeSingle();
+
+    if (!enrollmentFetchError && enrollmentData) {
+      const { error: enrollmentUpdateError } = await supabase
+        .from('class_enrollments')
+        .update({
+          payment_status: 'completed',
+          amount_paid: orderAmount / 100,
+          payment_method: 'razorpay'
+        })
+        .eq('payment_id', razorpay_payment_id);
+
+      if (enrollmentUpdateError) {
+        console.error('Error updating class enrollment:', enrollmentUpdateError);
+      } else {
+        console.log('Class enrollment updated successfully');
+      }
     }
 
     console.log(`Payment verified successfully: ${razorpay_payment_id}`);

@@ -125,7 +125,7 @@ const EnrollmentDialog = ({
         amount_paid: classAmount,
         payment_status: paymentId ? 'completed' : 'waived',
         payment_id: paymentId,
-        payment_method: paymentId ? 'GOOGLE_PAY' : 'FREE'
+        payment_method: paymentId ? 'razorpay' : 'free'
       };
       
       // Additional security check: verify class exists and amount matches
@@ -211,8 +211,8 @@ const EnrollmentDialog = ({
   };
 
   const handlePaymentSuccess = () => {
-    // Complete the registration with a payment ID
-    completeRegistration(`google-pay-${Date.now()}`);
+    // Complete the registration with a payment ID using timestamp for uniqueness
+    completeRegistration(`razorpay-${Date.now()}`);
   };
 
   const handlePaymentCancel = () => {
