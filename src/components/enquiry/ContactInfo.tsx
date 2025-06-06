@@ -39,7 +39,8 @@ const ContactInfo = () => {
           <h3 className="font-semibold mb-2">Visit Us</h3>
           <p className="text-gray-700">Swargate Chowk, Near HP Petrol Pump,</p>
           <p className="text-gray-700">Infront of Naik B Biyane,</p>
-          <p className="text-gray-700">Panna Chambers, 3rd Floor</p>
+          <p className="text-gray-700">Panna Chambers, 3rd Floor,</p>
+          <p className="text-gray-700">Pune, Maharashtra, India</p>
         </div>
       </div>
     </div>

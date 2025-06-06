@@ -69,7 +69,7 @@ const EnquiryFooter = () => {
           <ul className="space-y-3 text-gray-300 text-sm">
             <li className="flex items-start">
               <MapPin className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
-              <span>Swargate Chowk, Near HP Petrol Pump, Infront of Naik B Biyane, Panna Chambers, 3rd Floor</span>
+              <span>Swargate Chowk, Near HP Petrol Pump, Infront of Naik B Biyane, Panna Chambers, 3rd Floor, Pune, Maharashtra, India</span>
             </li>
             <li className="flex items-center">
               <Phone className="h-5 w-5 mr-2 flex-shrink-0 text-academy-red" />
