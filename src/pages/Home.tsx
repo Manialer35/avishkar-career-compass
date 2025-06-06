@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSection from '../components/home/ProfileSection';
 import SyllabusSection from '../components/home/SyllabusSection';
+import StudyMaterialsSection from '../components/home/StudyMaterialsSection';
 import IntroductionSection from '../components/home/IntroductionSection';
 import SuccessStoriesSection from '../components/home/SuccessStoriesSection';
 import ClassesSection from '../components/home/ClassesSection';
@@ -100,6 +102,7 @@ const Home = () => {
     <div className="container mx-auto px-4 py-8">
       <ProfileSection profileImages={profileImages} />
       <SyllabusSection />
+      <StudyMaterialsSection />
       <IntroductionSection />
       {!loading && successfulCandidatesImages.length > 0 ? (
         <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
