@@ -31,6 +31,16 @@ interface TrainingVideo {
   thumbnail_url: string | null;
   category: string | null;
   is_premium: boolean | null;
+  folder_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TrainingVideoFolder {
+  id: string;
+  name: string;
+  description: string | null;
+  is_premium: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -58,11 +68,34 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
     video_url: '',
     thumbnail_url: '',
     category: 'general',
+    folder_id: '',
     is_premium: false
   });
   const [loading, setLoading] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [folders, setFolders] = useState<TrainingVideoFolder[]>([]);
   const { toast } = useToast();
+  
+  // Fetch folders on component mount
+  useEffect(() => {
+    if (isOpen) {
+      fetchFolders();
+    }
+  }, [isOpen]);
+  
+  const fetchFolders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('training_video_folders')
+        .select('*')
+        .order('name');
+        
+      if (error) throw error;
+      setFolders(data || []);
+    } catch (error: any) {
+      console.error("Error fetching folders:", error);
+    }
+  };
   
   // If editing, populate form with video data
   useEffect(() => {
@@ -79,6 +112,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         video_url: videoToEdit.video_url || '',
         thumbnail_url: videoToEdit.thumbnail_url || '',
         category: validCategory,
+        folder_id: videoToEdit.folder_id || '',
         is_premium: videoToEdit.is_premium || false
       });
     } else {
@@ -89,6 +123,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         video_url: '',
         thumbnail_url: '',
         category: 'general',
+        folder_id: '',
         is_premium: false
       });
       setThumbnailFile(null);
@@ -104,10 +139,10 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
     }));
   };
 
-  const handleSelectChange = (value: string) => {
+  const handleSelectChange = (value: string, field: string) => {
     setFormData(prev => ({
       ...prev,
-      category: value
+      [field]: value
     }));
   };
   
@@ -168,18 +203,23 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         console.log("Thumbnail uploaded successfully:", thumbnailUrl);
       }
       
+      const videoData = {
+        title: formData.title,
+        description: formData.description,
+        video_url: formData.video_url,
+        thumbnail_url: thumbnailUrl,
+        category: formData.category,
+        folder_id: formData.folder_id || null,
+        is_premium: formData.is_premium,
+      };
+      
       if (videoToEdit) {
         // Update existing video
         console.log("Updating existing video:", videoToEdit.id);
         const { data, error } = await supabase
           .from('training_videos')
           .update({
-            title: formData.title,
-            description: formData.description,
-            video_url: formData.video_url,
-            thumbnail_url: thumbnailUrl,
-            category: formData.category,
-            is_premium: formData.is_premium,
+            ...videoData,
             updated_at: new Date().toISOString()
           })
           .eq('id', videoToEdit.id)
@@ -203,14 +243,7 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
         console.log("Creating new video");
         const { data, error } = await supabase
           .from('training_videos')
-          .insert({
-            title: formData.title,
-            description: formData.description,
-            video_url: formData.video_url,
-            thumbnail_url: thumbnailUrl,
-            category: formData.category,
-            is_premium: formData.is_premium,
-          })
+          .insert(videoData)
           .select()
           .single();
           
@@ -308,8 +341,27 @@ const VideoUploadDialog = ({ isOpen, onClose, onSuccess, videoToEdit }: VideoUpl
           </div>
           
           <div className="space-y-2">
+            <Label htmlFor="folder">Folder</Label>
+            <Select value={formData.folder_id} onValueChange={(value) => handleSelectChange(value, 'folder_id')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a folder (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="">No Folder</SelectItem>
+                  {folders.map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select value={formData.category} onValueChange={handleSelectChange}>
+            <Select value={formData.category} onValueChange={(value) => handleSelectChange(value, 'category')}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>

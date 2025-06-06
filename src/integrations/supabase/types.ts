@@ -472,11 +472,42 @@ export type Database = {
           },
         ]
       }
+      training_video_folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_premium: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_videos: {
         Row: {
           category: string | null
           created_at: string
           description: string | null
+          folder_id: string | null
           id: string
           is_premium: boolean | null
           thumbnail_url: string | null
@@ -488,6 +519,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          folder_id?: string | null
           id?: string
           is_premium?: boolean | null
           thumbnail_url?: string | null
@@ -499,6 +531,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          folder_id?: string | null
           id?: string
           is_premium?: boolean | null
           thumbnail_url?: string | null
@@ -506,7 +539,15 @@ export type Database = {
           updated_at?: string
           video_url?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "training_videos_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "training_video_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_purchases: {
         Row: {
