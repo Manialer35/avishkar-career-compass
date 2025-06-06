@@ -1,0 +1,10 @@
+
+This is a binary file that would normally be downloaded during Gradle wrapper setup. For a production setup, you would run:
+gradle wrapper --gradle-version 8.0
+
+This would generate the actual gradle-wrapper.jar file. Since this is a text-based system, you'll need to either:
+1. Run the gradle wrapper command after setting up the project
+2. Copy the gradle-wrapper.jar from an existing Android project
+3. Download it from the Gradle distribution
+
+The file should be approximately 60KB in size and is a standard JAR file containing the Gradle wrapper classes.
