@@ -331,7 +331,7 @@ const StudyMaterials = () => {
         }`}
         onClick={() => setSelectedVideo(video)}
       >
-        <div className="flex flex-col items-center text-center space-y-2">
+        <div className="flex flex-col space-y-3">
           <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
             {thumbnailUrl ? (
               <img 
@@ -373,15 +373,23 @@ const StudyMaterials = () => {
               </div>
             )}
           </div>
-          <h3 className="font-semibold text-sm line-clamp-2 min-h-[2.5rem]">{video.title}</h3>
-          {video.description && (
-            <p className="text-xs text-gray-600 line-clamp-2">{video.description}</p>
-          )}
-          <div className="text-xs text-gray-500 capitalize">{video.category}</div>
-          {video.is_premium && (
-            <div className="text-sm font-semibold text-academy-red">Premium</div>
-          )}
-          <div className="w-full pt-2">
+          
+          <div className="flex flex-col space-y-2 text-center min-h-[5rem]">
+            <h3 className="font-semibold text-sm line-clamp-2 leading-tight" title={video.title}>
+              {video.title}
+            </h3>
+            {video.description && (
+              <p className="text-xs text-gray-600 line-clamp-2 leading-tight" title={video.description}>
+                {video.description}
+              </p>
+            )}
+          </div>
+          
+          <div className="flex flex-col space-y-2">
+            <div className="text-xs text-gray-500 capitalize text-center">{video.category}</div>
+            {video.is_premium && (
+              <div className="text-sm font-semibold text-academy-red text-center">Premium</div>
+            )}
             <Button
               variant="ghost"
               size="sm"

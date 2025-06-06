@@ -205,48 +205,51 @@ const VideosTab = () => {
     const folder = folders.find(f => f.id === video.folder_id);
     
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden h-full">
         <VideoThumbnail video={video} />
         
-        <CardContent className="p-4">
+        <CardContent className="p-4 flex flex-col h-full">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-lg flex items-center gap-2">
-              {video.title}
-              {isYouTube && <Youtube size={16} className="text-red-500" />}
+            <h3 className="font-semibold text-base flex items-center gap-2 line-clamp-2 leading-tight min-h-[3rem]" title={video.title}>
+              <span className="truncate">{video.title}</span>
+              {isYouTube && <Youtube size={16} className="text-red-500 flex-shrink-0" />}
             </h3>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1 flex-shrink-0 ml-2">
               <Button 
                 variant="ghost" 
                 size="sm"
+                className="h-8 w-8 p-0"
                 onClick={() => setEditingVideo(video)}
               >
-                <Edit size={16} />
+                <Edit size={14} />
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm"
-                className="text-red-500"
+                className="text-red-500 h-8 w-8 p-0"
                 onClick={() => handleDelete(video.id)}
               >
-                <Trash size={16} />
+                <Trash size={14} />
               </Button>
             </div>
           </div>
           
           {video.description && (
-            <p className="text-gray-600 text-sm mt-2 line-clamp-2">{video.description}</p>
+            <p className="text-gray-600 text-sm mt-2 line-clamp-3 leading-tight flex-grow" title={video.description}>
+              {video.description}
+            </p>
           )}
 
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-1">
             {folder && (
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1">
-                <Folder size={12} />
-                {folder.name}
+                <Folder size={10} />
+                <span className="truncate max-w-[80px]" title={folder.name}>{folder.name}</span>
               </span>
             )}
             
             {video.category && (
-              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full truncate max-w-[100px]" title={video.category}>
                 {video.category}
               </span>
             )}
@@ -259,19 +262,19 @@ const VideosTab = () => {
           </div>
           
           <div className="mt-4 flex justify-between items-center">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 truncate">
               {new Date(video.created_at).toLocaleDateString()}
             </span>
             
             <Button 
               variant="outline" 
               size="sm"
-              className="text-xs"
+              className="text-xs h-8"
               asChild
             >
               <a href={video.video_url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink size={14} className="mr-1" /> 
-                {isYouTube ? 'Watch on YouTube' : 'View'}
+                <ExternalLink size={12} className="mr-1" /> 
+                {isYouTube ? 'YouTube' : 'View'}
               </a>
             </Button>
           </div>
