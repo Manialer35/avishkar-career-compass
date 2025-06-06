@@ -1,9 +1,8 @@
-// src/services/PaymentService.ts
+
 import { supabase } from '@/integrations/supabase/client';
 
-// Define the interface for payment request data
 export interface PaymentRequestData {
-  amount: number; // Amount in smallest currency unit (paise for INR)
+  amount: number;
   currency: string;
   productId: string;
   productName: string;
@@ -12,7 +11,6 @@ export interface PaymentRequestData {
   customerPhone?: string;
 }
 
-// Define the interface for RazorPay order response
 export interface RazorpayOrderResponse {
   id: string;
   entity: string;
@@ -25,7 +23,6 @@ export interface RazorpayOrderResponse {
   created_at: number;
 }
 
-// Define the interface for payment verification data
 export interface PaymentVerificationData {
   razorpay_payment_id: string;
   razorpay_order_id: string;
@@ -34,34 +31,33 @@ export interface PaymentVerificationData {
 }
 
 class PaymentService {
-  private apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-  private razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+  private razorpayKeyId = 'rzp_live_OCL24jX6vVdT6W';
 
-  // Create a new Razorpay order
   async createOrder(paymentData: PaymentRequestData): Promise<RazorpayOrderResponse> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/payments/create-order`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
+      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+        body: paymentData,
       });
 
-      if (!response.ok) {
+      if (error) {
+        console.error('Error creating order:', error);
         throw new Error('Failed to create order');
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
       console.error('Error creating order:', error);
       throw error;
     }
   }
 
-  // Load Razorpay script
   loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -70,7 +66,6 @@ class PaymentService {
     });
   }
 
-  // Open Razorpay payment window
   async openRazorpayCheckout(
     orderData: RazorpayOrderResponse,
     productName: string,
@@ -113,29 +108,24 @@ class PaymentService {
     razorpay.open();
   }
 
-  // Verify payment after successful transaction
   async verifyPayment(paymentData: PaymentVerificationData): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${this.apiBaseUrl}/payments/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
+      const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
+        body: paymentData,
       });
 
-      if (!response.ok) {
+      if (error) {
+        console.error('Error verifying payment:', error);
         throw new Error('Payment verification failed');
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
       console.error('Error verifying payment:', error);
       throw error;
     }
   }
 
-  // Record purchase in the database
   async recordPurchase(
     userId: string, 
     materialId: string, 
@@ -160,7 +150,6 @@ class PaymentService {
     }
   }
 
-  // Check if user has already purchased this material
   async checkPurchase(userId: string, materialId: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
