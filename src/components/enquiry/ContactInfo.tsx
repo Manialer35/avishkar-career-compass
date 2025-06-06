@@ -14,7 +14,7 @@ const ContactInfo = () => {
         <p className="text-academy-light text-lg">Registered Educational Institution</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center">
           <div className="bg-academy-light p-3 rounded-full mb-4">
             <Phone className="h-6 w-6 text-academy-primary" />
@@ -22,6 +22,29 @@ const ContactInfo = () => {
           <h3 className="font-semibold mb-2">Call Us</h3>
           <p className="text-gray-700">+91 9049137731</p>
           <p className="text-gray-700">+91 9890555432</p>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center">
+          <div className="bg-academy-light p-3 rounded-full mb-4">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="h-6 w-6 text-academy-primary"
+            >
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+          </div>
+          <h3 className="font-semibold mb-2">WhatsApp</h3>
+          <a href="https://wa.me/919049137731" className="text-academy-primary hover:text-academy-red transition-colors" target="_blank" rel="noopener noreferrer">
+            Chat with us
+          </a>
         </div>
         
         <div className="bg-white rounded-lg shadow-md p-6 flex flex-col items-center text-center">
