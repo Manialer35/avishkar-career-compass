@@ -40,11 +40,18 @@ serve(async (req) => {
     const razorpayKeyId = "rzp_live_OCL24jX6vVdT6W";
     const razorpayKeySecret = "BKJ9SSdJediRnBru61KFQKsx";
 
+    // Generate short receipt (max 40 chars) - using timestamp and random string
+    const timestamp = Date.now().toString().slice(-8); // Last 8 digits of timestamp
+    const randomStr = Math.random().toString(36).substr(2, 6); // 6 char random string
+    const shortReceipt = `ord_${timestamp}_${randomStr}`; // Format: ord_12345678_abc123 (around 20 chars)
+
+    console.log(`Generated receipt: ${shortReceipt} (length: ${shortReceipt.length})`);
+
     // Create Razorpay order
     const orderPayload = {
       amount: amount, // amount in paise
       currency: currency || 'INR',
-      receipt: `order_${productId}_${Date.now()}`,
+      receipt: shortReceipt,
       notes: {
         productId,
         productName,
@@ -88,7 +95,7 @@ serve(async (req) => {
       console.error('Database error:', dbError);
     }
 
-    console.log(`Order created successfully: ${orderData.id}`);
+    console.log(`Order created successfully: ${orderData.id} with receipt: ${shortReceipt}`);
 
     return new Response(
       JSON.stringify(orderData),
