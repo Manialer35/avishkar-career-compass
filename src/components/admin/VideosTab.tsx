@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Video, Edit, Trash, ExternalLink, Youtube, Folder } from 'lucide-react';
+import { Plus, Video, Edit, Trash, ExternalLink, Youtube } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import VideoUploadDialog from './VideoUploadDialog';
-import { useFolders } from '@/hooks/useFolders';
 
 // Define TypeScript interface for the video object
 interface TrainingVideo {
@@ -17,7 +16,6 @@ interface TrainingVideo {
   thumbnail_url: string | null;
   category: string | null;
   is_premium: boolean | null;
-  folder_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -57,7 +55,6 @@ const VideosTab = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [editingVideo, setEditingVideo] = useState<TrainingVideo | null>(null);
   const [loading, setLoading] = useState(true);
-  const { folders } = useFolders();
   
   // Fetch videos on component mount
   useEffect(() => {
@@ -132,12 +129,6 @@ const VideosTab = () => {
     }
   };
 
-  const getFolderName = (folderId: string | null | undefined) => {
-    if (!folderId) return null;
-    const folder = folders.find(f => f.id === folderId);
-    return folder?.name || 'Unknown Folder';
-  };
-
   const VideoThumbnail = ({ video }: { video: TrainingVideo }) => {
     const isYouTube = isYouTubeUrl(video.video_url);
     const videoId = isYouTube ? getYouTubeVideoId(video.video_url) : null;
@@ -207,7 +198,6 @@ const VideosTab = () => {
           {videos.map(video => {
             const isYouTube = isYouTubeUrl(video.video_url);
             const videoId = isYouTube ? getYouTubeVideoId(video.video_url) : null;
-            const folderName = getFolderName(video.folder_id);
             
             return (
               <Card key={video.id} className="overflow-hidden">
@@ -237,15 +227,6 @@ const VideosTab = () => {
                       </Button>
                     </div>
                   </div>
-                  
-                  {folderName && (
-                    <div className="mb-2">
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1 w-fit">
-                        <Folder size={12} />
-                        {folderName}
-                      </span>
-                    </div>
-                  )}
                   
                   {video.description && (
                     <p className="text-gray-600 text-sm mt-2 line-clamp-2">{video.description}</p>
@@ -312,7 +293,6 @@ const VideosTab = () => {
             <li>Videos should be in MP4 format for best compatibility if uploading directly.</li>
             <li>Add clear titles and descriptions to help students find content.</li>
             <li>Organize videos by topic or course for better navigation.</li>
-            <li>Use folders to organize videos by subject or course for easier management.</li>
           </ul>
         </CardContent>
       </Card>

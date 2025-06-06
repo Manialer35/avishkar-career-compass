@@ -477,7 +477,6 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
-          folder_id: string | null
           id: string
           is_premium: boolean | null
           thumbnail_url: string | null
@@ -489,7 +488,6 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
-          folder_id?: string | null
           id?: string
           is_premium?: boolean | null
           thumbnail_url?: string | null
@@ -501,7 +499,6 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
-          folder_id?: string | null
           id?: string
           is_premium?: boolean | null
           thumbnail_url?: string | null
@@ -509,15 +506,7 @@ export type Database = {
           updated_at?: string
           video_url?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "training_videos_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "study_material_folders"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_purchases: {
         Row: {
