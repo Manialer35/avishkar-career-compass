@@ -30,6 +30,7 @@ interface TrainingVideo {
   thumbnail_url?: string;
   category: string;
   is_premium: boolean;
+  folder_id?: string | null;
 }
 
 // Helper functions for YouTube integration
