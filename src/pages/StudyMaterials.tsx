@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '@/hooks/use-toast';
 
 interface StudyMaterial {
   id: string;
