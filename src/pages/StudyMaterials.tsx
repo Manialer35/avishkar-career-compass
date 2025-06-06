@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/useToast';
 
 interface StudyMaterial {
   id: string;
@@ -83,6 +83,7 @@ const getIconForMaterial = (title: string) => {
 };
 
 const StudyMaterials = () => {
+  const { toast } = useToast();
   const [freeMaterials, setFreeMaterials] = useState<StudyMaterial[]>([]);
   const [paidMaterials, setPaidMaterials] = useState<StudyMaterial[]>([]);
   const [trainingVideos, setTrainingVideos] = useState<TrainingVideo[]>([]);
@@ -120,8 +121,14 @@ const StudyMaterials = () => {
   useEffect(() => {
     fetchMaterials();
     fetchTrainingVideos();
-    fetchVideoFolders();
   }, []);
+
+  // Fetch video folders after videos are loaded
+  useEffect(() => {
+    if (trainingVideos.length >= 0) { // Changed condition to include empty arrays
+      fetchVideoFolders();
+    }
+  }, [trainingVideos]);
 
   const fetchMaterials = async () => {
     try {
@@ -189,7 +196,7 @@ const StudyMaterials = () => {
       }
 
       if (data) {
-        // Add video count to each folder
+        // Calculate video count for each folder using the current trainingVideos state
         const foldersWithCount = data.map(folder => ({
           ...folder,
           videoCount: trainingVideos.filter(video => video.folder_id === folder.id).length
@@ -200,17 +207,6 @@ const StudyMaterials = () => {
       console.error('Error fetching video folders:', error);
     }
   };
-
-  // Update folder video counts when videos change
-  useEffect(() => {
-    if (videoFolders.length > 0 && trainingVideos.length > 0) {
-      const updatedFolders = videoFolders.map(folder => ({
-        ...folder,
-        videoCount: trainingVideos.filter(video => video.folder_id === folder.id).length
-      }));
-      setVideoFolders(updatedFolders);
-    }
-  }, [trainingVideos]);
 
   const handleFolderClick = (folderId: string, tabName: string) => {
     setSearchParams({ folderId, tab: tabName });
