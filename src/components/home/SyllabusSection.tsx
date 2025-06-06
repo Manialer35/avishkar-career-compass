@@ -16,11 +16,57 @@ const SyllabusSection = () => {
         <html>
           <head>
             <title>${title}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-              body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-              .header { background: #1e40af; color: white; padding: 15px; text-align: center; }
-              .pdf-container { width: 100%; height: calc(100vh - 60px); }
-              iframe { width: 100%; height: 100%; border: none; }
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              body { 
+                margin: 0; 
+                padding: 0; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f8fafc;
+              }
+              .header { 
+                background: #1e40af; 
+                color: white; 
+                padding: 8px 16px; 
+                text-align: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                position: sticky;
+                top: 0;
+                z-index: 10;
+              }
+              .header h2 {
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0;
+              }
+              .pdf-container { 
+                width: 100%; 
+                height: calc(100vh - 40px);
+                position: relative;
+              }
+              iframe { 
+                width: 100%; 
+                height: 100%; 
+                border: none;
+                background: white;
+              }
+              .controls {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 5;
+                background: rgba(255,255,255,0.9);
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                color: #64748b;
+              }
+              @media (max-width: 768px) {
+                .header h2 { font-size: 14px; }
+                .header { padding: 6px 12px; }
+                .pdf-container { height: calc(100vh - 32px); }
+              }
             </style>
           </head>
           <body>
@@ -28,6 +74,7 @@ const SyllabusSection = () => {
               <h2>${title}</h2>
             </div>
             <div class="pdf-container">
+              <div class="controls">Use Ctrl/Cmd + scroll to zoom</div>
               <iframe src="${url}" allowfullscreen></iframe>
             </div>
           </body>
