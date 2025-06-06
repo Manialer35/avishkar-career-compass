@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import ImageModal from '@/components/ImageModal';
+import ImageCarousel from '@/components/ImageCarousel';
 
 interface SuccessStoriesSectionProps {
   successfulCandidatesImages?: string[];
@@ -12,7 +12,6 @@ const SuccessStoriesSection = ({
 }: SuccessStoriesSectionProps) => {
   const [images, setImages] = useState<string[]>(propImages || []);
   const [loading, setLoading] = useState(!propImages || propImages.length === 0);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     // If images were provided as props, use them and skip fetching
@@ -59,55 +58,34 @@ const SuccessStoriesSection = ({
 
   return (
     <div className="mb-8">
-      <h2 className="text-2xl font-bold text-academy-primary mb-4">Our Success Stories</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-academy-primary">Our Success Stories</h2>
+        {images.length > 0 && (
+          <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
+            {images.length} {images.length === 1 ? 'Story' : 'Stories'}
+          </div>
+        )}
+      </div>
       
       {loading ? (
         <div className="flex justify-center">
-          <div className="bg-gray-200 animate-pulse w-full h-64"></div>
+          <div className="bg-gray-200 animate-pulse w-full h-64 rounded-lg"></div>
         </div>
       ) : (
-        <div className="relative">
-          {/* Image carousel */}
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4 w-max">
-              {images.map((imageUrl, index) => (
-                <div 
-                  key={index} 
-                  className="w-64 h-48 flex-shrink-0 rounded-lg overflow-hidden shadow-md cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => setSelectedImage(imageUrl)}
-                >
-                  <img 
-                    src={imageUrl} 
-                    alt={`Success Story ${index + 1}`} 
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    onError={(e) => {
-                      // Fallback if image fails to load
-                      (e.target as HTMLImageElement).src = '/placeholder-success.png';
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Text overlay */}
+        <>
+          <ImageCarousel 
+            images={images} 
+            useCarouselUI={true}
+            title=""
+          />
+          
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-700">
               Our students consistently achieve remarkable results. 
               Join us and become part of our success stories!
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Image modal for enlarging clicked images */}
-      {selectedImage && (
-        <ImageModal
-          isOpen={!!selectedImage}
-          onClose={() => setSelectedImage(null)}
-          imageUrl={selectedImage}
-          altText="Success story image"
-        />
+        </>
       )}
     </div>
   );
