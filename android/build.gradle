@@ -25,13 +25,25 @@ allprojects {
         mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
+    
+    // Force Java 17 for all modules
+    tasks.withType(JavaCompile) {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+        kotlinOptions {
+            jvmTarget = "17"
+        }
+    }
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
-// Ensure all sub-projects use the same version
+// Ensure all sub-projects use the same version and Java 17
 subprojects {
     afterEvaluate { project ->
         if (project.hasProperty('android')) {
@@ -43,6 +55,23 @@ subprojects {
                     minSdkVersion 23
                     targetSdkVersion 34
                 }
+                
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        
+        // Force Java 17 for all tasks
+        project.tasks.withType(JavaCompile) {
+            sourceCompatibility = JavaVersion.VERSION_17
+            targetCompatibility = JavaVersion.VERSION_17
+        }
+        
+        project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+            kotlinOptions {
+                jvmTarget = "17"
             }
         }
     }

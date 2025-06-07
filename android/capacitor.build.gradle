@@ -17,7 +17,7 @@ android {
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 
 dependencies {
-    // Only include Capacitor dependencies if they exist
+    // Only include Capacitor dependencies if they exist and are properly configured
     if (findProject(':capacitor-android') != null) {
         implementation project(':capacitor-android')
     }
@@ -32,6 +32,18 @@ dependencies {
     }
     if (findProject(':capacitor-status-bar') != null) {
         implementation project(':capacitor-status-bar')
+    }
+}
+
+// Ensure all tasks use Java 17
+tasks.withType(JavaCompile) {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
