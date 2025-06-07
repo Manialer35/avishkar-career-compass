@@ -6,6 +6,7 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        gradlePluginPortal()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:8.0.2'
@@ -26,4 +27,21 @@ allprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+// Ensure all sub-projects use the same version
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            android {
+                compileSdkVersion 33
+                buildToolsVersion "33.0.0"
+                
+                defaultConfig {
+                    minSdkVersion 23
+                    targetSdkVersion 33
+                }
+            }
+        }
+    }
 }
