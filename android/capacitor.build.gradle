@@ -17,11 +17,22 @@ android {
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 
 dependencies {
-    implementation project(':capacitor-android')
-    implementation project(':capacitor-app')
-    implementation project(':capacitor-haptics')
-    implementation project(':capacitor-keyboard')
-    implementation project(':capacitor-status-bar')
+    // Only include Capacitor dependencies if they exist
+    if (findProject(':capacitor-android') != null) {
+        implementation project(':capacitor-android')
+    }
+    if (findProject(':capacitor-app') != null) {
+        implementation project(':capacitor-app')
+    }
+    if (findProject(':capacitor-haptics') != null) {
+        implementation project(':capacitor-haptics')
+    }
+    if (findProject(':capacitor-keyboard') != null) {
+        implementation project(':capacitor-keyboard')
+    }
+    if (findProject(':capacitor-status-bar') != null) {
+        implementation project(':capacitor-status-bar')
+    }
 }
 
 if (hasProperty('postBuildExtras')) {
