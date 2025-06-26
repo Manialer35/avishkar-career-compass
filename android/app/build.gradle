@@ -17,8 +17,8 @@ android {
         applicationId "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
         minSdkVersion = 23
         targetSdkVersion = 34
-        versionCode = 3
-        versionName "1.0.2"
+        versionCode = 4
+        versionName "1.0.3"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         
         // Enable vector drawable support
@@ -49,7 +49,7 @@ android {
             minifyEnabled = true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // signingConfig signingConfigs.release
         }
     }
 
