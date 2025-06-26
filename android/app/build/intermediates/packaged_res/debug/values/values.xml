@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">#5260ff</color>
+    <color name="colorPrimary">#3880ff</color>
+    <color name="colorPrimaryDark">#3171e0</color>
+    <string name="app_name">Aavishkar Career Compass</string>
+    <string name="custom_url_scheme">app.lovable.edaf6c8a99f44154a62e5ea9345f08e9</string>
+    <string name="package_name">app.lovable.edaf6c8a99f44154a62e5ea9345f08e9</string>
+    <string name="supabase_key">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmbGZmcnFzYnNrbHloZnVza3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNzk2MDIsImV4cCI6MjA2MDc1NTYwMn0.0qVYCEOZ4eOmRNMkBlKr7DtMbAL9fdbelKzKi0C9m24</string>
+    <string name="supabase_url">https://iflffrqsbsklyhfuskxt.supabase.co</string>
+    <string name="title_activity_main">Aavishkar Career Compass</string>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <style name="AppTheme.NoActionBar" parent="AppTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+    <style name="AppTheme.NoActionBar.FullScreen" parent="AppTheme.NoActionBar">
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+    </style>
+    <style name="AppTheme.NoActionBarLaunch" parent="AppTheme">
+        <item name="android:background">@drawable/splash</item>
+    </style>
+</resources>

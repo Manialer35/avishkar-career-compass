@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-mergeDebugResources-39:/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\NEERAJ\\.gradle\\caches\\8.14.2\\transforms\\3ff8c856efd86f765fe17e47fe30654f\\transformed\\appcompat-1.6.1\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}

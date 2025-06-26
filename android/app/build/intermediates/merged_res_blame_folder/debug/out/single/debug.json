@@ -1,0 +1,122 @@
+[
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxxhdpi_ic_launcher_adaptive_back.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxxhdpi/ic_launcher_adaptive_back.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/drawable_error_image.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/drawable/error_image.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xhdpi_ic_launcher_adaptive_back.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xhdpi/ic_launcher_adaptive_back.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xhdpi_ic_launcher_adaptive_fore.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xhdpi/ic_launcher_adaptive_fore.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/layout_activity_image_detail.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_image_detail.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/menu_home_menu.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/menu/home_menu.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxhdpi_ic_launcher_adaptive_fore.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxhdpi/ic_launcher_adaptive_fore.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/drawable_placeholder_image.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/drawable/placeholder_image.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/layout_item_image.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/item_image.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/xml_config.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/xml/config.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/layout_activity_home.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_home.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxhdpi_ic_launcher_adaptive_back.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxhdpi/ic_launcher_adaptive_back.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/xml_file_paths.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/xml/file_paths.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-hdpi_ic_launcher_adaptive_fore.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-hdpi/ic_launcher_adaptive_fore.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/layout_activity_image_management.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_image_management.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/drawable_splash.xml.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/drawable/splash.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-hdpi_ic_launcher_adaptive_back.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-hdpi/ic_launcher_adaptive_back.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxxhdpi_ic_launcher_adaptive_fore.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxxhdpi/ic_launcher_adaptive_fore.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-mdpi_ic_launcher_adaptive_back.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-mdpi/ic_launcher_adaptive_back.png"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-merged_res-41:/mipmap-mdpi_ic_launcher_adaptive_fore.png.flat",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/mipmap-mdpi/ic_launcher_adaptive_fore.png"
+    }
+]

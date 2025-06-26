@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-mergeReleaseResources-40:/layout/activity_image_detail.xml",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_image_detail.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-mergeReleaseResources-40:/layout/activity_image_management.xml",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_image_management.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-mergeReleaseResources-40:/layout/activity_home.xml",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/activity_home.xml"
+    },
+    {
+        "merged": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-mergeReleaseResources-40:/layout/item_image.xml",
+        "source": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.app-main-43:/layout/item_image.xml"
+    }
+]
