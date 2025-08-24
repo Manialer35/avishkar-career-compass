@@ -1,5 +1,5 @@
 
-import { auth } from "@/lib/firebase"; // Use the correct firebase config
+import { auth } from "@/firebase"; // Use the correct firebase config
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,

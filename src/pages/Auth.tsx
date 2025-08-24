@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AuthForm from '@/components/auth/AuthForm';
-import "@/lib/firebase";
+import "@/firebase";
 
 const Auth = () => {
   const navigate = useNavigate();
