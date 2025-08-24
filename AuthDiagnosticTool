@@ -1,0 +1,318 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
+import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+
+// This component helps diagnose Supabase auth issues
+export const AuthDiagnosticTool = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailedError, setDetailedError] = useState(null);
+  
+  // Test connection to Supabase
+  const testConnection = async () => {
+    try {
+      const start = Date.now();
+      const { data, error } = await supabase.from('user_roles').select('count()', { count: 'exact', head: true });
+      const elapsed = Date.now() - start;
+      
+      return {
+        name: 'Connection to Supabase',
+        status: !error ? 'success' : 'error',
+        message: !error ? `Connected successfully (${elapsed}ms)` : error.message,
+        details: error ? error : null
+      };
+    } catch (err) {
+      return {
+        name: 'Connection to Supabase',
+        status: 'error',
+        message: err.message || 'Failed to connect to Supabase',
+        details: err
+      };
+    }
+  };
+  
+  // Check if auth tables are accessible
+  const checkAuthTables = async () => {
+    try {
+      // Try to access the auth.users table via RPC (if permissions allow)
+      const { data, error } = await supabase.rpc('get_auth_user_count');
+      
+      // If the above RPC doesn't exist, this will be an error but not necessarily a problem
+      // Let's check if we can access public tables instead
+      
+      if (error) {
+        // Try the user_roles table instead
+        const { data: rolesData, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('count(*)', { count: 'exact', head: true });
+        
+        if (rolesError) {
+          return {
+            name: 'Auth Tables',
+            status: 'error',
+            message: 'Could not access authentication tables',
+            details: { authError: error, rolesError }
+          };
+        } else {
+          return {
+            name: 'Auth Tables',
+            status: 'success',
+            message: 'User roles table is accessible',
+            details: null
+          };
+        }
+      }
+      
+      return {
+        name: 'Auth Tables',
+        status: 'success',
+        message: 'Auth tables are accessible',
+        details: null
+      };
+    } catch (err) {
+      return {
+        name: 'Auth Tables',
+        status: 'error',
+        message: err.message || 'Failed to check auth tables',
+        details: err
+      };
+    }
+  };
+
+  // Test user creation without actually creating the user
+  const testUserCreation = async (email, password) => {
+    if (!email || !password) {
+      return {
+        name: 'User Creation',
+        status: 'warning',
+        message: 'Please provide both email and password',
+        details: null
+      };
+    }
+    
+    try {
+      // First check if email already exists (without actually creating any records)
+      const { data: userExistsData, error: userExistsError } = await supabase.rpc(
+        'check_email_exists',
+        { check_email: email }
+      );
+      
+      if (userExistsError) {
+        // If the RPC doesn't exist, we'll have to attempt a signup
+        // But we can't do this silently - we'd need user consent first
+        return {
+          name: 'User Creation',
+          status: 'warning',
+          message: 'Could not check if user already exists - RPC function missing',
+          details: userExistsError
+        };
+      }
+      
+      if (userExistsData === true) {
+        return {
+          name: 'User Creation',
+          status: 'warning',
+          message: 'User with this email already exists',
+          details: null
+        };
+      }
+      
+      // Don't actually create the user in diagnostic mode
+      // Instead, report that a signup would likely succeed
+      return {
+        name: 'User Creation',
+        status: 'success',
+        message: 'User creation should be possible (email is available)',
+        details: null
+      };
+    } catch (err) {
+      return {
+        name: 'User Creation',
+        status: 'error',
+        message: err.message || 'Failed to test user creation',
+        details: err
+      };
+    }
+  };
+  
+  // Test RLS policies
+  const testRLS = async () => {
+    try {
+      // Try to read user_roles without being authenticated
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('count(*)', { count: 'exact', head: true });
+      
+      const hasRLS = !!error && error.message.includes('permission denied');
+      
+      return {
+        name: 'Row Level Security',
+        status: hasRLS ? 'success' : 'warning',
+        message: hasRLS 
+          ? 'RLS policies are active (good for security)' 
+          : 'RLS policies may not be configured correctly',
+        details: error || null
+      };
+    } catch (err) {
+      return {
+        name: 'Row Level Security',
+        status: 'error',
+        message: err.message || 'Failed to test RLS policies',
+        details: err
+      };
+    }
+  };
+  
+  // Comprehensive diagnostics
+  const runDiagnostics = async () => {
+    setLoading(true);
+    setResults([]);
+    setDetailedError(null);
+    setShowDetail(false);
+    
+    try {
+      const tests = [
+        await testConnection(),
+        await checkAuthTables(),
+        await testUserCreation(email, password),
+        await testRLS()
+      ];
+      
+      setResults(tests);
+    } catch (err) {
+      console.error("Diagnostic failure:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      case 'warning':
+        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+      default:
+        return null;
+    }
+  };
+  
+  const showErrorDetail = (details) => {
+    setDetailedError(details);
+    setShowDetail(true);
+  };
+  
+  return (
+    <Card className="w-full max-w-xl mx-auto">
+      <CardHeader>
+        <CardTitle>Supabase Auth Diagnostics</CardTitle>
+        <CardDescription>
+          Troubleshoot authentication issues with your Supabase integration
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">
+            Test Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Email for testing"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium">
+            Test Password
+          </label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Password for testing"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <p className="text-xs text-gray-500">
+            No actual signup will be performed during diagnostics
+          </p>
+        </div>
+        
+        {results.length > 0 && (
+          <div className="mt-6 space-y-4">
+            <h3 className="font-medium">Diagnostic Results:</h3>
+            <div className="space-y-2">
+              {results.map((result, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-start justify-between p-3 rounded-md border"
+                >
+                  <div className="flex items-start gap-3">
+                    {getStatusIcon(result.status)}
+                    <div>
+                      <div className="font-medium">{result.name}</div>
+                      <div className="text-sm text-gray-600">{result.message}</div>
+                    </div>
+                  </div>
+                  
+                  {result.details && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => showErrorDetail(result.details)}
+                    >
+                      Details
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {showDetail && detailedError && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-md border">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-medium">Error Details</h4>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowDetail(false)}
+              >
+                Close
+              </Button>
+            </div>
+            <Separator className="my-2" />
+            <pre className="text-xs overflow-auto p-2 bg-gray-100 rounded">
+              {JSON.stringify(detailedError, null, 2)}
+            </pre>
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter>
+        <Button 
+          onClick={runDiagnostics} 
+          disabled={loading} 
+          className="w-full"
+        >
+          {loading ? 'Running Diagnostics...' : 'Run Diagnostics'}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
+export default AuthDiagnosticTool;

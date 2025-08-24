@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Supabase credentials -->
+    <string name="supabase_url">https://iflffrqsbsklyhfuskxt.supabase.co</string>
+    <string name="supabase_key">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmbGZmcnFzYnNrbHloZnVza3h0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNzk2MDIsImV4cCI6MjA2MDc1NTYwMn0.0qVYCEOZ4eOmRNMkBlKr7DtMbAL9fdbelKzKi0C9m24</string>
+</resources>
