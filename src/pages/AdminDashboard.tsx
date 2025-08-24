@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { useSecureAdmin } from '@/hooks/useSecureAdmin';
+import AdminNavigation from '@/components/AdminNavigation';
 import { Shield, Phone, Key, Users, BookOpen, Settings } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -16,6 +19,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useSecureAdmin();
 
   useEffect(() => {
     // Initialize recaptcha verifier
@@ -95,6 +99,26 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Check if user is admin and redirect appropriately
+  if (adminLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Checking admin access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
+  }
 
   if (step === 'phone') {
     return (
@@ -178,6 +202,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdminNavigation />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>

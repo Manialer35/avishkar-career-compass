@@ -15,10 +15,13 @@ import ImageManagementTab from '@/components/admin/ImageManagementTab';
 import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
 import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
 import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
+import AdminNavigation from '@/components/AdminNavigation';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
+import { useSecureAdmin } from '@/hooks/useSecureAdmin';
 
 const AdminPanel = () => {
   const { user, loading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useSecureAdmin();
   const [activeTab, setActiveTab] = useState('free-materials');
   
   const {
@@ -53,7 +56,7 @@ const AdminPanel = () => {
     }
   };
 
-  if (loading) {
+  if (loading || adminLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -64,16 +67,18 @@ const AdminPanel = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !isAdmin) {
     return <Navigate to="/auth" replace />;
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="flex items-center px-4 py-8">
-        <Shield className="h-8 w-8 text-academy-primary mr-3" />
-        <h1 className="text-3xl font-bold text-academy-primary">Admin Panel</h1>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <AdminNavigation />
+      <div className="h-screen flex flex-col">
+        <div className="flex items-center px-4 py-8">
+          <Shield className="h-8 w-8 text-academy-primary mr-3" />
+          <h1 className="text-3xl font-bold text-academy-primary">Admin Panel</h1>
+        </div>
 
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
@@ -253,6 +258,7 @@ const AdminPanel = () => {
           savingMaterial={savingMaterial}
         />
       )}
+      </div>
     </div>
   );
 };

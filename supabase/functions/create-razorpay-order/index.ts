@@ -14,7 +14,13 @@ serve(async (req) => {
   try {
     const { amount, currency, productId, productName, customerId, customerEmail } = await req.json();
 
-    // Create Supabase client
+    // Create Supabase client using anon key for user verification
+    const supabaseAnon = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    // Create Supabase client using service role for database operations
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -23,14 +29,16 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      console.error("No authorization header");
+      throw new Error("Authentication required");
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error("Invalid user");
+      console.error("Invalid user:", userError?.message);
+      throw new Error("Invalid authentication");
     }
 
     // Create Razorpay order using your API key

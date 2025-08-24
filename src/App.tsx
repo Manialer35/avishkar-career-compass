@@ -98,7 +98,11 @@ const MainLayout = () => {
               <SecureMaterialViewer />
             </MaterialAccessGuard>
           } />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminPanel />
+            </AdminRoute>
+          } />
           <Route path="/admin/dashboard" element={
             <AdminRoute>
               <AdminDashboard />
