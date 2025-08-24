@@ -25,7 +25,13 @@ const AuthForm: React.FC = () => {
 
   // Initialize Recaptcha
   const setUpRecaptcha = async () => {
-    if (!window.recaptchaVerifier) {
+    try {
+      // Clear any existing reCAPTCHA
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+      
       console.log('Setting up RecaptchaVerifier');
       window.recaptchaVerifier = new RecaptchaVerifier(
         auth,
@@ -34,22 +40,26 @@ const AuthForm: React.FC = () => {
           size: "invisible",
           callback: () => {
             console.log("reCAPTCHA solved");
-            toast({
-              title: "reCAPTCHA verified",
-              description: "Security verification complete",
-            });
           },
           "expired-callback": () => {
-            console.log("reCAPTCHA expired");
-            toast({
-              title: "reCAPTCHA expired",
-              description: "Please try again",
-              variant: "destructive",
-            });
+            console.log("reCAPTCHA expired, resetting...");
+            // Reset recaptcha on expiry
+            if (window.recaptchaVerifier) {
+              window.recaptchaVerifier.clear();
+              window.recaptchaVerifier = null;
+            }
           },
         }
       );
       console.log('RecaptchaVerifier setup complete');
+    } catch (error) {
+      console.error('Error setting up reCAPTCHA:', error);
+      // Clear and retry
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+      throw error;
     }
   };
 
@@ -68,7 +78,12 @@ const AuthForm: React.FC = () => {
 
     try {
       console.log('Starting OTP send process for phone:', phone);
+      
+      // Ensure recaptcha is properly set up
       await setUpRecaptcha();
+      
+      // Wait a moment for recaptcha to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('Attempting to send OTP with Firebase');
       const confirmation = await signInWithPhoneNumber(
@@ -104,8 +119,18 @@ const AuthForm: React.FC = () => {
         errorMessage += "Invalid phone number format.";
       } else if (error.code === 'auth/quota-exceeded') {
         errorMessage += "SMS quota exceeded. Please try again later.";
+      } else if (error.code === 'auth/recaptcha-not-enabled') {
+        errorMessage += "reCAPTCHA not enabled. Please contact support.";
+      } else if (error.code === 'auth/app-not-authorized') {
+        errorMessage += "App not authorized for SMS. Please contact support.";
       } else {
-        errorMessage += "Please check your phone number and try again.";
+        errorMessage += `Please check your phone number and try again. (${error.code || 'Unknown error'})`;
+      }
+      
+      // Clear recaptcha on error
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
       }
       
       setMessage(errorMessage);
@@ -175,6 +200,12 @@ const AuthForm: React.FC = () => {
     setOtp("");
     setConfirmationResult(null);
     setMessage("");
+    
+    // Clear recaptcha when resetting
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+      window.recaptchaVerifier = null;
+    }
   };
 
   return (

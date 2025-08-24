@@ -21,8 +21,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const { user } = useAuth();
   
-  // Get Razorpay key from environment
-  const razorpayKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_OCL24jX6vVdT6W";
+  // Get Razorpay key from environment - using live key for production
+  const razorpayKeyId = "rzp_live_OCL24jX6vVdT6W";
 
   useEffect(() => {
     loadPaymentScripts();
@@ -158,13 +158,9 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
         },
         modal: {
           ondismiss: () => {
-            console.log('Payment cancelled by user');
-            toast({
-              title: "Payment Cancelled",
-              description: "You cancelled the payment process.",
-              variant: "default",
-            });
-            onCancel();
+            console.log('Payment modal dismissed');
+            // Don't auto-cancel on dismiss - user might return to complete payment
+            setIsLoading(false);
           },
         },
         theme: {
