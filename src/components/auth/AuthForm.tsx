@@ -7,7 +7,7 @@ import {
   ConfirmationResult,
 } from "firebase/auth";
 import { auth } from "@/firebase";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";

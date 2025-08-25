@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import useUsers from '@/hooks/useUsers';
 import UserTabs from '@/components/users/UserTabs';
 import DeleteUserDialog from '@/components/users/DeleteUserDialog';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import CreateAdminForm from '@/components/users/CreateAdminForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 

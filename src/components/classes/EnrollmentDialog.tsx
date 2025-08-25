@@ -17,7 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { GooglePayButton } from '@/components/PaymentComponents';
 import { validateEmail, validatePhone, validateName, sanitizeInput, RateLimiter } from '@/utils/inputValidation';
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/context/AuthContext";
 
 interface EnrollmentDialogProps {
   open: boolean;

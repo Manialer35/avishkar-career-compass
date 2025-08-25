@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { useSecureAdmin } from '@/hooks/useSecureAdmin';
 import AdminNavigation from '@/components/AdminNavigation';
 import { Shield, Phone, Key, Users, BookOpen, Settings } from 'lucide-react';

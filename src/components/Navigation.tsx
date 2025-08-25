@@ -1,6 +1,6 @@
 import { Home, Info, Calendar, Mail, User, Instagram, Facebook, ShieldAlert, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import { Badge } from './ui/badge';
 
 interface NavigationProps {

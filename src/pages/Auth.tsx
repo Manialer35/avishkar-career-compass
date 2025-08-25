@@ -1,21 +1,21 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 import AuthForm from '@/components/auth/AuthForm';
 import "@/firebase";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, supabaseUser, loading } = useAuth();
+  const { user, loading } = useAuth();
   
   // If user is already authenticated, redirect to home
   useEffect(() => {
-    if ((user || supabaseUser) && !loading) {
+    if (user && !loading) {
       console.log('User already authenticated, redirecting to home');
       navigate('/');
     }
-  }, [user, supabaseUser, navigate, loading]);
+  }, [user, navigate, loading]);
 
   if (loading) {
     return (

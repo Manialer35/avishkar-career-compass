@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import AdminRoute from "./components/AdminRoute";
-import { AuthProvider, useAuth } from "./hooks/useAuth";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import BottomNavigation from "./components/BottomNavigation";
@@ -37,21 +37,19 @@ import AdminDashboard from "@/pages/AdminDashboard";
 // Navigation hook that needs to be inside Router context
 const useAuthNavigation = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Firebase user
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    const fbAuth = getAuth();
-    const unsub = onAuthStateChanged(fbAuth, (fbUser) => {
-      const isLoggedIn = Boolean(user) || Boolean(fbUser);
-      if (!isLoggedIn && window.location.pathname !== "/auth") {
-        navigate("/auth");
-      }
-      if (isLoggedIn && window.location.pathname === "/auth") {
-        navigate("/");
-      }
-    });
-    return () => unsub();
-  }, [user, navigate]);
+    if (loading) return; // Wait for auth to load
+    
+    const isLoggedIn = Boolean(user);
+    if (!isLoggedIn && window.location.pathname !== "/auth") {
+      navigate("/auth");
+    }
+    if (isLoggedIn && window.location.pathname === "/auth") {
+      navigate("/");
+    }
+  }, [user, navigate, loading]);
 
   return null;
 };

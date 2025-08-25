@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, ShoppingCart } from 'lucide-react';
 import { useMaterialAccess } from '@/hooks/useMaterialAccess';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
 
 interface MaterialAccessGuardProps {
   children: React.ReactNode;

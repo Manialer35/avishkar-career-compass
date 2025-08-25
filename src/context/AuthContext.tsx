@@ -7,6 +7,8 @@ type AuthContextType = {
   user: any | null;
   isAdmin: boolean;
   loading: boolean;
+  signOut: () => Promise<void>;
+  getSupabaseToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const signOut = async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsAdmin(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const getSupabaseToken = async (): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || null;
+    } catch (error) {
+      console.error('Error getting Supabase token:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -68,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading }}>
+    <AuthContext.Provider value={{ user, isAdmin, loading, signOut, getSupabaseToken }}>
       {children}
     </AuthContext.Provider>
   );
