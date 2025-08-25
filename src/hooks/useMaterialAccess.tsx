@@ -45,7 +45,7 @@ export const useMaterialAccess = (materialId: string) => {
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('user_purchases')
         .select('*')
-        .eq('user_id', user.uid)
+        .eq('user_id', user.id)
         .eq('material_id', materialId)
         .maybeSingle();
 

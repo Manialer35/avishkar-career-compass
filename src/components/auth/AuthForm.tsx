@@ -1,11 +1,12 @@
 // src/components/auth/AuthForm.tsx
 import React, { useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PhoneAuthForm from "./PhoneAuthForm";
 
 const AuthForm: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -99,12 +100,28 @@ const AuthForm: React.FC = () => {
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-gray-900">
-          {isSignUp ? "Create Account" : "Sign In"}
+          Welcome to Study Academy
         </h1>
         <p className="text-gray-600 mt-2">
-          {isSignUp ? "Create your account" : "Sign in to your account"}
+          Choose your preferred sign-in method
         </p>
       </div>
+
+      <Tabs defaultValue="email" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="phone">Phone</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="email" className="space-y-4">
+          <div className="text-center mb-4">
+            <h2 className="text-lg font-semibold">
+              {isSignUp ? "Create Account" : "Sign In"}
+            </h2>
+            <p className="text-gray-600 text-sm">
+              {isSignUp ? "Create your account with email" : "Sign in with your email"}
+            </p>
+          </div>
 
       {/* Messages */}
       {message && (
@@ -173,14 +190,20 @@ const AuthForm: React.FC = () => {
         </Button>
       </form>
 
-      {/* Demo Account Info */}
-      <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm">
-        <h3 className="font-semibold text-blue-800 mb-2">Demo Account</h3>
-        <p className="text-blue-700">
-          <strong>Email:</strong> neerajmadkar35@gmail.com<br />
-          <strong>Password:</strong> Contact admin for demo access
-        </p>
-      </div>
+          {/* Demo Account Info */}
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm">
+            <h3 className="font-semibold text-blue-800 mb-2">Demo Account</h3>
+            <p className="text-blue-700">
+              <strong>Email:</strong> neerajmadkar35@gmail.com<br />
+              <strong>Password:</strong> Contact admin for demo access
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="phone" className="space-y-4">
+          <PhoneAuthForm />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
