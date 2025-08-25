@@ -132,17 +132,22 @@ const StudyMaterials = () => {
 
   const fetchMaterials = async () => {
     try {
+      console.log('Fetching study materials...');
       setLoading(true);
       const { data, error } = await supabase
         .from('study_materials')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Study materials fetch result:', { data, error });
+
       if (error) {
         throw error;
       }
 
       if (data) {
+        console.log(`Found ${data.length} study materials, processing...`);
+        
         const materials = data.map(item => ({
           id: item.id,
           title: item.title,
@@ -155,11 +160,21 @@ const StudyMaterials = () => {
           isUpcoming: item.is_upcoming
         }));
 
-        setFreeMaterials(materials.filter(m => !m.isPremium));
-        setPaidMaterials(materials.filter(m => m.isPremium));
+        const free = materials.filter(m => !m.isPremium);
+        const paid = materials.filter(m => m.isPremium);
+        
+        console.log(`Processed: ${free.length} free materials, ${paid.length} paid materials`);
+
+        setFreeMaterials(free);
+        setPaidMaterials(paid);
       }
     } catch (error) {
       console.error('Error fetching materials:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load study materials. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }

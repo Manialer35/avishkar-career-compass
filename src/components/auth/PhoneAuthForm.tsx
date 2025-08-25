@@ -3,15 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
+import { useAuth } from "@/context/AuthContext";
+import { getAuth, RecaptchaVerifier } from "firebase/auth";
 
 const PhoneAuthForm: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>("");
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const { toast } = useToast();
+  const { signInWithPhone, verifyOtp, confirmationResult } = useAuth();
 
   useEffect(() => {
     const auth = getAuth();
@@ -64,8 +65,7 @@ const PhoneAuthForm: React.FC = () => {
       }
 
       const appVerifier = window.recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-      setConfirmationResult(result);
+      const result = await signInWithPhone(phoneNumber);
       setMessage("✅ OTP sent successfully! Please check your phone.");
       
       toast({
@@ -112,7 +112,7 @@ const PhoneAuthForm: React.FC = () => {
     setMessage("");
 
     try {
-      await confirmationResult.confirm(otp);
+      await verifyOtp(confirmationResult, otp);
       setMessage("✅ Phone number verified successfully! Redirecting...");
       
       toast({
@@ -232,7 +232,6 @@ const PhoneAuthForm: React.FC = () => {
             variant="outline"
             className="w-full"
             onClick={() => {
-              setConfirmationResult(null);
               setOtp("");
               setMessage("");
             }}

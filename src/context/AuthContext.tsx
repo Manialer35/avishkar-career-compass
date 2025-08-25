@@ -1,14 +1,26 @@
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ADMIN_NUMBERS } from "@/config/admins";
+import { auth } from '@/firebase';
+import { 
+  signInWithPhoneNumber, 
+  ConfirmationResult,
+  onAuthStateChanged,
+  User as FirebaseUser,
+  signOut as firebaseSignOut
+} from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 type AuthContextType = {
   user: any | null;
+  firebaseUser: FirebaseUser | null;
   isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   getSupabaseToken: () => Promise<string | null>;
+  signInWithPhone: (phone: string) => Promise<ConfirmationResult>;
+  verifyOtp: (confirmationResult: ConfirmationResult, otp: string) => Promise<void>;
+  confirmationResult: ConfirmationResult | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,14 +45,23 @@ async function checkIsAdmin(user: any): Promise<boolean> {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
+  const { toast } = useToast();
 
   const signOut = async (): Promise<void> => {
     try {
       await supabase.auth.signOut();
+      await firebaseSignOut(auth);
       setUser(null);
+      setFirebaseUser(null);
       setIsAdmin(false);
+      setConfirmationResult(null);
+      toast({
+        title: "Signed out successfully",
+      });
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -56,27 +77,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Phone auth functions
+  const signInWithPhone = async (phone: string): Promise<ConfirmationResult> => {
+    try {
+      console.log('Sending OTP to phone:', phone);
+      
+      if (!window.recaptchaVerifier) {
+        throw new Error('RecaptchaVerifier not initialized. Please ensure the auth form is loaded.');
+      }
+      
+      const appVerifier = window.recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, phone, appVerifier);
+      
+      setConfirmationResult(result);
+      console.log('OTP sent successfully');
+      return result;
+    } catch (error: any) {
+      console.error('Error sending OTP:', error);
+      throw error;
+    }
+  };
+
+  const verifyOtp = async (confirmationResult: ConfirmationResult, otp: string): Promise<void> => {
+    try {
+      console.log('Verifying OTP');
+      const result = await confirmationResult.confirm(otp);
+      
+      console.log('OTP verification successful', result.user);
+      setConfirmationResult(null);
+      
+      // Firebase user will be handled by onAuthStateChanged
+    } catch (error: any) {
+      console.error('Error verifying OTP:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
     const initAuth = async () => {
       try {
+        // Check Supabase session first
         const { data, error } = await supabase.auth.getSession();
         if (!mounted) return;
         
         if (error) {
-          console.error("Session error:", error);
-          setLoading(false);
-          return;
-        }
-
-        const u = data?.session?.user ?? null;
-        setUser(u);
-        
-        // Only check admin if user exists
-        if (u) {
-          const adminStatus = await checkIsAdmin(u);
+          console.error("Supabase session error:", error);
+        } else if (data?.session?.user) {
+          setUser(data.session.user);
+          
+          // Check admin status for Supabase users
+          const adminStatus = await checkIsAdmin(data.session.user);
           setIsAdmin(adminStatus);
         }
       } catch (err) {
@@ -96,30 +149,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    // Optimized auth state listener
+    // Set up Firebase auth state listener
+    const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!mounted) return;
+      
+      console.log('Firebase auth state changed:', firebaseUser?.phoneNumber);
+      setFirebaseUser(firebaseUser);
+      
+      if (firebaseUser) {
+        // For Firebase users, create/link Supabase session
+        try {
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (!error && data.user) {
+            setUser(data.user);
+          }
+        } catch (error) {
+          console.error('Error creating Supabase session:', error);
+        }
+        
+        toast({
+          title: "Signed in successfully",
+          description: `Welcome ${firebaseUser.phoneNumber}!`,
+        });
+      }
+      
+      setLoading(false);
+    });
+
+    // Set up Supabase auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      const u = session?.user ?? null;
-      setUser(u);
+      const supabaseUser = session?.user ?? null;
       
-      if (u && event === 'SIGNED_IN') {
-        const adminStatus = await checkIsAdmin(u);
+      // Only update if this is a direct Supabase login (not Firebase-triggered)
+      if (supabaseUser && !firebaseUser) {
+        setUser(supabaseUser);
+        
+        const adminStatus = await checkIsAdmin(supabaseUser);
         setIsAdmin(adminStatus);
-      } else if (event === 'SIGNED_OUT') {
+        
+        toast({
+          title: "Signed in successfully", 
+          description: `Welcome ${supabaseUser.email}!`,
+        });
+      } else if (!supabaseUser && !firebaseUser) {
+        setUser(null);
         setIsAdmin(false);
       }
+      
+      setLoading(false);
     });
 
     return () => {
-      subscription.unsubscribe();
       mounted = false;
+      unsubscribeFirebase();
+      subscription.unsubscribe();
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, []);
+  }, [toast, firebaseUser, loading]);
 
   return (
-    <AuthContext.Provider value={{ user, isAdmin, loading, signOut, getSupabaseToken }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      firebaseUser, 
+      isAdmin, 
+      loading, 
+      signOut, 
+      getSupabaseToken,
+      signInWithPhone,
+      verifyOtp,
+      confirmationResult
+    }}>
       {children}
     </AuthContext.Provider>
   );

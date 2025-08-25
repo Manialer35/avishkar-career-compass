@@ -30,12 +30,16 @@ const Home = () => {
     
     const fetchImages = async () => {
       try {
+        console.log('Starting to fetch images...');
+        
         // Optimized query with only essential fields
         const { data: allImages, error } = await supabase
           .from('academy_images')
           .select('title, url, category')
           .order('created_at', { ascending: false })
           .limit(50); // Limit to prevent excessive data loading
+        
+        console.log('Image fetch result:', { allImages, error });
         
         if (error) {
           console.error('Error fetching images:', error);
@@ -48,9 +52,12 @@ const Home = () => {
         if (!isMounted) return;
 
         if (!allImages || allImages.length === 0) {
+          console.log('No images found in database');
           setImageData(prev => ({ ...prev, loading: false }));
           return;
         }
+
+        console.log(`Found ${allImages.length} images, processing...`);
 
         // Batch process images for better performance
         const imagesByCategory = allImages.reduce((acc, img) => {
@@ -81,6 +88,12 @@ const Home = () => {
         const successUrls = successStories.map(img => img.url);
 
         if (isMounted) {
+          console.log('Setting final image data:', {
+            profileImages: newProfileImages,
+            successfulCandidatesImages: successUrls,
+            imageCount: successUrls.length
+          });
+          
           setImageData({
             profileImages: newProfileImages,
             successfulCandidatesImages: successUrls,
