@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import AuthForm from '@/components/auth/AuthForm';
+import "@/firebase";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -36,7 +37,26 @@ const Auth = () => {
           </p>
         </div>
         
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="text-sm font-semibold text-blue-800 mb-2">📱 SMS Authentication Setup:</h3>
+          <div className="text-sm text-blue-700 space-y-2">
+            <p><strong>For Production:</strong> Enable billing in Firebase Console</p>
+            <p><strong>For Development:</strong> Use test numbers in Firebase Console</p>
+            <p><strong>Test Number:</strong> +918888769281 (OTP: any 6 digits)</p>
+            <hr className="my-2 border-blue-200" />
+            <p className="font-medium">How to Login:</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Enter phone number with country code (+91...)</li>
+              <li>Click "Send OTP" and wait for SMS</li>
+              <li>Enter the 6-digit verification code</li>
+              <li>Click "Verify & Login" to access your account</li>
+            </ol>
+          </div>
+        </div>
+        
         <AuthForm />
+
+        <div id="recaptcha-container" style={{ height: 0, overflow: "hidden" }} />
       </div>
     </div>
   );
