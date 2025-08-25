@@ -13,6 +13,9 @@ import NotFound from './pages/NotFound';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import PurchaseProduct from './components/payment/PurchaseProduct';
+import AdminPanel from './pages/AdminPanel';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 
 // ScrollToTop component to ensure page scrolls to top on route change
 const ScrollToTop = () => {
@@ -44,6 +47,10 @@ const AppRoutes = () => {
         <Route path="/payment-success/:productId" element={<SuccessPage />} />
         <Route path="/events" element={<Event />} />
         <Route path="/online-classes" element={<OnlineClasses />} />
+        
+        {/* Admin routes */}
+        <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         
         {/* 404 catch-all route */}
         <Route path="*" element={<NotFound />} />

@@ -678,20 +678,23 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"]
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"]
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -752,6 +755,10 @@ export type Database = {
       }
       is_admin: {
         Args: { user_uuid: string }
+        Returns: boolean
+      }
+      is_admin_by_phone: {
+        Args: { phone_num: string }
         Returns: boolean
       }
       is_admin_user: {

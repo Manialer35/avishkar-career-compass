@@ -34,7 +34,9 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
+    
+    // Use service role client for user verification
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
       console.error("Invalid user:", userError?.message);

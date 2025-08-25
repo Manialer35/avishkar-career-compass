@@ -16,14 +16,21 @@ export const useSecureAdmin = () => {
       }
 
       try {
-        // Use the secure database function to check admin status
-        const { data, error } = await supabase.rpc('is_admin_user');
+        // Check admin status by phone number since we're using Firebase auth
+        const phoneNumber = user.phoneNumber;
+        if (phoneNumber) {
+          const { data, error } = await supabase.rpc('is_admin_by_phone', {
+            phone_num: phoneNumber
+          });
 
-        if (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
+          if (error) {
+            console.error('Error checking admin status:', error);
+            setIsAdmin(false);
+          } else {
+            setIsAdmin(data || false);
+          }
         } else {
-          setIsAdmin(data || false);
+          setIsAdmin(false);
         }
       } catch (error) {
         console.error('Exception checking admin status:', error);
