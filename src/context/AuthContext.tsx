@@ -58,34 +58,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
 
-    (async () => {
+    const initAuth = async () => {
       try {
-        // initial session -> faster on client
-        const { data } = await supabase.auth.getSession();
-        const u = data?.session?.user ?? null;
+        const { data, error } = await supabase.auth.getSession();
         if (!mounted) return;
+        
+        if (error) {
+          console.error("Session error:", error);
+          setLoading(false);
+          return;
+        }
+
+        const u = data?.session?.user ?? null;
         setUser(u);
-        const adminStatus = await checkIsAdmin(u);
-        setIsAdmin(adminStatus);
+        
+        // Only check admin if user exists
+        if (u) {
+          const adminStatus = await checkIsAdmin(u);
+          setIsAdmin(adminStatus);
+        }
       } catch (err) {
         console.error("Auth init error:", err);
       } finally {
         if (mounted) setLoading(false);
       }
-    })();
+    };
 
-    // listen for changes (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Add timeout to prevent hanging
+    timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn("Auth initialization timeout");
+        setLoading(false);
+      }
+    }, 10000);
+
+    initAuth();
+
+    // Optimized auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       const u = session?.user ?? null;
       setUser(u);
-      const adminStatus = await checkIsAdmin(u);
-      setIsAdmin(adminStatus);
+      
+      if (u && event === 'SIGNED_IN') {
+        const adminStatus = await checkIsAdmin(u);
+        setIsAdmin(adminStatus);
+      } else if (event === 'SIGNED_OUT') {
+        setIsAdmin(false);
+      }
     });
 
     return () => {
       subscription.unsubscribe();
       mounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, []);
 
