@@ -16,18 +16,18 @@ export const useSecureAdmin = () => {
       }
 
       try {
-        // Check admin status by phone number since we're using Firebase auth
+        // Check admin status by phone number using edge function
         const phoneNumber = user.phoneNumber;
         if (phoneNumber) {
-          const { data, error } = await supabase.rpc('is_admin_by_phone', {
-            phone_num: phoneNumber
+          const { data, error } = await supabase.functions.invoke('verify-admin', {
+            body: { phoneNumber }
           });
 
           if (error) {
             console.error('Error checking admin status:', error);
             setIsAdmin(false);
           } else {
-            setIsAdmin(data || false);
+            setIsAdmin(data?.isAdmin || false);
           }
         } else {
           setIsAdmin(false);

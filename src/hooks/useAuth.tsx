@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '@/firebase'; // Use the correct firebase config
+import { auth } from '@/firebase';
 import { 
   signInWithPhoneNumber, 
   ConfirmationResult,
@@ -9,37 +9,55 @@ import {
   signOut as firebaseSignOut
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AuthContextType {
   user: User | null;
+  supabaseUser: any | null;
   loading: boolean;
   signInWithPhone: (phone: string) => Promise<ConfirmationResult>;
   verifyOtp: (confirmationResult: ConfirmationResult, otp: string) => Promise<void>;
   signOut: () => Promise<void>;
   confirmationResult: ConfirmationResult | null;
+  getSupabaseToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener only
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    // Set up auth state listener for Firebase
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      setLoading(false);
       
       if (firebaseUser) {
         console.log('User signed in:', firebaseUser.phoneNumber);
+        
+        // Create or sign in user to Supabase
+        try {
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (!error && data.user) {
+            setSupabaseUser(data.user);
+          }
+        } catch (error) {
+          console.error('Error creating Supabase session:', error);
+        }
+        
         toast({
           title: "Signed in successfully",
           description: `Welcome ${firebaseUser.phoneNumber}!`,
         });
+      } else {
+        setSupabaseUser(null);
       }
+      
+      setLoading(false);
     });
 
     return () => {
@@ -83,7 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async (): Promise<void> => {
     try {
       await firebaseSignOut(auth);
+      await supabase.auth.signOut();
       setConfirmationResult(null);
+      setSupabaseUser(null);
       toast({
         title: "Signed out successfully",
       });
@@ -92,13 +112,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getSupabaseToken = async (): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || null;
+    } catch (error) {
+      console.error('Error getting Supabase token:', error);
+      return null;
+    }
+  };
+
   const value: AuthContextType = {
     user,
+    supabaseUser,
     loading,
     signInWithPhone,
     verifyOtp,
     signOut,
     confirmationResult,
+    getSupabaseToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

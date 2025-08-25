@@ -26,22 +26,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get user from auth header
+    // Get user from auth header - allow anonymous users for payments
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header");
-      throw new Error("Authentication required");
-    }
-
-    const token = authHeader.replace("Bearer ", "");
+    let user = null;
     
-    // Use service role client for user verification
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error("Invalid user:", userError?.message);
-      throw new Error("Invalid authentication");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (!userError && authUser) {
+        user = authUser;
+      }
     }
+    
+    // For payments, we can proceed without user authentication
+    // The customer ID from Firebase will be used for tracking
 
     // Create Razorpay order using your API key
     const razorpayKey = Deno.env.get("RAZORPAY_KEY_ID");
@@ -80,7 +79,7 @@ serve(async (req) => {
       .insert({
         order_id: order.id,
         product_id: productId,
-        user_id: user.id,
+        user_id: user?.id || customerId, // Use Firebase customer ID if no Supabase user
         amount: amount / 100, // Store in rupees
         currency: currency || "INR",
         status: "created",

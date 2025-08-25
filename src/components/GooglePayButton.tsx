@@ -19,7 +19,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const [paymentAvailable, setPaymentAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, getSupabaseToken } = useAuth();
   
   // Get Razorpay key from environment - using live key for production
   const razorpayKeyId = "rzp_live_OCL24jX6vVdT6W";
@@ -56,6 +56,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
 
   const createRazorpayOrder = async () => {
     try {
+      const authToken = await getSupabaseToken();
+      
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
           amount: price * 100, // Convert to paise
@@ -64,7 +66,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           productName: productName,
           customerId: user?.uid,
           customerEmail: user?.email
-        }
+        },
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
 
       if (error) throw error;
@@ -77,6 +80,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
 
   const verifyPayment = async (paymentData: any) => {
     try {
+      const authToken = await getSupabaseToken();
+      
       const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
         body: {
           razorpay_payment_id: paymentData.razorpay_payment_id,
@@ -84,7 +89,8 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           razorpay_signature: paymentData.razorpay_signature,
           productId: productId,
           userId: user?.uid
-        }
+        },
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
 
       if (error) throw error;

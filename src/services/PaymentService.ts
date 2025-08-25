@@ -33,10 +33,13 @@ export interface PaymentVerificationData {
 class PaymentService {
   private razorpayKeyId = 'rzp_live_OCL24jX6vVdT6W';
 
-  async createOrder(paymentData: PaymentRequestData): Promise<RazorpayOrderResponse> {
+  async createOrder(paymentData: PaymentRequestData, authToken?: string): Promise<RazorpayOrderResponse> {
     try {
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+      
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: paymentData,
+        headers,
       });
 
       if (error) {
@@ -108,10 +111,13 @@ class PaymentService {
     razorpay.open();
   }
 
-  async verifyPayment(paymentData: PaymentVerificationData): Promise<{ success: boolean; message: string }> {
+  async verifyPayment(paymentData: PaymentVerificationData, authToken?: string): Promise<{ success: boolean; message: string }> {
     try {
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+      
       const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
         body: paymentData,
+        headers,
       });
 
       if (error) {

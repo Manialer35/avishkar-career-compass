@@ -12,7 +12,7 @@ interface PurchaseFlowOptions {
 
 export const usePurchaseFlow = () => {
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth();
+  const { user, getSupabaseToken } = useAuth();
   const { toast } = useToast();
 
   const initiatePurchase = async ({ materialId, materialTitle, price }: PurchaseFlowOptions) => {
@@ -27,6 +27,9 @@ export const usePurchaseFlow = () => {
 
     setLoading(true);
     try {
+      // Get Supabase auth token
+      const authToken = await getSupabaseToken();
+      
       // Create Razorpay order
       const { data: orderData, error: orderError } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
@@ -34,10 +37,11 @@ export const usePurchaseFlow = () => {
           currency: 'INR',
           productId: materialId,
           productName: materialTitle,
-          customerId: (user as any)?.id || (user as any)?.uid || '',
+          customerId: (user as any)?.uid || '',
           customerEmail: user?.email || '',
-          customerPhone: (user as any)?.phoneNumber || (user as any)?.phone || '',
+          customerPhone: (user as any)?.phoneNumber || '',
         },
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
 
       if (orderError) throw orderError;
