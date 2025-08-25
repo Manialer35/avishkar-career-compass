@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn("Auth initialization timeout");
         setLoading(false);
       }
-    }, 10000);
+    }, 5000);
 
     initAuth();
 
