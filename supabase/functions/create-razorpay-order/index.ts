@@ -53,7 +53,7 @@ serve(async (req) => {
     const orderData = {
       amount: amount, // amount in paise
       currency: currency || "INR",
-      receipt: `order_${productId}_${Date.now()}`,
+      receipt: `ord_${Date.now().toString().slice(-8)}`, // Keep under 40 chars
     };
 
     const response = await fetch("https://api.razorpay.com/v1/orders", {
