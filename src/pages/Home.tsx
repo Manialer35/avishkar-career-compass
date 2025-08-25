@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSection from '../components/home/ProfileSection';
 import SyllabusSection from '../components/home/SyllabusSection';
@@ -8,115 +8,131 @@ import SuccessStoriesSection from '../components/home/SuccessStoriesSection';
 import ClassesSection from '../components/home/ClassesSection';
 import EnquirySection from '../components/home/EnquirySection';
 
+// Memoized components for better performance
+const MemoizedProfileSection = memo(ProfileSection);
+const MemoizedSyllabusSection = memo(SyllabusSection);
+const MemoizedStudyMaterialsSection = memo(StudyMaterialsSection);
+const MemoizedIntroductionSection = memo(IntroductionSection);
+const MemoizedSuccessStoriesSection = memo(SuccessStoriesSection);
+const MemoizedClassesSection = memo(ClassesSection);
+const MemoizedEnquirySection = memo(EnquirySection);
+
 const Home = () => {
-  // Store profile images
-  const [profileImages, setProfileImages] = useState({
-    maheshKhot: '/placeholder-profile.png',
-    atulMadkar: '/placeholder-profile.png',
-    academyLogo: '/placeholder-logo.png'
+  // Consolidated image state for better performance
+  const [imageData, setImageData] = useState({
+    profileImages: {
+      maheshKhot: '/placeholder-profile.png',
+      atulMadkar: '/placeholder-profile.png',
+      academyLogo: '/placeholder-logo.png'
+    },
+    successfulCandidatesImages: [],
+    loading: true
   });
 
-  // Successful candidates images
-  const [successfulCandidatesImages, setSuccessfulCandidatesImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Memoized profile images to prevent unnecessary re-renders
+  const profileImages = useMemo(() => imageData.profileImages, [imageData.profileImages]);
+  const successfulCandidatesImages = useMemo(() => imageData.successfulCandidatesImages, [imageData.successfulCandidatesImages]);
 
-  // Load images from Supabase with optimized performance
+  // Single optimized database call with image lazy loading
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchImages = async () => {
       try {
-        setLoading(true);
-        
-        // Optimized query with minimal fields for better performance
+        // Optimized query with only essential fields
         const { data: allImages, error } = await supabase
           .from('academy_images')
-          .select('id, title, url, category')
-          .order('created_at', { ascending: false });
+          .select('title, url, category')
+          .order('created_at', { ascending: false })
+          .limit(50); // Limit to prevent excessive data loading
         
         if (error) {
           console.error('Error fetching images:', error);
+          if (isMounted) {
+            setImageData(prev => ({ ...prev, loading: false }));
+          }
           return;
         }
+
+        if (!isMounted) return;
 
         if (!allImages || allImages.length === 0) {
-          console.log('No images found in the database');
+          setImageData(prev => ({ ...prev, loading: false }));
           return;
         }
 
-        console.log(`Fetched ${allImages.length} images from database`);
-        
-        // Process profile images
-        const profiles = allImages.filter(img => img.category === 'Profiles');
-        const logos = allImages.filter(img => img.category === 'Logos');
-        const successStories = allImages.filter(img => img.category === 'Successful Candidates');
-        
-        // Extract profile images
-        const newProfileImages = { ...profileImages };
-        
-        // Find Mahesh's profile
-        const maheshImage = profiles.find(img => 
-          img.title?.toLowerCase().includes('mahesh') || 
-          img.title?.toLowerCase().includes('khot')
-        );
-        if (maheshImage) {
-          newProfileImages.maheshKhot = maheshImage.url;
+        // Batch process images for better performance
+        const imagesByCategory = allImages.reduce((acc, img) => {
+          if (!acc[img.category]) acc[img.category] = [];
+          acc[img.category].push(img);
+          return acc;
+        }, {});
+
+        // Update profile images
+        const newProfileImages = { ...imageData.profileImages };
+        const profiles = imagesByCategory['Profiles'] || [];
+        const logos = imagesByCategory['Logos'] || [];
+
+        profiles.forEach(img => {
+          if (img.title?.toLowerCase().includes('mahesh')) {
+            newProfileImages.maheshKhot = img.url;
+          } else if (img.title?.toLowerCase().includes('atul')) {
+            newProfileImages.atulMadkar = img.url;
+          }
+        });
+
+        if (logos.length > 0) {
+          newProfileImages.academyLogo = logos[0].url;
         }
-        
-        // Find Atul's profile
-        const atulImage = profiles.find(img => 
-          img.title?.toLowerCase().includes('atul') || 
-          img.title?.toLowerCase().includes('madkar')
-        );
-        if (atulImage) {
-          newProfileImages.atulMadkar = atulImage.url;
-        }
-        
-        // Find Academy logo
-        const logoImage = logos.find(img => 
-          img.title?.toLowerCase().includes('academy') || 
-          img.title?.toLowerCase().includes('logo')
-        );
-        if (logoImage) {
-          newProfileImages.academyLogo = logoImage.url;
-        }
-        
-        // Update states
-        setProfileImages(newProfileImages);
-        
-        // Extract success stories
-        if (successStories && successStories.length > 0) {
-          const successUrls = successStories.map(img => img.url);
-          setSuccessfulCandidatesImages(successUrls);
+
+        // Get success stories (limit to first 6 for performance)
+        const successStories = (imagesByCategory['Successful Candidates'] || []).slice(0, 6);
+        const successUrls = successStories.map(img => img.url);
+
+        if (isMounted) {
+          setImageData({
+            profileImages: newProfileImages,
+            successfulCandidatesImages: successUrls,
+            loading: false
+          });
         }
         
       } catch (error) {
         console.error('Error loading images:', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setImageData(prev => ({ ...prev, loading: false }));
+        }
       }
     };
     
     fetchImages();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array for single load
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <ProfileSection profileImages={profileImages} />
-      <SyllabusSection />
-      <StudyMaterialsSection />
-      <IntroductionSection />
-      {!loading && successfulCandidatesImages.length > 0 ? (
-        <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
+      <MemoizedProfileSection profileImages={profileImages} />
+      <MemoizedSyllabusSection />
+      <MemoizedStudyMaterialsSection />
+      <MemoizedIntroductionSection />
+      {!imageData.loading && successfulCandidatesImages.length > 0 ? (
+        <MemoizedSuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
       ) : (
         <div className="my-8 text-center">
-          {loading ? (
-            <p>Loading success stories...</p>
+          {imageData.loading ? (
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
+            </div>
           ) : (
-            <p>No success stories available at the moment.</p>
+            <p className="text-muted-foreground">No success stories available at the moment.</p>
           )}
         </div>
       )}
-      <ClassesSection />
-      <EnquirySection />
+      <MemoizedClassesSection />
+      <MemoizedEnquirySection />
     </div>
   );
 };

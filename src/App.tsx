@@ -122,7 +122,17 @@ const MainLayout = () => {
 };
 
 function App() {
-  const [queryClient] = useState(() => new QueryClient());
+  // Use singleton pattern for QueryClient to prevent recreation
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
+        retry: 1, // Reduce retries for faster failure
+        refetchOnWindowFocus: false, // Prevent unnecessary refetches
+      },
+    },
+  }));
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -142,12 +152,16 @@ function App() {
   );
 }
 
+// Error boundary for better performance debugging
 window.addEventListener("error", (e) => {
-  console.error("Global Error:", e.error);
+  if (process.env.NODE_ENV === 'development') {
+    console.error("Global Error:", e.error);
+  }
 });
 window.addEventListener("unhandledrejection", (e) => {
-  console.error("Unhandled Promise Rejection:", e.reason);
+  if (process.env.NODE_ENV === 'development') {
+    console.error("Unhandled Promise Rejection:", e.reason);
+  }
 });
-
 
 export default App;

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,15 +15,15 @@ interface ClassEvent {
   class_price: number;
 }
 
-const ClassesSection = () => {
+const ClassesSection = memo(() => {
   const [events, setEvents] = useState<ClassEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     async function fetchEvents() {
       try {
-        setLoading(true);
-        
         // Get current date in ISO format
         const today = new Date().toISOString();
         
@@ -33,22 +33,29 @@ const ClassesSection = () => {
           .gte('class_date', today)
           .eq('is_active', true)
           .order('class_date', { ascending: true })
-          .limit(3);
+          .limit(3); // Limit for performance
           
         if (error) {
           console.error('Error fetching events:', error);
+          if (isMounted) setLoading(false);
           return;
         }
-        
-        setEvents(data || []);
+
+        if (isMounted) {
+          setEvents(data || []);
+          setLoading(false);
+        }
       } catch (err) {
         console.error('Failed to fetch events:', err);
-      } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
     
     fetchEvents();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -159,6 +166,8 @@ const ClassesSection = () => {
       </div>
     </section>
   );
-};
+});
+
+ClassesSection.displayName = 'ClassesSection';
 
 export default ClassesSection;
