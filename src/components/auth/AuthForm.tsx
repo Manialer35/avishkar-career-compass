@@ -23,15 +23,15 @@ const AuthForm: React.FC = () => {
   const [message, setMessage] = useState<string>("");
   const { toast } = useToast();
 
-  // Initialize Recaptcha
-  const setUpRecaptcha = async () => {
+  // Initialize Recaptcha only once
+  const setUpRecaptcha = () => {
+    // Don't recreate if already exists and working
+    if (window.recaptchaVerifier) {
+      console.log('RecaptchaVerifier already exists');
+      return window.recaptchaVerifier;
+    }
+    
     try {
-      // Clear any existing reCAPTCHA
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
-      
       console.log('Setting up RecaptchaVerifier');
       window.recaptchaVerifier = new RecaptchaVerifier(
         auth,
@@ -42,23 +42,14 @@ const AuthForm: React.FC = () => {
             console.log("reCAPTCHA solved");
           },
           "expired-callback": () => {
-            console.log("reCAPTCHA expired, resetting...");
-            // Reset recaptcha on expiry
-            if (window.recaptchaVerifier) {
-              window.recaptchaVerifier.clear();
-              window.recaptchaVerifier = null;
-            }
-          },
+            console.log("reCAPTCHA expired");
+          }
         }
       );
       console.log('RecaptchaVerifier setup complete');
+      return window.recaptchaVerifier;
     } catch (error) {
       console.error('Error setting up reCAPTCHA:', error);
-      // Clear and retry
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
-      }
       throw error;
     }
   };
@@ -79,17 +70,14 @@ const AuthForm: React.FC = () => {
     try {
       console.log('Starting OTP send process for phone:', phone);
       
-      // Ensure recaptcha is properly set up
-      await setUpRecaptcha();
+      // Set up recaptcha
+      const recaptchaVerifier = setUpRecaptcha();
       
-      // Wait a moment for recaptcha to initialize
-      await new Promise(resolve => setTimeout(resolve, 500));
-
       console.log('Attempting to send OTP with Firebase');
       const confirmation = await signInWithPhoneNumber(
         auth,
         phone.trim(),
-        window.recaptchaVerifier!
+        recaptchaVerifier
       );
 
       console.log('OTP request successful');
@@ -127,10 +115,16 @@ const AuthForm: React.FC = () => {
         errorMessage += `Please check your phone number and try again. (${error.code || 'Unknown error'})`;
       }
       
-      // Clear recaptcha on error
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
+      // Only clear recaptcha on specific errors
+      if (error.code === 'auth/captcha-check-failed' || error.message?.includes('reCAPTCHA')) {
+        if (window.recaptchaVerifier) {
+          try {
+            window.recaptchaVerifier.clear();
+          } catch (e) {
+            console.log('Error clearing reCAPTCHA:', e);
+          }
+          window.recaptchaVerifier = null;
+        }
       }
       
       setMessage(errorMessage);
@@ -200,10 +194,15 @@ const AuthForm: React.FC = () => {
     setOtp("");
     setConfirmationResult(null);
     setMessage("");
+    setLoading(false);
     
     // Clear recaptcha when resetting
     if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
+      try {
+        window.recaptchaVerifier.clear();
+      } catch (e) {
+        console.log('Error clearing reCAPTCHA:', e);
+      }
       window.recaptchaVerifier = null;
     }
   };
