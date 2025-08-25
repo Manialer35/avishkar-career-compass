@@ -16,26 +16,21 @@ export const useSecureAdmin = () => {
       }
 
       try {
-        // Get phone number from Firebase user object
-        const phoneNumber = user.phoneNumber;
-        console.log('Checking admin status for phone:', phoneNumber);
-        
-        if (phoneNumber) {
-          const { data, error } = await supabase.functions.invoke('verify-admin', {
-            body: { phoneNumber }
-          });
+        // Check admin status using Supabase directly
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.uid)
+          .eq('role', 'admin')
+          .maybeSingle();
 
-          console.log('Admin verification result:', { data, error });
+        console.log('Admin verification result:', { data, error });
 
-          if (error) {
-            console.error('Error checking admin status:', error);
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(data?.isAdmin || false);
-          }
-        } else {
-          console.log('No phone number found for user');
+        if (error) {
+          console.error('Error checking admin status:', error);
           setIsAdmin(false);
+        } else {
+          setIsAdmin(!!data);
         }
       } catch (error) {
         console.error('Exception checking admin status:', error);

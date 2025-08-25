@@ -11,15 +11,22 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function extractPhone(user: any): string | null {
-  if (!user) return null;
-  return (
-    user.phone ??
-    user.user_metadata?.phone ??
-    user.user_metadata?.mobile ??
-    user.identities?.[0]?.identity_data?.phone ??
-    null
-  );
+async function checkIsAdmin(user: any): Promise<boolean> {
+  if (!user) return false;
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+    
+    return !error && !!data;
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -37,8 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const u = data?.session?.user ?? null;
         if (!mounted) return;
         setUser(u);
-        const phone = extractPhone(u);
-        setIsAdmin(phone ? ADMIN_NUMBERS.includes(phone) : false);
+        const adminStatus = await checkIsAdmin(u);
+        setIsAdmin(adminStatus);
       } catch (err) {
         console.error("Auth init error:", err);
       } finally {
@@ -47,11 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
 
     // listen for changes (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      const phone = extractPhone(u);
-      setIsAdmin(phone ? ADMIN_NUMBERS.includes(phone) : false);
+      const adminStatus = await checkIsAdmin(u);
+      setIsAdmin(adminStatus);
     });
 
     return () => {
