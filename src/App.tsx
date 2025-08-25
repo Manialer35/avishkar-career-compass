@@ -122,17 +122,7 @@ const MainLayout = () => {
 };
 
 function App() {
-  // Use singleton pattern for QueryClient to prevent recreation
-  const [queryClient] = useState(() => new QueryClient({
-    defaultOptions: {
-      queries: {
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes (garbage collection time)
-        retry: 1, // Reduce retries for faster failure
-        refetchOnWindowFocus: false, // Prevent unnecessary refetches
-      },
-    },
-  }));
+  const [queryClient] = useState(() => new QueryClient());
   
   return (
     <QueryClientProvider client={queryClient}>

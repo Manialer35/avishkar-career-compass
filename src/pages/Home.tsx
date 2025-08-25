@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSection from '../components/home/ProfileSection';
 import SyllabusSection from '../components/home/SyllabusSection';
@@ -7,15 +7,6 @@ import IntroductionSection from '../components/home/IntroductionSection';
 import SuccessStoriesSection from '../components/home/SuccessStoriesSection';
 import ClassesSection from '../components/home/ClassesSection';
 import EnquirySection from '../components/home/EnquirySection';
-
-// Memoized components for better performance
-const MemoizedProfileSection = memo(ProfileSection);
-const MemoizedSyllabusSection = memo(SyllabusSection);
-const MemoizedStudyMaterialsSection = memo(StudyMaterialsSection);
-const MemoizedIntroductionSection = memo(IntroductionSection);
-const MemoizedSuccessStoriesSection = memo(SuccessStoriesSection);
-const MemoizedClassesSection = memo(ClassesSection);
-const MemoizedEnquirySection = memo(EnquirySection);
 
 const Home = () => {
   // Consolidated image state for better performance
@@ -114,12 +105,12 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <MemoizedProfileSection profileImages={profileImages} />
-      <MemoizedSyllabusSection />
-      <MemoizedStudyMaterialsSection />
-      <MemoizedIntroductionSection />
+      <ProfileSection profileImages={profileImages} />
+      <SyllabusSection />
+      <StudyMaterialsSection />
+      <IntroductionSection />
       {!imageData.loading && successfulCandidatesImages.length > 0 ? (
-        <MemoizedSuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
+        <SuccessStoriesSection successfulCandidatesImages={successfulCandidatesImages} />
       ) : (
         <div className="my-8 text-center">
           {imageData.loading ? (
@@ -131,8 +122,8 @@ const Home = () => {
           )}
         </div>
       )}
-      <MemoizedClassesSection />
-      <MemoizedEnquirySection />
+      <ClassesSection />
+      <EnquirySection />
     </div>
   );
 };

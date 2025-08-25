@@ -1,5 +1,5 @@
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +15,7 @@ interface ClassEvent {
   class_price: number;
 }
 
-const ClassesSection = memo(() => {
+const ClassesSection = () => {
   const [events, setEvents] = useState<ClassEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -166,8 +166,6 @@ const ClassesSection = memo(() => {
       </div>
     </section>
   );
-});
-
-ClassesSection.displayName = 'ClassesSection';
+};
 
 export default ClassesSection;
