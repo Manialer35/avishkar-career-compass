@@ -32,12 +32,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener for Firebase
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Set up auth state listeners for both Firebase and Supabase
+    const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
       
       if (firebaseUser) {
-        console.log('User signed in:', firebaseUser.phoneNumber);
+        console.log('Firebase user signed in:', firebaseUser.phoneNumber);
         
         // Create or sign in user to Supabase
         try {
@@ -53,17 +53,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: "Signed in successfully",
           description: `Welcome ${firebaseUser.phoneNumber}!`,
         });
-      } else {
-        setSupabaseUser(null);
       }
       
       setLoading(false);
     });
 
+    // Set up Supabase auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session?.user) {
+          console.log('Supabase user signed in:', session.user.email);
+          setSupabaseUser(session.user);
+          
+          // If we have a Supabase session but no Firebase user, we're using email auth
+          if (!user) {
+            toast({
+              title: "Signed in successfully",
+              description: `Welcome ${session.user.email}!`,
+            });
+          }
+        } else {
+          setSupabaseUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
     return () => {
-      unsubscribe();
+      unsubscribeFirebase();
+      subscription.unsubscribe();
     };
-  }, [toast]);
+  }, [toast, user]);
 
   const signInWithPhone = async (phone: string): Promise<ConfirmationResult> => {
     try {

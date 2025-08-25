@@ -7,15 +7,15 @@ import "@/firebase";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, supabaseUser, loading } = useAuth();
   
   // If user is already authenticated, redirect to home
   useEffect(() => {
-    if (user && !loading) {
+    if ((user || supabaseUser) && !loading) {
       console.log('User already authenticated, redirecting to home');
       navigate('/');
     }
-  }, [user, navigate, loading]);
+  }, [user, supabaseUser, navigate, loading]);
 
   if (loading) {
     return (
