@@ -76,18 +76,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Sending OTP to phone:', phone);
       
-      // Initialize recaptcha if not already done
-      if (!window.recaptchaVerifier) {
+      // Clear any existing reCAPTCHA first
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.log('Error clearing existing reCAPTCHA:', e);
+        }
+        window.recaptchaVerifier = undefined;
+      }
+      
+      // Initialize reCAPTCHA with better error handling
+      try {
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: () => {
-            console.log('reCAPTCHA verified');
+            console.log('reCAPTCHA solved successfully');
           },
           'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-            window.recaptchaVerifier = undefined;
+            console.log('reCAPTCHA expired, clearing verifier');
+            if (window.recaptchaVerifier) {
+              window.recaptchaVerifier.clear();
+              window.recaptchaVerifier = undefined;
+            }
+          },
+          'error-callback': (error: any) => {
+            console.error('reCAPTCHA error:', error);
+            if (window.recaptchaVerifier) {
+              window.recaptchaVerifier.clear();
+              window.recaptchaVerifier = undefined;
+            }
           }
         });
+
+        // Render the reCAPTCHA immediately
+        await window.recaptchaVerifier.render();
+        console.log('reCAPTCHA rendered successfully');
+      } catch (recaptchaError) {
+        console.error('reCAPTCHA initialization error:', recaptchaError);
+        throw new Error('reCAPTCHA initialization failed. Please try again.');
       }
       
       const appVerifier = window.recaptchaVerifier;
@@ -99,10 +126,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       
-      // Clear recaptcha on error and try to reinitialize
+      // Clear recaptcha on any error
       if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.log('Error clearing reCAPTCHA on error:', e);
+        }
         window.recaptchaVerifier = undefined;
+      }
+      
+      // Provide better error messages
+      if (error.code === 'auth/captcha-check-failed') {
+        throw new Error('reCAPTCHA verification failed. Please make sure you\'re accessing from an authorized domain.');
+      } else if (error.code === 'auth/invalid-phone-number') {
+        throw new Error('Invalid phone number format. Please include country code.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many requests. Please try again later.');
       }
       
       throw error;

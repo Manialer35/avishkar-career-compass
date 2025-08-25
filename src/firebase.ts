@@ -16,4 +16,8 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 // Firebase services
 export const auth = getAuth(app);
-export { app }; // named export
+
+// Configure auth settings for better reCAPTCHA handling
+auth.settings.appVerificationDisabledForTesting = false;
+
+export { app };

@@ -30,7 +30,10 @@ const Home = () => {
     
     const fetchImages = async () => {
       try {
-        console.log('Starting to fetch images...');
+        console.log('🖼️ [Home] Starting to fetch images from Supabase...');
+        
+        // Add a small delay to ensure Supabase client is ready
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         // Optimized query with only essential fields
         const { data: allImages, error } = await supabase
@@ -39,59 +42,79 @@ const Home = () => {
           .order('created_at', { ascending: false })
           .limit(50); // Limit to prevent excessive data loading
         
-        console.log('Image fetch result:', { allImages, error });
+        console.log('🖼️ [Home] Supabase response:', { 
+          imageCount: allImages?.length || 0, 
+          error: error?.message || 'none',
+          hasImages: !!allImages
+        });
         
         if (error) {
-          console.error('Error fetching images:', error);
+          console.error('❌ [Home] Error fetching images:', error);
           if (isMounted) {
             setImageData(prev => ({ ...prev, loading: false }));
           }
           return;
         }
 
-        if (!isMounted) return;
+        if (!isMounted) {
+          console.log('🚫 [Home] Component unmounted, skipping image processing');
+          return;
+        }
 
         if (!allImages || allImages.length === 0) {
-          console.log('No images found in database');
+          console.log('📭 [Home] No images found in database');
           setImageData(prev => ({ ...prev, loading: false }));
           return;
         }
 
-        console.log(`Found ${allImages.length} images, processing...`);
+        console.log(`✅ [Home] Found ${allImages.length} images, processing by category...`);
 
         // Batch process images for better performance
         const imagesByCategory = allImages.reduce((acc, img) => {
           if (!acc[img.category]) acc[img.category] = [];
           acc[img.category].push(img);
           return acc;
-        }, {});
+        }, {} as Record<string, any[]>);
+
+        console.log('📂 [Home] Images by category:', Object.keys(imagesByCategory).map(cat => 
+          `${cat}: ${imagesByCategory[cat].length}`
+        ).join(', '));
 
         // Update profile images
         const newProfileImages = { ...imageData.profileImages };
         const profiles = imagesByCategory['Profiles'] || [];
         const logos = imagesByCategory['Logos'] || [];
 
+        console.log('👥 [Home] Processing profiles:', profiles.map(p => p.title));
+        console.log('🏢 [Home] Processing logos:', logos.map(l => l.title));
+
         profiles.forEach(img => {
+          console.log(`🔍 [Home] Checking profile: "${img.title}"`);
           if (img.title?.toLowerCase().includes('mahesh')) {
             newProfileImages.maheshKhot = img.url;
+            console.log('✅ [Home] Set Mahesh image:', img.url);
           } else if (img.title?.toLowerCase().includes('atul')) {
             newProfileImages.atulMadkar = img.url;
+            console.log('✅ [Home] Set Atul image:', img.url);
           }
         });
 
         if (logos.length > 0) {
           newProfileImages.academyLogo = logos[0].url;
+          console.log('✅ [Home] Set academy logo:', logos[0].url);
         }
 
         // Get success stories (limit to first 6 for performance)
         const successStories = (imagesByCategory['Successful Candidates'] || []).slice(0, 6);
         const successUrls = successStories.map(img => img.url);
 
+        console.log('🏆 [Home] Success stories found:', successUrls.length);
+
         if (isMounted) {
-          console.log('Setting final image data:', {
+          console.log('🎯 [Home] Setting final image data:', {
             profileImages: newProfileImages,
-            successfulCandidatesImages: successUrls,
-            imageCount: successUrls.length
+            successCount: successUrls.length,
+            allImagesLoaded: true
           });
           
           setImageData({
@@ -99,20 +122,24 @@ const Home = () => {
             successfulCandidatesImages: successUrls,
             loading: false
           });
+          
+          console.log('✅ [Home] Image data successfully updated!');
         }
         
       } catch (error) {
-        console.error('Error loading images:', error);
+        console.error('💥 [Home] Unexpected error loading images:', error);
         if (isMounted) {
           setImageData(prev => ({ ...prev, loading: false }));
         }
       }
     };
     
+    // Start fetching immediately
     fetchImages();
     
     return () => {
       isMounted = false;
+      console.log('🧹 [Home] Cleanup: Component unmounting');
     };
   }, []); // Empty dependency array for single load
 
