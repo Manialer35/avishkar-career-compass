@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { LogOut, User, Users, ShieldAlert } from 'lucide-react';
+import { LogOut, User, Users, ShieldAlert, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useSecureAdmin } from '@/hooks/useSecureAdmin';
 
 const Navbar = () => {
   const { user, loading, signOut } = useAuth();
+  const { isAdmin } = useSecureAdmin();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [open, setOpen] = useState(false);
   const buttonRef = useRef(null);
@@ -158,6 +160,18 @@ const Navbar = () => {
                 >
                   <User className="h-4 w-4 mr-2" /> My Profile
                 </DropdownMenuItem>
+                
+                {isAdmin && (
+                  <DropdownMenuItem 
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      navigate('/admin');
+                    }} 
+                    className="cursor-pointer flex items-center text-green-600"
+                  >
+                    <Shield className="h-4 w-4 mr-2" /> Admin Panel
+                  </DropdownMenuItem>
+                )}
                 
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 

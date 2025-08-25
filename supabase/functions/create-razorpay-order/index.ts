@@ -73,17 +73,23 @@ serve(async (req) => {
 
     const order = await response.json();
 
-    // Store order in database
+    // Store order in database - make user_id optional for guest payments
+    const orderRecord = {
+      order_id: order.id,
+      product_id: productId,
+      amount: amount / 100, // Store in rupees
+      currency: currency || "INR",
+      status: "created",
+    };
+
+    // Only add user_id if we have a valid Supabase user
+    if (user?.id) {
+      orderRecord.user_id = user.id;
+    }
+
     const { error: insertError } = await supabase
       .from("payment_orders")
-      .insert({
-        order_id: order.id,
-        product_id: productId,
-        user_id: user?.id || customerId, // Use Firebase customer ID if no Supabase user
-        amount: amount / 100, // Store in rupees
-        currency: currency || "INR",
-        status: "created",
-      });
+      .insert(orderRecord);
 
     if (insertError) {
       console.error("Error storing order:", insertError);
