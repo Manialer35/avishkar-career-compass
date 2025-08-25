@@ -1,92 +1,137 @@
-// src/components/auth/AuthForm.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PhoneAuthForm from "./PhoneAuthForm";
+import { useAuth } from "@/context/AuthContext";
+import { getAuth, RecaptchaVerifier } from "firebase/auth";
 
 const AuthForm: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string>("");
-  const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
+  const { signInWithPhone, verifyOtp, confirmationResult } = useAuth();
 
-  // Email authentication functions
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const auth = getAuth();
+    
+    // Initialize reCAPTCHA only once
+    if (!window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified');
+          },
+          'expired-callback': () => {
+            console.log('reCAPTCHA expired');
+            window.recaptchaVerifier = undefined;
+          }
+        });
+      } catch (error) {
+        console.error('Error initializing reCAPTCHA:', error);
+      }
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+    };
+  }, []);
+
+  const sendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
-    if (!email || !password) {
-      setMessage("Please enter both email and password");
+    if (!phoneNumber.trim()) {
+      setMessage("Please enter a valid phone number");
       setLoading(false);
       return;
     }
 
     try {
-      let result;
-      if (isSignUp) {
-        // Sign up with Supabase
-        result = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`
-          }
-        });
-      } else {
-        // Sign in with Supabase
-        result = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-      }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      if (isSignUp && !result.data.session) {
-        setMessage("✅ Account created! Please check your email to confirm your account.");
-        toast({
-          title: "Account Created",
-          description: "Please check your email to confirm your account",
-        });
-      } else {
-        setMessage("✅ Login successful! Redirecting...");
-        toast({
-          title: "Login Successful",
-          description: "Welcome back!",
-        });
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
-      }
-
-    } catch (error: any) {
-      console.error("Email auth error:", error);
-      let errorMessage = isSignUp ? "Failed to create account. " : "Failed to sign in. ";
+      const result = await signInWithPhone(phoneNumber);
+      setMessage("✅ OTP sent successfully! Please check your phone.");
       
-      if (error.message?.includes('Invalid login credentials')) {
-        errorMessage += "Invalid email or password.";
-      } else if (error.message?.includes('User already registered')) {
-        errorMessage += "Account already exists. Try signing in instead.";
-      } else if (error.message?.includes('Password should be at least')) {
-        errorMessage += "Password must be at least 6 characters.";
-      } else if (error.message?.includes('Email not confirmed')) {
-        errorMessage += "Please check your email and click the confirmation link.";
+      toast({
+        title: "OTP Sent",
+        description: "Please check your phone for the verification code",
+      });
+    } catch (error: any) {
+      console.error("Error sending OTP:", error);
+      let errorMessage = "Failed to send OTP. ";
+      
+      if (error.code === 'auth/invalid-phone-number') {
+        errorMessage += "Please enter a valid phone number with country code (e.g., +91xxxxxxxxxx)";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage += "Too many requests. Please try again later.";
+      } else if (error.code === 'auth/captcha-check-failed') {
+        errorMessage += "reCAPTCHA verification failed. Please make sure you're accessing from an authorized domain.";
       } else {
         errorMessage += error.message || "Please try again.";
       }
       
       setMessage(errorMessage);
       toast({
-        title: isSignUp ? "Signup Failed" : "Login Failed",
+        title: "Failed to Send OTP",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!confirmationResult) {
+      setMessage("Please send OTP first");
+      return;
+    }
+
+    if (!otp.trim()) {
+      setMessage("Please enter the OTP");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      await verifyOtp(confirmationResult, otp);
+      setMessage("✅ Phone number verified successfully! Redirecting...");
+      
+      toast({
+        title: "Login Successful",
+        description: "Phone number verified successfully!",
+      });
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error("Error verifying OTP:", error);
+      let errorMessage = "Invalid OTP. ";
+      
+      if (error.code === 'auth/invalid-verification-code') {
+        errorMessage += "Please check the code and try again.";
+      } else if (error.code === 'auth/code-expired') {
+        errorMessage += "The verification code has expired. Please request a new one.";
+      } else {
+        errorMessage += error.message || "Please try again.";
+      }
+      
+      setMessage(errorMessage);
+      toast({
+        title: "Verification Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -99,29 +144,11 @@ const AuthForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto space-y-6">
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome to Study Academy
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Phone Verification</h1>
         <p className="text-gray-600 mt-2">
-          Choose your preferred sign-in method
+          {!confirmationResult ? "Enter your phone number" : "Enter the verification code"}
         </p>
       </div>
-
-      <Tabs defaultValue="email" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="email">Email</TabsTrigger>
-          <TabsTrigger value="phone">Phone</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="email" className="space-y-4">
-          <div className="text-center mb-4">
-            <h2 className="text-lg font-semibold">
-              {isSignUp ? "Create Account" : "Sign In"}
-            </h2>
-            <p className="text-gray-600 text-sm">
-              {isSignUp ? "Create your account with email" : "Sign in with your email"}
-            </p>
-          </div>
 
       {/* Messages */}
       {message && (
@@ -132,78 +159,93 @@ const AuthForm: React.FC = () => {
         </Alert>
       )}
 
-      {/* Email Authentication */}
-      <form onSubmit={handleEmailAuth} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email Address
-          </label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full"
-            disabled={loading}
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-            Password
-          </label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full"
-            disabled={loading}
-            required
-            minLength={6}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Minimum 6 characters required
-          </p>
-        </div>
-        
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={loading || !email || !password}
-        >
-          {loading ? (isSignUp ? "Creating Account..." : "Signing In...") : 
-           (isSignUp ? "Create Account" : "Sign In")}
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => setIsSignUp(!isSignUp)}
-          disabled={loading}
-        >
-          {isSignUp ? "Already have an account? Sign In" : "Need an account? Sign Up"}
-        </Button>
-      </form>
-
-          {/* Demo Account Info */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm">
-            <h3 className="font-semibold text-blue-800 mb-2">Demo Account</h3>
-            <p className="text-blue-700">
-              <strong>Email:</strong> neerajmadkar35@gmail.com<br />
-              <strong>Password:</strong> Contact admin for demo access
+      {!confirmationResult ? (
+        /* Phone Number Form */
+        <form onSubmit={sendOTP} className="space-y-4">
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              Phone Number
+            </label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="+91 8888769281"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="w-full"
+              disabled={loading}
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Include country code (e.g., +91 for India)
             </p>
           </div>
-        </TabsContent>
+          
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !phoneNumber}
+          >
+            {loading ? "Sending OTP..." : "Send OTP"}
+          </Button>
+        </form>
+      ) : (
+        /* OTP Verification Form */
+        <form onSubmit={verifyOTP} className="space-y-4">
+          <div>
+            <label htmlFor="otp" className="block text-sm font-medium text-gray-700 mb-2">
+              Verification Code
+            </label>
+            <Input
+              id="otp"
+              type="text"
+              placeholder="123456"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full text-center"
+              disabled={loading}
+              maxLength={6}
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Enter the 6-digit code sent to {phoneNumber}
+            </p>
+          </div>
+          
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !otp}
+          >
+            {loading ? "Verifying..." : "Verify OTP"}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setOtp("");
+              setMessage("");
+            }}
+            disabled={loading}
+          >
+            Change Phone Number
+          </Button>
+        </form>
+      )}
 
-        <TabsContent value="phone" className="space-y-4">
-          <PhoneAuthForm />
-        </TabsContent>
-      </Tabs>
+      {/* reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
+
+      {/* Admin Test Info */}
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-sm">
+        <h3 className="font-semibold text-blue-800 mb-2">Admin Access</h3>
+        <p className="text-blue-700">
+          Admin Number: +91 8888769281<br />
+          Regular users can use any valid number
+        </p>
+      </div>
     </div>
   );
 };

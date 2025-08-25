@@ -49,7 +49,7 @@ export const PaymentButton: React.FC<{ amountRs: number }> = ({ amountRs }) => {
         description: "Payment",
         order_id: order.id, // razorpay order id
         prefill: {
-          contact: user?.phone ?? "",
+          contact: user?.phoneNumber ?? "",
         },
         handler: async (response: any) => {
           // response contains: razorpay_payment_id, razorpay_order_id, razorpay_signature

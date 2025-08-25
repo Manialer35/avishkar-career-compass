@@ -64,7 +64,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           currency: 'INR',
           productId: productId,
           productName: productName,
-          customerId: user?.id,
+          customerId: user?.uid,
           customerEmail: user?.email
         },
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
@@ -88,7 +88,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           razorpay_order_id: paymentData.razorpay_order_id,
           razorpay_signature: paymentData.razorpay_signature,
           productId: productId,
-          userId: user?.id
+          userId: user?.uid
         },
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
