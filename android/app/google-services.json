@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "779694722832",
+    "project_id": "avishkarca-86013",
+    "storage_bucket": "avishkarca-86013.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:779694722832:android:e76e38f3cfaea6047e1f95",
+        "android_client_info": {
+          "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEJHjhsK7rtaDh_kw6QFr66dYXHVVPQ44"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:779694722832:android:cd1ba1e8068a3ed47e1f95",
+        "android_client_info": {
+          "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEJHjhsK7rtaDh_kw6QFr66dYXHVVPQ44"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
