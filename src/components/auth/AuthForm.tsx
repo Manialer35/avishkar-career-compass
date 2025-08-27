@@ -16,14 +16,11 @@ const AuthForm: React.FC = () => {
   const { toast } = useToast();
   const { signInWithPhone, verifyOtp, confirmationResult } = useAuth();
 
-  // Check if we're in Lovable preview environment (not production mobile)
-  const isLovablePreview = typeof window !== 'undefined' && (
-    window.location.hostname.includes('lovable.app') ||
-    window.location.hostname.includes('lovableproject.com')
-  );
-
-  // Only show test authentication for Lovable preview, not for production mobile
-  if (isLovablePreview) {
+  // For production mobile app, always use Firebase phone auth
+  // Only use test auth in development environment
+  const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  
+  if (isDevelopment) {
     return <TestAuth />;
   }
 

@@ -130,8 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
       
       // For mobile environments, use Firebase's native mobile auth (no reCAPTCHA)
-      // For Lovable preview, use fallback auth
-      if (isMobile && !isLovablePreview) {
+      if (isMobile) {
         console.log('Attempting native mobile authentication');
         try {
           // For production mobile apps, Firebase handles authentication natively
@@ -143,17 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (mobileError: any) {
           console.error('Native mobile auth error:', mobileError);
           throw new Error(`Mobile authentication failed: ${mobileError.message}. Please ensure your app is properly configured in Firebase Console with correct SHA-1 fingerprints.`);
-        }
-      } else if (isLovablePreview) {
-        console.log('Attempting authentication without reCAPTCHA (preview mode)');
-        try {
-          const result = await signInWithPhoneNumber(auth, cleanPhone, null as any);
-          setConfirmationResult(result);
-          console.log('OTP sent successfully (preview mode)');
-          return result;
-        } catch (previewError: any) {
-          console.log('Preview auth failed, showing test auth');
-          throw new Error('This is a preview environment. Phone authentication requires a production Firebase setup with proper domain configuration.');
         }
       }
       

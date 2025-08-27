@@ -34,12 +34,15 @@ if (typeof window !== 'undefined') {
   const isLovablePreview = window.location.hostname.includes('lovable.app') || 
                            window.location.hostname.includes('lovableproject.com');
   
-  // Only disable verification for development and preview environments
-  // For production mobile apps (Capacitor), keep verification enabled
-  if (isDevelopment || isLovablePreview) {
+  // For mobile apps (Capacitor), disable app verification testing
+  // This allows phone auth to work without reCAPTCHA in production mobile apps
+  if (isCapacitor || isMobile) {
+    auth.settings.appVerificationDisabledForTesting = true;
+  } else if (isDevelopment) {
+    // Only disable verification for development
     auth.settings.appVerificationDisabledForTesting = true;
   } else {
-    // For production (both web and mobile), enable verification
+    // For production web, enable verification
     auth.settings.appVerificationDisabledForTesting = false;
   }
 }
