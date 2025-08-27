@@ -16,11 +16,13 @@ const AuthForm: React.FC = () => {
   const { toast } = useToast();
   const { signInWithPhone, verifyOtp, confirmationResult } = useAuth();
 
-  // For production mobile app, always use Firebase phone auth
-  // Only use test auth in development environment
-  const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+  // Always use Firebase phone auth in production
+  // TestAuth is only for local development testing
+  const isLocalDevelopment = typeof window !== 'undefined' && 
+    window.location.hostname === 'localhost' && 
+    window.location.protocol === 'http:';
   
-  if (isDevelopment) {
+  if (isLocalDevelopment) {
     return <TestAuth />;
   }
 
