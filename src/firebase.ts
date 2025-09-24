@@ -30,21 +30,11 @@ const isMobile = typeof window !== 'undefined' && (
 
 if (typeof window !== 'undefined') {
   // Configure auth settings based on environment
-  const isDevelopment = window.location.hostname === 'localhost';
-  const isLovablePreview = window.location.hostname.includes('lovable.app') || 
-                           window.location.hostname.includes('lovableproject.com');
-  
-  // For mobile apps (Capacitor), disable app verification testing
-  // This allows phone auth to work without reCAPTCHA in production mobile apps
-  if (isCapacitor || isMobile) {
-    auth.settings.appVerificationDisabledForTesting = true;
-  } else if (isDevelopment) {
-    // Only disable verification for development
-    auth.settings.appVerificationDisabledForTesting = true;
-  } else {
-    // For production web, enable verification
-    auth.settings.appVerificationDisabledForTesting = false;
-  }
+  const isCapacitorApp = !!(window as any).Capacitor;
+  const isDevelopmentWeb = window.location.hostname === 'localhost' && !isCapacitorApp;
+
+  // IMPORTANT: Never disable app verification in production (web or mobile)
+  auth.settings.appVerificationDisabledForTesting = isDevelopmentWeb;
 }
 
 export { app };
