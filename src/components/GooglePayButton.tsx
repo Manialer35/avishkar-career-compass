@@ -58,6 +58,16 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     try {
       const authToken = await getSupabaseToken();
       
+      console.log('Creating Razorpay order with:', {
+        amount: price * 100,
+        currency: 'INR',
+        productId: productId,
+        productName: productName,
+        customerId: user?.uid,
+        customerEmail: user?.email,
+        hasAuthToken: !!authToken
+      });
+      
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
           amount: price * 100, // Convert to paise
@@ -70,7 +80,12 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(`Order creation failed: ${error.message || JSON.stringify(error)}`);
+      }
+      
+      console.log('Order created successfully:', data);
       return data;
     } catch (error) {
       console.error('Error creating Razorpay order:', error);
