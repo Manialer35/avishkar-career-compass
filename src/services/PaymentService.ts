@@ -31,6 +31,7 @@ export interface PaymentVerificationData {
 }
 
 class PaymentService {
+  // PRODUCTION FIX: Use live Razorpay key for production
   private razorpayKeyId = 'rzp_live_R8LCnQPRlQpF0s';
 
   async createOrder(paymentData: PaymentRequestData, authToken?: string): Promise<RazorpayOrderResponse> {

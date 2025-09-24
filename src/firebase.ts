@@ -6,7 +6,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyAqVcHeiwXuMXZ1cFKBelTZEHU67LOnFn8",
   authDomain: "avishkarca-86013.firebaseapp.com",
   projectId: "avishkarca-86013",
-  storageBucket: "avishkarca-86013.appspot.com",
+  storageBucket: "avishkarca-86013.firebasestorage.app",
   messagingSenderId: "779694722832",
   appId: "1:779694722832:web:f2ef742787e172647e1f95",
 };
@@ -33,8 +33,14 @@ if (typeof window !== 'undefined') {
   const isCapacitorApp = !!(window as any).Capacitor;
   const isDevelopmentWeb = window.location.hostname === 'localhost' && !isCapacitorApp;
 
-  // IMPORTANT: Never disable app verification in production (web or mobile)
+  // PRODUCTION FIX: Only disable app verification for localhost development
+  // For production builds (including Play Store), use proper Firebase app verification
   auth.settings.appVerificationDisabledForTesting = isDevelopmentWeb;
+  
+  // Enable app verification for production mobile builds
+  if (isCapacitorApp && !isDevelopmentWeb) {
+    auth.settings.appVerificationDisabledForTesting = false;
+  }
 }
 
 export { app };

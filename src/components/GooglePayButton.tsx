@@ -21,7 +21,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const { user, getSupabaseToken } = useAuth();
   
-  // Get Razorpay key from environment - using live key for production
+  // PRODUCTION FIX: Use live Razorpay key for production
   const razorpayKeyId = "rzp_live_R8LCnQPRlQpF0s";
 
   useEffect(() => {
@@ -211,9 +211,10 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
       description: "Your payment has been processed successfully.",
     });
     
-    // Auto-redirect to material access
+    // PRODUCTION FIX: Auto-redirect to material access with proper URL
     setTimeout(() => {
-      window.location.href = `/material/${productId}/access?purchase=success`;
+      const baseUrl = window.location.origin;
+      window.location.href = `${baseUrl}/material/${productId}/access?purchase=success`;
     }, 1500);
     
     onSuccess();

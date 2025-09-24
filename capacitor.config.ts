@@ -11,9 +11,9 @@ const config: CapacitorConfig = {
   android: {
     buildOptions: {
       keystorePath: 'app/avishkar-release-key.keystore',
-      keystorePassword: '',
-      keystoreAlias: 'avishkar-key-alias',
-      keystoreAliasPassword: '',
+      keystorePassword: 'MKhot@123',
+      keystoreAlias: 'avishkar',
+      keystoreAliasPassword: 'MKhot@123',
       signingType: 'apksigner',
     }
   },

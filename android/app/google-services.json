@@ -12,7 +12,12 @@
           "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "779694722832-kvfqkhbdmjqgtm96ma9bpvub72pu42p4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDEJHjhsK7rtaDh_kw6QFr66dYXHVVPQ44"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "779694722832-kvfqkhbdmjqgtm96ma9bpvub72pu42p4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,12 @@
           "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9.debug"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "779694722832-kvfqkhbdmjqgtm96ma9bpvub72pu42p4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDEJHjhsK7rtaDh_kw6QFr66dYXHVVPQ44"
@@ -39,7 +54,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "779694722832-kvfqkhbdmjqgtm96ma9bpvub72pu42p4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
