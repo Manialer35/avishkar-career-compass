@@ -22,7 +22,7 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const { user, getSupabaseToken } = useAuth();
   
   // Get Razorpay key from environment - using live key for production
-  const razorpayKeyId = "rzp_live_OCL24jX6vVdT6W";
+  const razorpayKeyId = "rzp_live_R8LCnQPRlQpF0s";
 
   useEffect(() => {
     loadPaymentScripts();

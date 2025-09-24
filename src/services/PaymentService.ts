@@ -31,7 +31,7 @@ export interface PaymentVerificationData {
 }
 
 class PaymentService {
-  private razorpayKeyId = 'rzp_live_OCL24jX6vVdT6W';
+  private razorpayKeyId = 'rzp_live_R8LCnQPRlQpF0s';
 
   async createOrder(paymentData: PaymentRequestData, authToken?: string): Promise<RazorpayOrderResponse> {
     try {
