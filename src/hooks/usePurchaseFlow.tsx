@@ -74,7 +74,7 @@ export const usePurchaseFlow = () => {
 
       // Create Razorpay options
       const options = {
-        key: 'rzp_live_OCL24jX6vVdT6W', // Your Razorpay key ID
+        key: 'rzp_live_R8LCnQPRlQpF0s', // Razorpay live key (must match server RAZORPAY_KEY_ID)
         amount: data.amount,
         currency: data.currency,
         name: 'Study Academy',

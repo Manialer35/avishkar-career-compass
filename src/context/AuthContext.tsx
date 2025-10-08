@@ -129,22 +129,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clean phone number format
       const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
       
-      // For mobile environments, use Firebase's native mobile auth (no reCAPTCHA)
-      if (isMobile) {
-        console.log('Attempting native mobile authentication');
-        try {
-          // For production mobile apps, Firebase handles authentication natively
-          // No reCAPTCHA is needed or used in mobile environments
-          const result = await signInWithPhoneNumber(auth, cleanPhone, null as any);
-          setConfirmationResult(result);
-          console.log('OTP sent successfully (native mobile mode)');
-          return result;
-        } catch (mobileError: any) {
-          console.error('Native mobile auth error:', mobileError);
-          throw new Error(`Mobile authentication failed: ${mobileError.message}. Please ensure your app is properly configured in Firebase Console with correct SHA-1 fingerprints.`);
-        }
-      }
-      
+      // On Capacitor/Android we still use Firebase Web reCAPTCHA. Do NOT bypass with a null appVerifier.
+      // Continue to reCAPTCHA initialization below for all environments (web and mobile WebView).
+
       // Clear any existing reCAPTCHA first
       if (window.recaptchaVerifier) {
         try {
