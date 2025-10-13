@@ -7,10 +7,14 @@ import {
   onAuthStateChanged,
   User as FirebaseUser,
   signOut as firebaseSignOut,
-  RecaptchaVerifier
+  RecaptchaVerifier,
+  PhoneAuthProvider,
+  signInWithCredential
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -113,25 +117,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithPhone = async (phone: string): Promise<ConfirmationResult> => {
     try {
       setLoading(true);
-      
-      // Detect mobile environment or Lovable preview
-      const isMobile = typeof window !== 'undefined' && (
-        /Android/i.test(navigator.userAgent) || 
-        /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-        window.location.protocol === 'capacitor:'
-      );
-      
-      const isLovablePreview = typeof window !== 'undefined' && (
-        window.location.hostname.includes('lovable.app') ||
-        window.location.hostname.includes('lovableproject.com')
-      );
-      
-      // Clean phone number format
-      const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
-      
-      // On Capacitor/Android we still use Firebase Web reCAPTCHA. Do NOT bypass with a null appVerifier.
-      // Continue to reCAPTCHA initialization below for all environments (web and mobile WebView).
 
+      const isNative = Capacitor.isNativePlatform?.() === true;
+      const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
+
+      // Native (Capacitor) path: use @capacitor-firebase/authentication (no web reCAPTCHA)
+      if (isNative) {
+        try {
+          await FirebaseAuthentication.removeAllListeners?.();
+        } catch {}
+
+        const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
+          let resolved = false;
+
+          const codeSent = await FirebaseAuthentication.addListener('phoneCodeSent', async (event: any) => {
+            try {
+              const dummy: any = {
+                verificationId: event.verificationId,
+                confirm: async (code: string) => {
+                  const res = await FirebaseAuthentication.confirmVerificationCode({
+                    verificationId: event.verificationId,
+                    verificationCode: code,
+                  });
+                  return res as any; // compatible with Firebase UserCredential shape for our usage
+                },
+              };
+              setConfirmationResult(dummy as ConfirmationResult);
+              resolved = true;
+              toast({ title: 'OTP sent successfully' });
+              resolve(dummy as ConfirmationResult);
+            } catch (e) {
+              reject(e);
+            }
+          });
+
+          const autoVerified = await FirebaseAuthentication.addListener('phoneVerificationCompleted', async (_event: any) => {
+            // Auto-verification on Android; user becomes signed in without entering code.
+            setConfirmationResult(null);
+            toast({ title: 'Phone verified automatically' });
+          });
+
+          const failed = await FirebaseAuthentication.addListener('phoneVerificationFailed', (e: any) => {
+            if (!resolved) reject(new Error(e?.message || 'Phone verification failed'));
+          });
+
+          try {
+            await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: cleanPhone });
+          } catch (err) {
+            reject(err);
+          }
+        });
+
+        return confirmation;
+      }
+
+      // Web path: use Firebase Web reCAPTCHA + signInWithPhoneNumber
       // Clear any existing reCAPTCHA first
       if (window.recaptchaVerifier) {
         try {
@@ -141,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         window.recaptchaVerifier = undefined;
       }
-      
+
       // Wait for DOM to be ready
       await new Promise(resolve => {
         if (document.readyState === 'complete') {
@@ -154,23 +194,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           document.addEventListener('DOMContentLoaded', handler);
         }
       });
-      
-      // Initialize reCAPTCHA for web environments
+
       try {
-        // Ensure the DOM element exists before creating RecaptchaVerifier
         const recaptchaContainer = document.getElementById('recaptcha-container');
         if (!recaptchaContainer) {
           throw new Error('reCAPTCHA container not found in DOM');
         }
 
-        // Enhanced reCAPTCHA configuration
         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: () => {
             console.log('reCAPTCHA solved successfully');
           },
           'expired-callback': () => {
-            console.log('reCAPTCHA expired, clearing verifier');
             if (window.recaptchaVerifier) {
               window.recaptchaVerifier.clear();
               window.recaptchaVerifier = undefined;
@@ -185,27 +221,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         });
 
-        // Render the reCAPTCHA
         await window.recaptchaVerifier.render();
         console.log('reCAPTCHA rendered successfully for domain:', window.location.hostname);
       } catch (recaptchaError) {
         console.error('reCAPTCHA initialization error:', recaptchaError);
         console.error('Current domain:', window.location.hostname);
-        
-        // If we're in a mobile environment and reCAPTCHA fails, provide helpful message
-        if (isMobile) {
-          throw new Error('This appears to be a mobile app environment. Please ensure the app is properly configured for Android in Firebase Console.');
-        }
-        
         throw new Error('reCAPTCHA initialization failed. Please make sure you\'re accessing from an authorized domain.');
       }
-      
+
       const appVerifier = window.recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, cleanPhone, appVerifier);
-      
+
       setConfirmationResult(result);
       console.log('OTP sent successfully');
       return result;
+    } catch (error: any) {
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       
