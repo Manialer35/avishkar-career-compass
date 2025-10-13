@@ -236,7 +236,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('OTP sent successfully');
       return result;
     } catch (error: any) {
-    } catch (error: any) {
       console.error('Error sending OTP:', error);
       
       // Clear recaptcha on any error
