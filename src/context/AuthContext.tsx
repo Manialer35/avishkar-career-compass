@@ -13,8 +13,8 @@ import {
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
-import { Capacitor } from '@capacitor/core';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+
+
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -118,58 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
 
-      const isNative = Capacitor.isNativePlatform?.() === true;
       const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
-
-      // Native (Capacitor) path: use @capacitor-firebase/authentication (no web reCAPTCHA)
-      if (isNative) {
-        try {
-          await FirebaseAuthentication.removeAllListeners?.();
-        } catch {}
-
-        const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
-          let resolved = false;
-
-          const codeSent = await FirebaseAuthentication.addListener('phoneCodeSent', async (event: any) => {
-            try {
-              const dummy: any = {
-                verificationId: event.verificationId,
-                confirm: async (code: string) => {
-                  const res = await FirebaseAuthentication.confirmVerificationCode({
-                    verificationId: event.verificationId,
-                    verificationCode: code,
-                  });
-                  return res as any; // compatible with Firebase UserCredential shape for our usage
-                },
-              };
-              setConfirmationResult(dummy as ConfirmationResult);
-              resolved = true;
-              toast({ title: 'OTP sent successfully' });
-              resolve(dummy as ConfirmationResult);
-            } catch (e) {
-              reject(e);
-            }
-          });
-
-          const autoVerified = await FirebaseAuthentication.addListener('phoneVerificationCompleted', async (_event: any) => {
-            // Auto-verification on Android; user becomes signed in without entering code.
-            setConfirmationResult(null);
-            toast({ title: 'Phone verified automatically' });
-          });
-
-          const failed = await FirebaseAuthentication.addListener('phoneVerificationFailed', (e: any) => {
-            if (!resolved) reject(new Error(e?.message || 'Phone verification failed'));
-          });
-
-          try {
-            await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber: cleanPhone });
-          } catch (err) {
-            reject(err);
-          }
-        });
-
-        return confirmation;
-      }
 
       // Web path: use Firebase Web reCAPTCHA + signInWithPhoneNumber
       // Clear any existing reCAPTCHA first
