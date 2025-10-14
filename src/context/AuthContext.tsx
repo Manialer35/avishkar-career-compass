@@ -120,15 +120,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
 
+      // Detect native Capacitor environment without importing at module scope
+      const isNative = typeof window !== 'undefined' && (
+        !!(window as any).Capacitor?.isNativePlatform?.() ||
+        window.location.protocol === 'capacitor:'
+      );
+
+      // Native (Capacitor) path: use @capacitor-firebase/authentication (no web reCAPTCHA)
+      if (isNative) {
+        try {
+          const { FirebaseAuthentication } = await import('@capacitor-firebase/authentication');
+
+          // Best-effort: remove any previous listeners to avoid duplicates
+          try { await (FirebaseAuthentication as any).removeAllListeners?.(); } catch {}
+
+          const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
+            let resolved = false;
+
+            const codeSent = await (FirebaseAuthentication as any).addListener('phoneCodeSent', async (event: any) => {
+              try {
+                const dummy: any = {
+                  verificationId: event?.verificationId,
+                  confirm: async (code: string) => {
+                    return (FirebaseAuthentication as any).confirmVerificationCode({
+                      verificationId: event?.verificationId,
+                      verificationCode: code,
+                    }) as any;
+                  },
+                };
+                setConfirmationResult(dummy as ConfirmationResult);
+                resolved = true;
+                resolve(dummy as ConfirmationResult);
+              } catch (e) {
+                reject(e);
+              }
+            });
+
+            const autoVerified = await (FirebaseAuthentication as any).addListener('phoneVerificationCompleted', async () => {
+              // Auto-verification on Android signs user in automatically
+              setConfirmationResult(null);
+            });
+
+            const failed = await (FirebaseAuthentication as any).addListener('phoneVerificationFailed', (e: any) => {
+              if (!resolved) reject(new Error(e?.message || 'Phone verification failed'));
+            });
+
+            try {
+              await (FirebaseAuthentication as any).signInWithPhoneNumber({ phoneNumber: cleanPhone });
+            } catch (err) {
+              reject(err);
+            }
+          });
+
+          return confirmation;
+        } catch (nativeErr) {
+          console.warn('Native phone auth unavailable, falling back to web reCAPTCHA:', nativeErr);
+          // Fall through to web path
+        }
+      }
+
       // Web path: use Firebase Web reCAPTCHA + signInWithPhoneNumber
       // Clear any existing reCAPTCHA first
-      if (window.recaptchaVerifier) {
+      if ((window as any).recaptchaVerifier) {
         try {
-          window.recaptchaVerifier.clear();
+          (window as any).recaptchaVerifier.clear();
         } catch (e) {
           console.log('Error clearing existing reCAPTCHA:', e);
         }
-        window.recaptchaVerifier = undefined;
+        (window as any).recaptchaVerifier = undefined;
       }
 
       // Wait for DOM to be ready
@@ -150,27 +209,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error('reCAPTCHA container not found in DOM');
         }
 
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
           size: 'invisible',
           callback: () => {
             console.log('reCAPTCHA solved successfully');
           },
           'expired-callback': () => {
-            if (window.recaptchaVerifier) {
-              window.recaptchaVerifier.clear();
-              window.recaptchaVerifier = undefined;
+            if ((window as any).recaptchaVerifier) {
+              (window as any).recaptchaVerifier.clear();
+              (window as any).recaptchaVerifier = undefined;
             }
           },
           'error-callback': (error: any) => {
             console.error('reCAPTCHA error:', error);
-            if (window.recaptchaVerifier) {
-              window.recaptchaVerifier.clear();
-              window.recaptchaVerifier = undefined;
+            if ((window as any).recaptchaVerifier) {
+              (window as any).recaptchaVerifier.clear();
+              (window as any).recaptchaVerifier = undefined;
             }
           }
         });
 
-        await window.recaptchaVerifier.render();
+        await (window as any).recaptchaVerifier.render();
         console.log('reCAPTCHA rendered successfully for domain:', window.location.hostname);
       } catch (recaptchaError) {
         console.error('reCAPTCHA initialization error:', recaptchaError);
@@ -178,7 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('reCAPTCHA initialization failed. Please make sure you\'re accessing from an authorized domain.');
       }
 
-      const appVerifier = window.recaptchaVerifier;
+      const appVerifier = (window as any).recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, cleanPhone, appVerifier);
 
       setConfirmationResult(result);
@@ -188,13 +247,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error sending OTP:', error);
       
       // Clear recaptcha on any error
-      if (window.recaptchaVerifier) {
+      if ((window as any).recaptchaVerifier) {
         try {
-          window.recaptchaVerifier.clear();
+          (window as any).recaptchaVerifier.clear();
         } catch (e) {
           console.log('Error clearing reCAPTCHA on error:', e);
         }
-        window.recaptchaVerifier = undefined;
+        (window as any).recaptchaVerifier = undefined;
       }
       
       // Provide better error messages based on environment
@@ -238,7 +297,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         message: error.message,
         domain: window.location.hostname,
         origin: window.location.origin,
-        isMobile: isMobile,
+        isMobile: typeof window !== 'undefined' && (
+          /Android/i.test(navigator.userAgent) || 
+          /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+          window.location.protocol === 'capacitor:'
+        ),
         userAgent: navigator.userAgent
       });
       
