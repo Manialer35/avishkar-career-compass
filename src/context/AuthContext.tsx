@@ -330,19 +330,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
 
     // Set up Firebase auth state listener
-    const unsubscribeFirebase = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribeFirebase = onAuthStateChanged(auth, (firebaseUser) => {
       if (!mounted) return;
       
       console.log('Firebase auth state changed:', firebaseUser?.phoneNumber || firebaseUser?.email);
       setUser(firebaseUser);
       
       if (firebaseUser) {
-        // Ensure user profile exists in Supabase
-        await ensureUserProfileExists(firebaseUser);
+        // Do not block UI here — update admin flag asynchronously
+        checkIsAdmin(firebaseUser)
+          .then((admin) => setIsAdmin(admin))
+          .catch(() => setIsAdmin(false));
         
-        // Check admin status
-        const adminStatus = await checkIsAdmin(firebaseUser);
-        setIsAdmin(adminStatus);
+        // Fire-and-forget profile creation to avoid deadlocks on slow networks
+        setTimeout(() => { void ensureUserProfileExists(firebaseUser); }, 0);
         
         toast({
           title: "Signed in successfully",
