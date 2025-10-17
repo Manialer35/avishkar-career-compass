@@ -244,11 +244,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const appVerifier = (window as any).recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, cleanPhone, appVerifier);
 
-      setConfirmationResult(result);
+      // Race the OTP request with a timeout to avoid hanging UI
+      const sendPromise = signInWithPhoneNumber(auth, cleanPhone, appVerifier);
+      const timeoutMs = 15000; // 15s safety timeout
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          try {
+            if ((window as any).recaptchaVerifier) {
+              (window as any).recaptchaVerifier.clear();
+              (window as any).recaptchaVerifier = undefined;
+            }
+          } catch {}
+          reject(new Error('OTP request timed out. Please ensure this domain is authorized in Firebase Authentication and try again.'));
+        }, timeoutMs)
+      );
+
+      const result = await Promise.race([sendPromise, timeoutPromise]);
+
+      setConfirmationResult(result as ConfirmationResult);
       console.log('OTP sent successfully');
-      return result;
+      return result as ConfirmationResult;
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       
@@ -295,6 +311,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           'Mobile app credentials are missing. Please ensure the Android app is properly configured in Firebase Console.' :
           'App credentials are missing. Please check Firebase configuration.';
         throw new Error(message);
+      } else if (error.code === 'auth/unauthorized-domain') {
+        throw new Error('The current domain is not authorized for Firebase Authentication. Please add ' + window.location.hostname + ' to Authorized domains in Firebase Authentication settings.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        throw new Error('Phone sign-in is disabled for this Firebase project. Enable the Phone provider in Firebase Console > Authentication > Sign-in method.');
       }
       
       // Log detailed error information for debugging
