@@ -116,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithPhone = async (phone: string): Promise<ConfirmationResult> => {
     try {
-      setLoading(true);
+      // Local UI handles loading state; do not toggle global loading here
 
       const cleanPhone = phone.startsWith('+') ? phone : `+${phone}`;
 
@@ -333,7 +333,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       throw error;
     } finally {
-      setLoading(false);
+      // Do not alter global loading state here; UI components manage their own spinners
+
     }
   };
 
