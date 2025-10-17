@@ -329,11 +329,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
 
+    // Immediately check current auth state
+    const initAuth = () => {
+      const currentUser = auth.currentUser;
+      console.log('Initial auth state:', currentUser ? currentUser.phoneNumber || currentUser.email : 'no user');
+      
+      if (currentUser) {
+        setUser(currentUser);
+        // Check admin status asynchronously
+        checkIsAdmin(currentUser)
+          .then((admin) => setIsAdmin(admin))
+          .catch(() => setIsAdmin(false));
+        
+        // Fire-and-forget profile creation
+        setTimeout(() => { void ensureUserProfileExists(currentUser); }, 0);
+      } else {
+        setUser(null);
+        setIsAdmin(false);
+      }
+      setLoading(false);
+    };
+
     // Set up Firebase auth state listener
     const unsubscribeFirebase = onAuthStateChanged(auth, (firebaseUser) => {
       if (!mounted) return;
       
-      console.log('Firebase auth state changed:', firebaseUser?.phoneNumber || firebaseUser?.email);
+      console.log('Firebase auth state changed:', firebaseUser ? firebaseUser.phoneNumber || firebaseUser.email : 'signed out');
       setUser(firebaseUser);
       
       if (firebaseUser) {
@@ -353,8 +374,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAdmin(false);
       }
       
+      // Always set loading to false after auth state change
       setLoading(false);
     });
+
+    // Initialize auth state immediately
+    initAuth();
 
     return () => {
       mounted = false;
