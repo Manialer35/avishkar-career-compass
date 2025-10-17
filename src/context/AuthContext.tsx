@@ -204,9 +204,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       try {
-        const recaptchaContainer = document.getElementById('recaptcha-container');
+        let recaptchaContainer = document.getElementById('recaptcha-container');
         if (!recaptchaContainer) {
-          throw new Error('reCAPTCHA container not found in DOM');
+          // Create an offscreen container if it doesn't exist (works across routes/modals)
+          recaptchaContainer = document.createElement('div');
+          recaptchaContainer.id = 'recaptcha-container';
+          recaptchaContainer.style.position = 'fixed';
+          recaptchaContainer.style.left = '-9999px';
+          recaptchaContainer.style.top = '0';
+          document.body.appendChild(recaptchaContainer);
         }
 
         (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
