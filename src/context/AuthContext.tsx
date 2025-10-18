@@ -134,43 +134,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Best-effort: remove any previous listeners to avoid duplicates
           try { await (FirebaseAuthentication as any).removeAllListeners?.(); } catch {}
 
-          const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
-            let resolved = false;
+            const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
+              let settled = false;
+              let codeSentHandle: any;
+              let completedHandle: any;
+              let failedHandle: any;
+              let timeoutId: any;
 
-            const codeSent = await (FirebaseAuthentication as any).addListener('phoneCodeSent', async (event: any) => {
+              const cleanup = async () => {
+                try { await codeSentHandle?.remove?.(); } catch {}
+                try { await completedHandle?.remove?.(); } catch {}
+                try { await failedHandle?.remove?.(); } catch {}
+                if (timeoutId) clearTimeout(timeoutId);
+              };
+
+              // Resolve when code is sent (manual OTP entry flow)
+              codeSentHandle = await (FirebaseAuthentication as any).addListener('phoneCodeSent', async (event: any) => {
+                if (settled) return;
+                try {
+                  const dummy: any = {
+                    verificationId: event?.verificationId,
+                    confirm: async (code: string) => {
+                      return (FirebaseAuthentication as any).confirmVerificationCode({
+                        verificationId: event?.verificationId,
+                        verificationCode: code,
+                      }) as any;
+                    },
+                  };
+                  setConfirmationResult(dummy as ConfirmationResult);
+                  settled = true;
+                  await cleanup();
+                  resolve(dummy as ConfirmationResult);
+                } catch (e) {
+                  settled = true;
+                  await cleanup();
+                  reject(e);
+                }
+              });
+
+              // Resolve when auto verification completes (Android auto OTP)
+              completedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationCompleted', async () => {
+                if (settled) return;
+                try {
+                  // User is already signed in automatically
+                  setConfirmationResult(null);
+                  const autoVerifiedDummy: any = {
+                    verificationId: null,
+                    confirm: async () => ({ user: null }),
+                  };
+                  settled = true;
+                  await cleanup();
+                  resolve(autoVerifiedDummy as ConfirmationResult);
+                } catch (e) {
+                  settled = true;
+                  await cleanup();
+                  reject(e);
+                }
+              });
+
+              // Fail on verification failure
+              failedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationFailed', async (e: any) => {
+                if (settled) return;
+                settled = true;
+                await cleanup();
+                reject(new Error(e?.message || 'Phone verification failed'));
+              });
+
+              // Safety timeout to prevent infinite loading
+              const timeoutMs = 30000; // 30s
+              timeoutId = setTimeout(async () => {
+                if (settled) return;
+                settled = true;
+                await cleanup();
+                reject(new Error('OTP request timed out. Please try again.'));
+              }, timeoutMs);
+
               try {
-                const dummy: any = {
-                  verificationId: event?.verificationId,
-                  confirm: async (code: string) => {
-                    return (FirebaseAuthentication as any).confirmVerificationCode({
-                      verificationId: event?.verificationId,
-                      verificationCode: code,
-                    }) as any;
-                  },
-                };
-                setConfirmationResult(dummy as ConfirmationResult);
-                resolved = true;
-                resolve(dummy as ConfirmationResult);
-              } catch (e) {
-                reject(e);
+                await (FirebaseAuthentication as any).signInWithPhoneNumber({ phoneNumber: cleanPhone });
+              } catch (err) {
+                if (!settled) {
+                  settled = true;
+                  await cleanup();
+                  reject(err);
+                }
               }
             });
-
-            const autoVerified = await (FirebaseAuthentication as any).addListener('phoneVerificationCompleted', async () => {
-              // Auto-verification on Android signs user in automatically
-              setConfirmationResult(null);
-            });
-
-            const failed = await (FirebaseAuthentication as any).addListener('phoneVerificationFailed', (e: any) => {
-              if (!resolved) reject(new Error(e?.message || 'Phone verification failed'));
-            });
-
-            try {
-              await (FirebaseAuthentication as any).signInWithPhoneNumber({ phoneNumber: cleanPhone });
-            } catch (err) {
-              reject(err);
-            }
-          });
 
           return confirmation;
         } catch (nativeErr) {
