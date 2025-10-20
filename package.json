@@ -11,8 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@capacitor-firebase/app": "^7.3.1",
-    "@capacitor-firebase/authentication": "^7.3.1",
+    "@capacitor-firebase/app": "^6.3.1",
+    "@capacitor-firebase/authentication": "^6.3.1",
     "@capacitor/android": "^6.2.1",
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
