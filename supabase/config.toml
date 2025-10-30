@@ -1,0 +1,48 @@
+
+project_id = "avishkar-academy"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "https://edaf6c8a-99f4-4154-a62e-5ea9345f08e9.lovableproject.com"
+
+[analytics]
+enabled = false
+
+[functions.process-google-pay]
+verify_jwt = false
+
+[functions.send-enquiry]
+verify_jwt = false
+
+[functions.secure-payment-webhook]
+verify_jwt = false
+
+[functions.razorpay-webhook]
+verify_jwt = false
+
+[functions.create-razorpay-order]
+verify_jwt = false
+
+[functions.verify-razorpay-payment]
+verify_jwt = false
+
+[functions.create-user-profile]
+verify_jwt = false
