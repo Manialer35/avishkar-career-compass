@@ -22,6 +22,7 @@ android {
         targetSdkVersion 35
         versionCode 43
         versionName "1.24.0"
+	fd9f22d1214663bc4de15e49b4e8681a1380a8e3
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
