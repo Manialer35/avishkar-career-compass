@@ -1,0 +1,18 @@
+{
+	"appId": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9",
+	"appName": "Aavishkar Academy",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	},
+	"android": {},
+	"plugins": {
+		"SplashScreen": {
+			"launchShowDuration": 2000,
+			"launchAutoHide": true,
+			"backgroundColor": "#ffffff",
+			"androidSplashResourceName": "splash",
+			"showSpinner": false
+		}
+	}
+}
