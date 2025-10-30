@@ -134,95 +134,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Best-effort: remove any previous listeners to avoid duplicates
           try { await (FirebaseAuthentication as any).removeAllListeners?.(); } catch {}
 
-            const confirmation = await new Promise<ConfirmationResult>(async (resolve, reject) => {
-              let settled = false;
-              let codeSentHandle: any;
-              let completedHandle: any;
-              let failedHandle: any;
-              let timeoutId: any;
+          // 8-second watchdog: if native auth doesn't respond, force fallback to web
+          const nativeAuthPromise = new Promise<ConfirmationResult>(async (resolve, reject) => {
+            let settled = false;
+            let codeSentHandle: any;
+            let completedHandle: any;
+            let failedHandle: any;
+            let timeoutId: any;
 
-              const cleanup = async () => {
-                try { await codeSentHandle?.remove?.(); } catch {}
-                try { await completedHandle?.remove?.(); } catch {}
-                try { await failedHandle?.remove?.(); } catch {}
-                if (timeoutId) clearTimeout(timeoutId);
-              };
+            const cleanup = async () => {
+              try { await codeSentHandle?.remove?.(); } catch {}
+              try { await completedHandle?.remove?.(); } catch {}
+              try { await failedHandle?.remove?.(); } catch {}
+              if (timeoutId) clearTimeout(timeoutId);
+            };
 
-              // Resolve when code is sent (manual OTP entry flow)
-              codeSentHandle = await (FirebaseAuthentication as any).addListener('phoneCodeSent', async (event: any) => {
-                if (settled) return;
-                try {
-                  const dummy: any = {
-                    verificationId: event?.verificationId,
-                    confirm: async (code: string) => {
-                      return (FirebaseAuthentication as any).confirmVerificationCode({
-                        verificationId: event?.verificationId,
-                        verificationCode: code,
-                      }) as any;
-                    },
-                  };
-                  setConfirmationResult(dummy as ConfirmationResult);
-                  settled = true;
-                  await cleanup();
-                  resolve(dummy as ConfirmationResult);
-                } catch (e) {
-                  settled = true;
-                  await cleanup();
-                  reject(e);
-                }
-              });
-
-              // Resolve when auto verification completes (Android auto OTP)
-              completedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationCompleted', async () => {
-                if (settled) return;
-                try {
-                  // User is already signed in automatically
-                  setConfirmationResult(null);
-                  const autoVerifiedDummy: any = {
-                    verificationId: null,
-                    confirm: async () => ({ user: null }),
-                  };
-                  settled = true;
-                  await cleanup();
-                  resolve(autoVerifiedDummy as ConfirmationResult);
-                } catch (e) {
-                  settled = true;
-                  await cleanup();
-                  reject(e);
-                }
-              });
-
-              // Fail on verification failure
-              failedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationFailed', async (e: any) => {
-                if (settled) return;
-                settled = true;
-                await cleanup();
-                reject(new Error(e?.message || 'Phone verification failed'));
-              });
-
-              // Safety timeout to prevent infinite loading
-              const timeoutMs = 30000; // 30s
-              timeoutId = setTimeout(async () => {
-                if (settled) return;
-                settled = true;
-                await cleanup();
-                reject(new Error('OTP request timed out. Please try again.'));
-              }, timeoutMs);
-
+            // Resolve when code is sent (manual OTP entry flow)
+            codeSentHandle = await (FirebaseAuthentication as any).addListener('phoneCodeSent', async (event: any) => {
+              if (settled) return;
               try {
-                await (FirebaseAuthentication as any).signInWithPhoneNumber({ phoneNumber: cleanPhone });
-              } catch (err) {
-                if (!settled) {
-                  settled = true;
-                  await cleanup();
-                  reject(err);
-                }
+                const dummy: any = {
+                  verificationId: event?.verificationId,
+                  confirm: async (code: string) => {
+                    return (FirebaseAuthentication as any).confirmVerificationCode({
+                      verificationId: event?.verificationId,
+                      verificationCode: code,
+                    }) as any;
+                  },
+                };
+                setConfirmationResult(dummy as ConfirmationResult);
+                settled = true;
+                await cleanup();
+                resolve(dummy as ConfirmationResult);
+              } catch (e) {
+                settled = true;
+                await cleanup();
+                reject(e);
               }
             });
 
+            // Resolve when auto verification completes (Android auto OTP)
+            completedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationCompleted', async () => {
+              if (settled) return;
+              try {
+                // User is already signed in automatically
+                setConfirmationResult(null);
+                const autoVerifiedDummy: any = {
+                  verificationId: null,
+                  confirm: async () => ({ user: null }),
+                };
+                settled = true;
+                await cleanup();
+                resolve(autoVerifiedDummy as ConfirmationResult);
+              } catch (e) {
+                settled = true;
+                await cleanup();
+                reject(e);
+              }
+            });
+
+            // Fail on verification failure
+            failedHandle = await (FirebaseAuthentication as any).addListener('phoneVerificationFailed', async (e: any) => {
+              if (settled) return;
+              settled = true;
+              await cleanup();
+              reject(new Error(e?.message || 'Phone verification failed'));
+            });
+
+            // Safety timeout to prevent infinite loading
+            const timeoutMs = 30000; // 30s
+            timeoutId = setTimeout(async () => {
+              if (settled) return;
+              settled = true;
+              await cleanup();
+              reject(new Error('OTP request timed out. Please try again.'));
+            }, timeoutMs);
+
+            try {
+              await (FirebaseAuthentication as any).signInWithPhoneNumber({ phoneNumber: cleanPhone });
+            } catch (err) {
+              if (!settled) {
+                settled = true;
+                await cleanup();
+                reject(err);
+              }
+            }
+          });
+
+          // Watchdog: if native doesn't respond in 8s, fallback to web
+          const watchdogTimeout = new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('NATIVE_AUTH_TIMEOUT'));
+            }, 8000);
+          });
+
+          const confirmation = await Promise.race([nativeAuthPromise, watchdogTimeout]);
+          console.log('✅ Native auth successful');
           return confirmation;
-        } catch (nativeErr) {
-          console.warn('Native phone auth unavailable, falling back to web reCAPTCHA:', nativeErr);
+        } catch (nativeErr: any) {
+          if (nativeErr?.message === 'NATIVE_AUTH_TIMEOUT') {
+            console.warn('⚠️ Native auth timed out after 8s, forcing fallback to web reCAPTCHA');
+            toast({
+              title: "Using web verification",
+              description: "Native verification is taking too long, switching to web method",
+              variant: "default"
+            });
+          } else {
+            console.warn('Native phone auth unavailable, falling back to web reCAPTCHA:', nativeErr);
+          }
           // Fall through to web path
         }
       }
