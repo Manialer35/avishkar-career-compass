@@ -20,8 +20,8 @@ android {
         applicationId "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
         minSdkVersion 23
         targetSdkVersion 35
-        versionCode 12
-        versionName "1.4.0"
+        versionCode 13
+        versionName "1.4.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
