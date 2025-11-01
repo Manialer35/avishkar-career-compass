@@ -1,18 +1,53 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 
 const AuthContext = createContext<any>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // CRITICAL: Listen to Firebase auth state changes
+  useEffect(() => {
+    console.log('Initial auth state: no user');
+    
+    let listenerHandle: any = null;
+    
+    // Check current auth state on mount
+    FirebaseAuthentication.getCurrentUser()
+      .then(({ user: currentUser }) => {
+        console.log('Firebase auth state changed:', currentUser?.phoneNumber || 'no user');
+        setUser(currentUser);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Auth state check failed:', error);
+        setUser(null);
+        setLoading(false);
+      });
+
+    // Listen for auth state changes
+    FirebaseAuthentication.addListener('authStateChange', (result) => {
+      console.log('Firebase auth state changed:', result.user?.phoneNumber || 'logged out');
+      setUser(result.user);
+      setLoading(false);
+    }).then((handle) => {
+      listenerHandle = handle;
+    });
+
+    return () => {
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
+    };
+  }, []);
 
   const sendOtp = async (phoneNumber: string) => {
     setLoading(true);
     try {
       const result = await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber });
       setLoading(false);
-      return result.verificationId;
+      return result; // Return full result object
     } catch (e) {
       console.error("OTP send failed", e);
       setLoading(false);
@@ -27,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         verificationId,
         verificationCode: otp,
       });
-      setUser(credential?.user || null);
+      // User state will be updated automatically by authStateChange listener
       setLoading(false);
       return credential?.user;
     } catch (e) {
@@ -37,8 +72,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const signOut = async () => {
+    setLoading(true);
+    try {
+      await FirebaseAuthentication.signOut();
+      // User state will be updated automatically by authStateChange listener
+      setLoading(false);
+    } catch (e) {
+      console.error("Sign out failed", e);
+      setLoading(false);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ sendOtp, verifyOtp, user, loading }}>
+    <AuthContext.Provider value={{ sendOtp, verifyOtp, signOut, user, loading }}>
       {children}
     </AuthContext.Provider>
   );

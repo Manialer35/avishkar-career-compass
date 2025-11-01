@@ -21,7 +21,7 @@ export const sendOtpNative = async (phoneNumber: string) => {
   const result = await FirebaseAuthentication.signInWithPhoneNumber({
     phoneNumber,
   });
-  return result.verificationId; // used later for verification
+  return result; // Return full result object
 };
 
 export const verifyCodeNative = async (verificationId: string, code: string) => {
@@ -36,9 +36,9 @@ export const verifyCodeNative = async (verificationId: string, code: string) => 
 const setupRecaptcha = (): RecaptchaVerifier => {
   if (!recaptchaVerifier) {
     recaptchaVerifier = new RecaptchaVerifier(
+      auth,
       "recaptcha-container",
-      { size: "invisible" },
-      auth
+      { size: "invisible" }
     );
   }
   return recaptchaVerifier;
