@@ -1,5 +1,7 @@
-
-import { auth } from "@/firebase";
+// src/hooks/usePhoneAuth.ts
+import { Capacitor } from "@capacitor/core";
+import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
+import { auth } from "@/firebase"; // for web fallback
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -7,77 +9,53 @@ import {
   browserLocalPersistence,
   signOut,
   ConfirmationResult,
-} from "firebase/auth";
+} from "firebase/auth"; // ✅ fixed import path (no space)
 
 let recaptchaVerifier: RecaptchaVerifier | null = null;
 
-// Detect if running in mobile environment
-const isMobileApp = () => {
-  if (typeof window === 'undefined') return false;
-  const isCapacitor = window.location.protocol === 'capacitor:';
-  const isMobileUA = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  return isCapacitor || isMobileUA;
+const isNative = () =>
+  Capacitor.getPlatform() === "android" || Capacitor.getPlatform() === "ios";
+
+// ---- NATIVE METHODS ----
+export const sendOtpNative = async (phoneNumber: string) => {
+  const result = await FirebaseAuthentication.signInWithPhoneNumber({
+    phoneNumber,
+  });
+  return result.verificationId; // used later for verification
 };
 
-const setupRecaptcha = () => {
-  // Skip reCAPTCHA setup for mobile apps
-  if (isMobileApp()) {
-    console.log('Skipping reCAPTCHA setup for mobile environment');
-    return null;
-  }
+export const verifyCodeNative = async (verificationId: string, code: string) => {
+  const credentialResult = await FirebaseAuthentication.confirmVerificationCode({
+    verificationId,
+    verificationCode: code,
+  });
+  return credentialResult; // contains user info or token
+};
 
-  // Must match the DOM id you'll add in Auth.tsx
+// ---- WEB METHODS ----
+const setupRecaptcha = (): RecaptchaVerifier => {
   if (!recaptchaVerifier) {
-    try {
-      recaptchaVerifier = new RecaptchaVerifier(
-        auth,
-        "recaptcha-container",
-        { 
-          size: "invisible",
-          callback: () => {
-            console.log('reCAPTCHA solved');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Failed to setup reCAPTCHA:', error);
-      return null;
-    }
+    recaptchaVerifier = new RecaptchaVerifier(
+      "recaptcha-container",
+      { size: "invisible" },
+      auth
+    );
   }
   return recaptchaVerifier;
 };
 
-export const sendOtp = async (phoneNumber: string): Promise<ConfirmationResult> => {
-  try {
-    const appVerifier = setupRecaptcha();
-    
-    // For mobile apps or when reCAPTCHA fails, try without verifier
-    if (!appVerifier || isMobileApp()) {
-      console.log('Attempting phone auth without reCAPTCHA for mobile environment');
-      return await signInWithPhoneNumber(auth, phoneNumber, appVerifier as any);
-    }
-    
-    return await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-  } catch (error: any) {
-    console.error('Phone auth error:', error);
-    
-    // If reCAPTCHA fails, try again without it for mobile
-    if (error.code === 'auth/invalid-app-credential' || 
-        error.code === 'auth/captcha-check-failed' ||
-        error.message.includes('reCAPTCHA')) {
-      console.log('Retrying phone auth without reCAPTCHA');
-      return await signInWithPhoneNumber(auth, phoneNumber, null as any);
-    }
-    
-    throw error;
-  }
+export const sendOtpWeb = async (
+  phoneNumber: string
+): Promise<ConfirmationResult> => {
+  const appVerifier = setupRecaptcha();
+  const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier as any);
+  return confirmation;
 };
 
-export const verifyOtp = async (confirmation: ConfirmationResult, code: string) => {
-  // keep the user signed-in on next app open
+export const verifyOtpWeb = async (
+  confirmation: ConfirmationResult,
+  code: string
+) => {
   await setPersistence(auth, browserLocalPersistence);
   const cred = await confirmation.confirm(code);
   return cred.user;

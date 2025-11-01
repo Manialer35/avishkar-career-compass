@@ -4,7 +4,6 @@ import { useAuth } from "@/context/AuthContext";
 
 interface RazorpayWindow extends Window {
   Razorpay: any;
-  recaptchaVerifier?: any;
 }
 
 declare let window: RazorpayWindow;

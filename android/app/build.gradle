@@ -1,10 +1,13 @@
-apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
-apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'kotlin-kapt'
-apply plugin: 'kotlin-parcelize'
-ext.kotlin_version = "1.9.10"
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
+}
+
+ext.kotlin_version = "1.9.25"
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
@@ -14,15 +17,14 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
-    compileSdkVersion 35
+    compileSdk 35
 
     defaultConfig {
         applicationId "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
-        minSdkVersion 23
-        targetSdkVersion 35
-        versionCode 43
-        versionName "1.24.0"
-	fd9f22d1214663bc4de15e49b4e8681a1380a8e3
+        minSdk 23
+        targetSdk 35
+        versionCode 47
+        versionName "1.28.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
@@ -71,12 +73,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs += [
-            "-opt-in=kotlin.RequiresOptIn"
-        ]
+        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
 
-    packagingOptions {
+    packaging {
         resources {
             excludes += [
                 "META-INF/DEPENDENCIES",
@@ -127,10 +127,8 @@ dependencies {
     implementation "com.google.android.material:material:1.12.0"
 
     // Kotlin & Coroutines
-    ext.kotlin_version = "1.9.25"   // latest stable
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0" 
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0"
-
 
     // Image loading
     implementation "io.coil-kt:coil:2.6.0"
