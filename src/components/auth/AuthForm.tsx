@@ -11,9 +11,9 @@ const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
 
 const handleSendOtp = async () => {
 if (!phoneNumber) return alert("Enter phone number");
-const id = await sendOtp(phoneNumber);
-if (id) {
-setVerificationId(id);
+const result = await sendOtp(phoneNumber);
+if (result && result.verificationId) {
+setVerificationId(result.verificationId);
 setStep("otp");
 } else {
 alert("Failed to send OTP. Try again.");
