@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
+import { Capacitor } from "@capacitor/core";
+import { auth } from "@/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -12,8 +15,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('Initial auth state: no user');
     
     let listenerHandle: any = null;
+    let webUnsub: (() => void) | null = null;
     
-    // Check current auth state on mount
+    // Check current auth state on mount (native)
     FirebaseAuthentication.getCurrentUser()
       .then(({ user: currentUser }) => {
         console.log('Firebase auth state changed:', currentUser?.phoneNumber || 'no user');
@@ -26,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false);
       });
 
-    // Listen for auth state changes
+    // Listen for auth state changes (native)
     FirebaseAuthentication.addListener('authStateChange', (result) => {
       console.log('Firebase auth state changed:', result.user?.phoneNumber || 'logged out');
       setUser(result.user);
@@ -35,9 +39,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       listenerHandle = handle;
     });
 
+    // Listen for auth state changes (web)
+    if (Capacitor.getPlatform() === 'web') {
+      webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+        console.log('Firebase WEB auth state changed:', firebaseUser?.phoneNumber || 'logged out');
+        setUser(firebaseUser);
+        setLoading(false);
+      });
+    }
+
     return () => {
       if (listenerHandle) {
         listenerHandle.remove();
+      }
+      if (webUnsub) {
+        webUnsub();
       }
     };
   }, []);

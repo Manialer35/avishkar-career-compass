@@ -4,13 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
+import { sendOtpWeb, verifyOtpWeb } from "@/hooks/usePhoneAuth";
+import type { ConfirmationResult } from "firebase/auth";
 
 const AuthForm: React.FC = () => {
 const { sendOtp, verifyOtp, loading, user } = useAuth();
 
+const platform = Capacitor.getPlatform();
+const isNative = platform === "android" || platform === "ios";
+
 const [phoneNumber, setPhoneNumber] = useState("");
 const [otp, setOtp] = useState("");
 const [verificationId, setVerificationId] = useState<string | null>(null);
+const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
 const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
 
 const handleSendOtp = async () => {
@@ -23,13 +30,20 @@ if (!phoneNumber.startsWith('+')) {
   return;
 }
 try {
-  const result = await sendOtp(phoneNumber);
-  if (result && result.verificationId) {
-    setVerificationId(result.verificationId);
+  if (isNative) {
+    const result = await sendOtp(phoneNumber);
+    if (result && result.verificationId) {
+      setVerificationId(result.verificationId);
+      setStep("otp");
+      toast.success("OTP sent successfully!");
+    } else {
+      toast.error("Failed to send OTP. Please try again.");
+    }
+  } else {
+    const conf = await sendOtpWeb(phoneNumber);
+    setConfirmation(conf);
     setStep("otp");
     toast.success("OTP sent successfully!");
-  } else {
-    toast.error("Failed to send OTP. Please try again.");
   }
 } catch (error) {
   console.error("Send OTP error:", error);
@@ -38,21 +52,40 @@ try {
 };
 
 const handleVerifyOtp = async () => {
-if (!verificationId || !otp) {
-  toast.error("Please enter the OTP code");
-  return;
-}
-try {
-  const user = await verifyOtp(verificationId, otp);
-  if (user) {
-    setStep("done");
-    toast.success("Successfully logged in!");
-  } else {
+if (isNative) {
+  if (!verificationId || !otp) {
+    toast.error("Please enter the OTP code");
+    return;
+  }
+  try {
+    const user = await verifyOtp(verificationId, otp);
+    if (user) {
+      setStep("done");
+      toast.success("Successfully logged in!");
+    } else {
+      toast.error("Invalid OTP code. Please try again.");
+    }
+  } catch (error) {
+    console.error("Verify OTP error:", error);
     toast.error("Invalid OTP code. Please try again.");
   }
-} catch (error) {
-  console.error("Verify OTP error:", error);
-  toast.error("Invalid OTP code. Please try again.");
+} else {
+  if (!confirmation || !otp) {
+    toast.error("Please enter the OTP code");
+    return;
+  }
+  try {
+    const user = await verifyOtpWeb(confirmation, otp);
+    if (user) {
+      setStep("done");
+      toast.success("Successfully logged in!");
+    } else {
+      toast.error("Invalid OTP code. Please try again.");
+    }
+  } catch (error) {
+    console.error("Verify OTP error:", error);
+    toast.error("Invalid OTP code. Please try again.");
+  }
 }
 };
 
