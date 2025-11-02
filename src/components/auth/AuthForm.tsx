@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { sendOtpWeb, verifyOtpWeb } from "@/hooks/usePhoneAuth";
 import type { ConfirmationResult } from "firebase/auth";
+import DomainErrorAlert from "./DomainErrorAlert";
 
 const AuthForm: React.FC = () => {
 const { sendOtp, verifyOtp, loading, user } = useAuth();
@@ -19,6 +20,7 @@ const [otp, setOtp] = useState("");
 const [verificationId, setVerificationId] = useState<string | null>(null);
 const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
 const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
+const [showDomainError, setShowDomainError] = useState(false);
 
 const handleSendOtp = async () => {
   const normalized = phoneNumber.replace(/\s+/g, '');
@@ -49,11 +51,21 @@ const handleSendOtp = async () => {
   } catch (error: any) {
     console.error("Send OTP error:" , error?.code || error?.message || error);
     const code = error?.code as string | undefined;
+    const errorMessage = error?.message || '';
+    
+    // Check for domain authorization error
+    if (code === 'auth/unauthorized-domain' || errorMessage.includes('domain') || errorMessage.includes('Invalid domain')) {
+      setShowDomainError(true);
+      toast.error("Domain not authorized. See instructions below.");
+      return;
+    }
+    
     const map: Record<string,string> = {
       'auth/invalid-phone-number': 'Invalid phone number format',
       'auth/too-many-requests': 'Too many attempts. Try again later',
       'auth/app-not-authorized': 'App not authorized. Check Firebase config',
       'auth/internal-error': 'Temporary issue. Try again later',
+      'auth/unauthorized-domain': 'Domain not authorized for phone auth',
     };
     toast.error(map[code || ''] || "Failed to send OTP. Please check your phone number.");
   }
@@ -116,6 +128,10 @@ if (step === "done") {
 
 return (
   <div className="w-full space-y-6">
+    {showDomainError && (
+      <DomainErrorAlert currentDomain={window.location.hostname} />
+    )}
+    
     {step === "phone" && (
       <div className="space-y-4">
         <div className="space-y-2">
