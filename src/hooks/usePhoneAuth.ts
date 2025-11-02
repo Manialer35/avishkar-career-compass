@@ -33,7 +33,17 @@ export const verifyCodeNative = async (verificationId: string, code: string) => 
 };
 
 // ---- WEB METHODS ----
+const ensureRecaptchaContainer = () => {
+  if (typeof document !== 'undefined' && !document.getElementById('recaptcha-container')) {
+    const div = document.createElement('div');
+    div.id = 'recaptcha-container';
+    div.style.display = 'none';
+    document.body.appendChild(div);
+  }
+};
+
 const setupRecaptcha = (): RecaptchaVerifier => {
+  ensureRecaptchaContainer();
   if (!recaptchaVerifier) {
     recaptchaVerifier = new RecaptchaVerifier(
       auth,
@@ -47,9 +57,24 @@ const setupRecaptcha = (): RecaptchaVerifier => {
 export const sendOtpWeb = async (
   phoneNumber: string
 ): Promise<ConfirmationResult> => {
-  const appVerifier = setupRecaptcha();
-  const confirmation = await signInWithPhoneNumber(auth, phoneNumber, appVerifier as any);
-  return confirmation;
+  await setPersistence(auth, browserLocalPersistence);
+  try {
+    const appVerifier = setupRecaptcha();
+    return await signInWithPhoneNumber(auth, phoneNumber, appVerifier as any);
+  } catch (err) {
+    console.error('sendOtpWeb first attempt failed', err);
+    try {
+      if (recaptchaVerifier) {
+        try { await (recaptchaVerifier as any).clear?.(); } catch {}
+        recaptchaVerifier = null;
+      }
+      const appVerifier2 = setupRecaptcha();
+      return await signInWithPhoneNumber(auth, phoneNumber, appVerifier2 as any);
+    } catch (err2) {
+      console.error('sendOtpWeb retry failed', err2);
+      throw err2;
+    }
+  }
 };
 
 export const verifyOtpWeb = async (

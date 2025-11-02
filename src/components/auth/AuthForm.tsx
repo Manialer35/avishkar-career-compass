@@ -21,34 +21,42 @@ const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null
 const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
 
 const handleSendOtp = async () => {
-if (!phoneNumber) {
-  toast.error("Please enter phone number");
-  return;
-}
-if (!phoneNumber.startsWith('+')) {
-  toast.error("Phone number must start with country code (e.g., +91)");
-  return;
-}
-try {
-  if (isNative) {
-    const result = await sendOtp(phoneNumber);
-    if (result && result.verificationId) {
-      setVerificationId(result.verificationId);
+  const normalized = phoneNumber.replace(/\s+/g, '');
+  if (!normalized) {
+    toast.error("Please enter phone number");
+    return;
+  }
+  if (!normalized.startsWith('+')) {
+    toast.error("Phone number must start with country code (e.g., +91)");
+    return;
+  }
+  try {
+    if (isNative) {
+      const result = await sendOtp(normalized);
+      if (result && (result as any).verificationId) {
+        setVerificationId((result as any).verificationId);
+        setStep("otp");
+        toast.success("OTP sent successfully!");
+      } else {
+        toast.error("Failed to send OTP. Please try again.");
+      }
+    } else {
+      const conf = await sendOtpWeb(normalized);
+      setConfirmation(conf);
       setStep("otp");
       toast.success("OTP sent successfully!");
-    } else {
-      toast.error("Failed to send OTP. Please try again.");
     }
-  } else {
-    const conf = await sendOtpWeb(phoneNumber);
-    setConfirmation(conf);
-    setStep("otp");
-    toast.success("OTP sent successfully!");
+  } catch (error: any) {
+    console.error("Send OTP error:" , error?.code || error?.message || error);
+    const code = error?.code as string | undefined;
+    const map: Record<string,string> = {
+      'auth/invalid-phone-number': 'Invalid phone number format',
+      'auth/too-many-requests': 'Too many attempts. Try again later',
+      'auth/app-not-authorized': 'App not authorized. Check Firebase config',
+      'auth/internal-error': 'Temporary issue. Try again later',
+    };
+    toast.error(map[code || ''] || "Failed to send OTP. Please check your phone number.");
   }
-} catch (error) {
-  console.error("Send OTP error:", error);
-  toast.error("Failed to send OTP. Please check your phone number.");
-}
 };
 
 const handleVerifyOtp = async () => {
