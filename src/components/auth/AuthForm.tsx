@@ -8,6 +8,7 @@ import { Capacitor } from "@capacitor/core";
 import { sendOtpWeb, verifyOtpWeb } from "@/hooks/usePhoneAuth";
 import type { ConfirmationResult } from "firebase/auth";
 import DomainErrorAlert from "./DomainErrorAlert";
+import NativeAuthConfigAlert from "./NativeAuthConfigAlert";
 
 const AuthForm: React.FC = () => {
 const { sendOtp, verifyOtp, loading, user } = useAuth();
@@ -21,6 +22,7 @@ const [verificationId, setVerificationId] = useState<string | null>(null);
 const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null);
 const [step, setStep] = useState<"phone" | "otp" | "done">("phone");
 const [showDomainError, setShowDomainError] = useState(false);
+const [showNativeConfigHelp, setShowNativeConfigHelp] = useState(false);
 
 const handleSendOtp = async () => {
   const normalized = phoneNumber.replace(/\s+/g, '');
@@ -57,6 +59,12 @@ const handleSendOtp = async () => {
     if (code === 'auth/unauthorized-domain' || errorMessage.includes('domain') || errorMessage.includes('Invalid domain')) {
       setShowDomainError(true);
       toast.error("Domain not authorized. See instructions below.");
+      return;
+    }
+    // Native app authorization error (Android/iOS)
+    if (isNative && (code === 'auth/app-not-authorized' || /not authorized/i.test(errorMessage))) {
+      setShowNativeConfigHelp(true);
+      toast.error('App not authorized. See fix below.');
       return;
     }
     
@@ -130,6 +138,9 @@ return (
   <div className="w-full space-y-6">
     {showDomainError && (
       <DomainErrorAlert currentDomain={window.location.hostname} />
+    )}
+    {isNative && showNativeConfigHelp && (
+      <NativeAuthConfigAlert packageId="app.lovable.edaf6c8a99f44154a62e5ea9345f08e9" />
     )}
     
     {step === "phone" && (

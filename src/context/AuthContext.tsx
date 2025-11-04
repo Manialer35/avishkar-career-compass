@@ -67,10 +67,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error("OTP send failed", e);
       setLoading(false);
-      return null;
+      throw e; // Propagate so caller can surface precise error code/message
     }
   };
-
   const verifyOtp = async (verificationId: string, otp: string) => {
     setLoading(true);
     try {
@@ -84,10 +83,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {
       console.error("OTP verify failed", e);
       setLoading(false);
-      return null;
+      throw e; // Propagate to caller for precise handling
     }
   };
-
   const signOut = async () => {
     setLoading(true);
     try {
