@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -10,9 +10,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // CRITICAL: Listen to Firebase auth state changes
+  // Listen to Firebase auth state changes
   useEffect(() => {
-    console.log('Initial auth state: no user');
+    console.log('Setting up auth listeners');
     
     let listenerHandle: any = null;
     let webUnsub: (() => void) | null = null;
@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Check current auth state on mount (native)
     FirebaseAuthentication.getCurrentUser()
       .then(({ user: currentUser }) => {
-        console.log('Firebase auth state changed:', currentUser?.phoneNumber || 'no user');
+        console.log('Firebase auth state:', currentUser?.email || 'no user');
         setUser(currentUser);
         setLoading(false);
       })
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth state changes (native)
     FirebaseAuthentication.addListener('authStateChange', (result) => {
-      console.log('Firebase auth state changed:', result.user?.phoneNumber || 'logged out');
+      console.log('Firebase auth state changed:', result.user?.email || 'logged out');
       setUser(result.user);
       setLoading(false);
     }).then((handle) => {
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth state changes (web)
     if (Capacitor.getPlatform() === 'web') {
       webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-        console.log('Firebase WEB auth state changed:', firebaseUser?.phoneNumber || 'logged out');
+        console.log('Firebase WEB auth state changed:', firebaseUser?.email || 'logged out');
         setUser(firebaseUser);
         setLoading(false);
       });
@@ -58,39 +58,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  const sendOtp = async (phoneNumber: string) => {
+  const signInWithGoogle = async () => {
     setLoading(true);
     try {
-      const result = await FirebaseAuthentication.signInWithPhoneNumber({ phoneNumber });
-      setLoading(false);
-      return result; // Return full result object
+      const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
+      
+      if (isNative) {
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        setLoading(false);
+        return result.user;
+      } else {
+        const provider = new GoogleAuthProvider();
+        const result = await signInWithPopup(auth, provider);
+        setLoading(false);
+        return result.user;
+      }
     } catch (e) {
-      console.error("OTP send failed", e);
+      console.error("Google sign in failed", e);
       setLoading(false);
-      throw e; // Propagate so caller can surface precise error code/message
+      throw e;
     }
   };
-  const verifyOtp = async (verificationId: string, otp: string) => {
-    setLoading(true);
-    try {
-      const credential = await FirebaseAuthentication.confirmVerificationCode({
-        verificationId,
-        verificationCode: otp,
-      });
-      // User state will be updated automatically by authStateChange listener
-      setLoading(false);
-      return credential?.user;
-    } catch (e) {
-      console.error("OTP verify failed", e);
-      setLoading(false);
-      throw e; // Propagate to caller for precise handling
-    }
-  };
+
   const signOut = async () => {
     setLoading(true);
     try {
       await FirebaseAuthentication.signOut();
-      // User state will be updated automatically by authStateChange listener
       setLoading(false);
     } catch (e) {
       console.error("Sign out failed", e);
@@ -99,7 +92,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ sendOtp, verifyOtp, signOut, user, loading }}>
+    <AuthContext.Provider value={{ signInWithGoogle, signOut, user, loading }}>
       {children}
     </AuthContext.Provider>
   );
