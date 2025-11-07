@@ -64,18 +64,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
       
       if (isNative) {
+        console.log('Starting native Google sign-in...');
         const result = await FirebaseAuthentication.signInWithGoogle();
+        console.log('Native sign-in result:', result);
+        
+        // The auth state listener will handle setting the user
         setLoading(false);
         return result.user;
       } else {
+        console.log('Starting web Google sign-in...');
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
+        console.log('Web sign-in result:', result.user);
+        
+        // The auth state listener will handle setting the user
         setLoading(false);
         return result.user;
       }
-    } catch (e) {
-      console.error("Google sign in failed", e);
+    } catch (e: any) {
+      console.error("Google sign in failed:", e);
       setLoading(false);
+      
+      // Don't throw on user cancellation
+      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
+        return null;
+      }
+      
       throw e;
     }
   };

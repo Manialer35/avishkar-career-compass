@@ -8,18 +8,25 @@ const AuthForm: React.FC = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
-      toast.success("Successfully signed in with Google!");
+      const result = await signInWithGoogle();
+      console.log("Google sign in result:", result);
+      
+      // Only show success if we have a user
+      if (result) {
+        toast.success("Successfully signed in with Google!");
+      }
     } catch (error: any) {
       console.error("Google sign in error:", error);
       
+      // Only show error for actual errors, not cancelled sign-ins
       if (error?.code === 'auth/operation-not-allowed') {
         toast.error("Google Sign-in is not enabled. Please enable it in Firebase Console: Authentication → Sign-in method → Google");
-      } else if (error?.code === 'auth/popup-closed-by-user') {
-        toast.error("Sign-in popup was closed. Please try again.");
+      } else if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') {
+        // User cancelled - don't show error
+        console.log("User cancelled sign-in");
       } else if (error?.code === 'auth/unauthorized-domain') {
         toast.error("Domain not authorized. Add your domain in Firebase Console: Authentication → Settings → Authorized domains");
-      } else {
+      } else if (error?.message && !error?.message.includes('cancel')) {
         toast.error("Failed to sign in with Google. Please try again.");
       }
     }
