@@ -65,24 +65,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (isNative) {
         console.log('Starting native Google sign-in...');
-        const result = await FirebaseAuthentication.signInWithGoogle();
-        console.log('Native sign-in result:', result);
         
-        // The auth state listener will handle setting the user
-        setLoading(false);
-        return result.user;
+        try {
+          const result = await FirebaseAuthentication.signInWithGoogle();
+          console.log('Native sign-in SUCCESS:', JSON.stringify(result));
+          setLoading(false);
+          return result.user;
+        } catch (nativeError: any) {
+          console.error('Native sign-in ERROR details:', {
+            code: nativeError?.code,
+            message: nativeError?.message,
+            error: JSON.stringify(nativeError)
+          });
+          
+          // On Android, sometimes the plugin throws errors even on success
+          // Wait a moment for auth state to update, then check if user is signed in
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          const { user: currentUser } = await FirebaseAuthentication.getCurrentUser();
+          if (currentUser) {
+            console.log('Native sign-in succeeded despite error, user found:', currentUser.email);
+            setLoading(false);
+            return currentUser;
+          }
+          
+          // If still no user, check for cancellation
+          if (nativeError?.code === '12501' || // SIGN_IN_CANCELLED
+              nativeError?.message?.toLowerCase().includes('cancel') ||
+              nativeError?.message?.toLowerCase().includes('12501')) {
+            console.log('User cancelled native sign-in');
+            setLoading(false);
+            return null;
+          }
+          
+          setLoading(false);
+          throw nativeError;
+        }
       } else {
         console.log('Starting web Google sign-in...');
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
         console.log('Web sign-in result:', result.user);
         
-        // The auth state listener will handle setting the user
         setLoading(false);
         return result.user;
       }
     } catch (e: any) {
-      console.error("Google sign in failed:", e);
+      console.error("Google sign in failed (outer catch):", e);
       setLoading(false);
       
       // Don't throw on user cancellation
