@@ -32,6 +32,12 @@ const AuthForm: React.FC = () => {
         console.log("User cancelled sign-in");
       } else if (error?.code === 'auth/unauthorized-domain') {
         toast.error("Domain not authorized. Add your domain in Firebase Console: Authentication → Settings → Authorized domains");
+      } else if (
+        error?.message?.includes('10') || // DEVELOPER_ERROR
+        error?.code === '12500' || // SIGN_IN_FAILED
+        error?.code === '12502' // IN_PROGRESS
+      ) {
+        toast.error("Google Sign-in configuration error on Android (code 10/12500). We added a fallback, please try again.");
       } else if (error?.message && 
                  !error?.message.toLowerCase().includes('cancel') &&
                  !error?.message.includes('12501')) {

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -39,14 +39,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       listenerHandle = handle;
     });
 
-    // Listen for auth state changes (web)
-    if (Capacitor.getPlatform() === 'web') {
-      webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-        console.log('Firebase WEB auth state changed:', firebaseUser?.email || 'logged out');
-        setUser(firebaseUser);
-        setLoading(false);
-      });
-    }
+    // Listen for auth state changes (web) - also on native to support fallback via web SDK
+    webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+      console.log('Firebase WEB auth state changed:', firebaseUser?.email || 'logged out');
+      // Only update if native user is not set to avoid flicker; but keep it in sync as a fallback
+      setUser((prev) => prev ?? firebaseUser);
+      setLoading(false);
+    });
 
     return () => {
       if (listenerHandle) {
@@ -96,6 +95,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('User cancelled native sign-in');
             setLoading(false);
             return null;
+          }
+          // Try web-credential fallback inside the WebView
+          try {
+            console.log('Attempting web credential fallback...');
+            const fallback = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+            const idToken = (fallback as any)?.credential?.idToken;
+            const accessToken = (fallback as any)?.credential?.accessToken;
+            if (idToken || accessToken) {
+              const credential = GoogleAuthProvider.credential(idToken);
+              const webResult = await signInWithCredential(auth, credential);
+              console.log('Web credential fallback SUCCESS:', webResult.user?.email);
+              setLoading(false);
+              return webResult.user;
+            }
+          } catch (fallbackErr) {
+            console.error('Web credential fallback failed:', fallbackErr);
           }
           
           setLoading(false);
