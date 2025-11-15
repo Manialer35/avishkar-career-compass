@@ -65,8 +65,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('signInWithGoogle platform:', Capacitor.getPlatform(), 'isNative:', isNative);
       
       if (isNative) {
-        console.log('Starting native Google sign-in...');
-        
+        // Prefer Web credential flow inside WebView first
+        try {
+          console.log('Starting web-credential Google sign-in (forced first)...');
+          const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
+            skipNativeAuth: true,
+            scopes: ['profile', 'email', 'openid'],
+            serverClientId: GOOGLE_WEB_CLIENT_ID,
+          } as any);
+
+          const idToken = (fallback as any)?.credential?.idToken;
+          const accessToken = (fallback as any)?.credential?.accessToken;
+          console.log('Web-credential tokens', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
+
+          if (idToken || accessToken) {
+            const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
+            const webResult = await signInWithCredential(auth, credential);
+            console.log('Web credential sign-in SUCCESS:', webResult.user?.email);
+            setLoading(false);
+            return webResult.user;
+          }
+        } catch (webCredErr: any) {
+          console.error('Web credential sign-in failed (first attempt):', webCredErr);
+        }
+
+        // If web-credential path failed, try native sign-in as a fallback
+        console.log('Falling back to native Google sign-in...');
         try {
           const result = await FirebaseAuthentication.signInWithGoogle();
           console.log('Native sign-in SUCCESS:', JSON.stringify(result));
@@ -78,29 +102,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             message: nativeError?.message,
             error: JSON.stringify(nativeError)
           });
-          
+
           // On Android, sometimes the plugin throws errors even on success
-          // Wait a moment for auth state to update, then check if user is signed in
           await new Promise(resolve => setTimeout(resolve, 1000));
-          
+
           const { user: currentUser } = await FirebaseAuthentication.getCurrentUser();
           if (currentUser) {
             console.log('Native sign-in succeeded despite error, user found:', currentUser.email);
             setLoading(false);
             return currentUser;
           }
-          
+
           // If still no user, check for cancellation
-          if (nativeError?.code === '12501' || // SIGN_IN_CANCELLED
+          if (nativeError?.code === '12501' ||
               nativeError?.message?.toLowerCase().includes('cancel') ||
               nativeError?.message?.toLowerCase().includes('12501')) {
             console.log('User cancelled native sign-in');
             setLoading(false);
             return null;
           }
-          // Try web-credential fallback inside the WebView
+
+          // Final attempt: try web-credential again (might prompt less)
           try {
-            console.log('Attempting web credential fallback...');
+            console.log('Final attempt: web credential fallback...');
             const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
               skipNativeAuth: true,
               scopes: ['profile', 'email', 'openid'],
@@ -108,7 +132,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } as any);
             const idToken = (fallback as any)?.credential?.idToken;
             const accessToken = (fallback as any)?.credential?.accessToken;
-            console.log('Fallback tokens', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
+            console.log('Fallback tokens (final)', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
             if (idToken || accessToken) {
               const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
               const webResult = await signInWithCredential(auth, credential);
@@ -117,9 +141,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               return webResult.user;
             }
           } catch (fallbackErr) {
-            console.error('Web credential fallback failed:', fallbackErr);
+            console.error('Web credential fallback failed (final):', fallbackErr);
           }
-          
+
           setLoading(false);
           throw nativeError;
         }
