@@ -56,7 +56,7 @@ export type Database = {
           action: string
           admin_user_id: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_values: Json | null
           old_values: Json | null
           target_id: string | null
@@ -68,7 +68,7 @@ export type Database = {
           action: string
           admin_user_id?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           target_id?: string | null
@@ -80,7 +80,7 @@ export type Database = {
           action?: string
           admin_user_id?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           target_id?: string | null
@@ -706,38 +706,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      add_admin_by_phone: {
-        Args: { phone_number: string }
-        Returns: string
-      }
+      add_admin_by_phone: { Args: { phone_number: string }; Returns: string }
       calculate_expiry_date: {
         Args: { duration_months: number; duration_type: string }
         Returns: string
       }
-      check_bucket_exists: {
-        Args: { bucket_name: string }
-        Returns: boolean
-      }
-      check_user_is_admin: {
-        Args: { check_user_id: string } | { check_user_id: string }
-        Returns: boolean
-      }
+      check_bucket_exists: { Args: { bucket_name: string }; Returns: boolean }
+      check_user_is_admin:
+        | {
+            Args: { check_user_id: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.check_user_is_admin(check_user_id => text), public.check_user_is_admin(check_user_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
+        | {
+            Args: { check_user_id: string }
+            Returns: {
+              error: true
+            } & "Could not choose the best candidate function between: public.check_user_is_admin(check_user_id => text), public.check_user_is_admin(check_user_id => uuid). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
+          }
       check_user_is_admin_by_phone: {
         Args: { user_phone: string }
         Returns: boolean
       }
-      create_user_roles_if_not_exists: {
-        Args: Record<PropertyKey, never> | { p_role: string; p_user_id: string }
-        Returns: undefined
-      }
-      ensure_user_role: {
-        Args:
-          | { p_role: string; p_user_id: string }
-          | { p_role: string; p_user_id: string }
-        Returns: undefined
-      }
+      create_user_roles_if_not_exists:
+        | { Args: never; Returns: undefined }
+        | { Args: { p_role: string; p_user_id: string }; Returns: undefined }
+      ensure_user_role:
+        | { Args: { p_role: string; p_user_id: string }; Returns: undefined }
+        | { Args: { p_role: string; p_user_id: string }; Returns: undefined }
       get_admin_users: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           phone: string
@@ -746,18 +745,17 @@ export type Database = {
         }[]
       }
       get_pending_admins: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           phone_number: string
         }[]
       }
-      get_user_role: {
-        Args: { p_user_id: string } | { user_id_param: string }
-        Returns: string
-      }
+      get_user_role:
+        | { Args: { p_user_id: string }; Returns: string }
+        | { Args: { user_id_param: string }; Returns: string }
       get_users_with_roles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           full_name: string
@@ -774,34 +772,18 @@ export type Database = {
         Args: { material_id: string }
         Returns: number
       }
-      is_admin: {
-        Args: { user_id_param: string } | { user_uuid: string }
-        Returns: boolean
-      }
-      is_admin_by_phone: {
-        Args: { phone_num: string }
-        Returns: boolean
-      }
-      is_admin_phone: {
-        Args: { phone_num: string }
-        Returns: boolean
-      }
-      is_admin_user: {
-        Args: { user_uuid?: string }
-        Returns: boolean
-      }
-      is_current_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin:
+        | { Args: { user_uuid: string }; Returns: boolean }
+        | { Args: { user_id_param: string }; Returns: boolean }
+      is_admin_by_phone: { Args: { phone_num: string }; Returns: boolean }
+      is_admin_phone: { Args: { phone_num: string }; Returns: boolean }
+      is_admin_user: { Args: { user_uuid?: string }; Returns: boolean }
+      is_current_user_admin: { Args: never; Returns: boolean }
       promote_phone_to_admin: {
         Args: { target_phone: string }
         Returns: string
       }
-      setup_phone_admin: {
-        Args: { phone_number: string }
-        Returns: undefined
-      }
+      setup_phone_admin: { Args: { phone_number: string }; Returns: undefined }
     }
     Enums: {
       user_role: "user" | "admin"

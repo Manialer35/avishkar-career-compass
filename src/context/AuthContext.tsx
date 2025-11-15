@@ -3,6 +3,7 @@ import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { GOOGLE_WEB_CLIENT_ID } from "@/config/google";
 
 const AuthContext = createContext<any>(null);
 
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
+      console.log('signInWithGoogle platform:', Capacitor.getPlatform(), 'isNative:', isNative);
       
       if (isNative) {
         console.log('Starting native Google sign-in...');
@@ -99,11 +101,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Try web-credential fallback inside the WebView
           try {
             console.log('Attempting web credential fallback...');
-            const fallback = await FirebaseAuthentication.signInWithGoogle({ skipNativeAuth: true });
+            const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
+              skipNativeAuth: true,
+              scopes: ['profile', 'email', 'openid'],
+              serverClientId: GOOGLE_WEB_CLIENT_ID,
+            } as any);
             const idToken = (fallback as any)?.credential?.idToken;
             const accessToken = (fallback as any)?.credential?.accessToken;
+            console.log('Fallback tokens', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
             if (idToken || accessToken) {
-              const credential = GoogleAuthProvider.credential(idToken);
+              const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
               const webResult = await signInWithCredential(auth, credential);
               console.log('Web credential fallback SUCCESS:', webResult.user?.email);
               setLoading(false);
