@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9"
-        minSdk 21
+        minSdk 23
         targetSdk 35
         versionCode 47
         versionName "1.28.0"
