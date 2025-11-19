@@ -16,16 +16,38 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
+        
+        <!-- Firebase Configuration -->
+        <meta-data
+            android:name="com.google.firebase.auth.CUSTOM_AUTH_DOMAIN"
+            android:value="avishkarca-86013.firebaseapp.com" />
 
         <activity
             android:exported="true"
             android:launchMode="singleTask"
             android:name="app.lovable.avishkar.MainActivity"
-            android:theme="@style/AppTheme.NoActionBarLaunch">
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            
+            <!-- Deep linking for OAuth redirects -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" 
+                      android:host="avishkarca-86013.firebaseapp.com" />
+            </intent-filter>
+            
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="app.lovable.edaf6c8a99f44154a62e5ea9345f08e9" />
             </intent-filter>
 
         </activity>
