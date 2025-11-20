@@ -62,26 +62,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
-      console.log('🔐 signInWithGoogle - Platform:', Capacitor.getPlatform(), 'Native:', isNative);
+      console.log('signInWithGoogle platform:', Capacitor.getPlatform(), 'isNative:', isNative);
       
       if (isNative) {
-        // Try native Google sign-in first
+        // Prefer Web credential flow inside WebView first
         try {
-          console.log('🚀 Attempting native Google sign-in...');
-          const result = await FirebaseAuthentication.signInWithGoogle({
-            mode: 'popup'
-          });
-          
-          console.log('✅ Native Google sign-in SUCCESS');
-          console.log('User email:', result.user?.email);
-          console.log('User ID:', result.user?.uid);
-          
+          console.log('Starting web-credential Google sign-in (forced first)...');
+          const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
+            skipNativeAuth: true,
+            scopes: ['profile', 'email', 'openid'],
+            serverClientId: GOOGLE_WEB_CLIENT_ID,
+          } as any);
+
+          const idToken = (fallback as any)?.credential?.idToken;
+          const accessToken = (fallback as any)?.credential?.accessToken;
+          console.log('Web-credential tokens', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
+
+          if (idToken || accessToken) {
+            const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
+            const webResult = await signInWithCredential(auth, credential);
+            console.log('Web credential sign-in SUCCESS:', webResult.user?.email);
+            setLoading(false);
+            return webResult.user;
+          }
+        } catch (webCredErr: any) {
+          console.error('Web credential sign-in failed (first attempt):', webCredErr);
+        }
+
+        // If web-credential path failed, try native sign-in as a fallback
+        console.log('Falling back to native Google sign-in...');
+        try {
+          const result = await FirebaseAuthentication.signInWithGoogle();
+          console.log('Native sign-in SUCCESS:', JSON.stringify(result));
           setLoading(false);
           return result.user;
         } catch (nativeError: any) {
-          console.error('❌ Native sign-in failed:', nativeError.message || nativeError);
-          console.error('Error code:', nativeError.code);
-          console.error('Full error:', JSON.stringify(nativeError, null, 2));
           console.error('Native sign-in ERROR details:', {
             code: nativeError?.code,
             message: nativeError?.message,
@@ -97,43 +112,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
             return currentUser;
           }
-          
-          // Check for user cancellation
+
+          // If still no user, check for cancellation
           if (nativeError?.code === '12501' ||
-              nativeError?.code === 'auth/popup-closed-by-user' ||
               nativeError?.message?.toLowerCase().includes('cancel') ||
               nativeError?.message?.toLowerCase().includes('12501')) {
-            console.log('⚠️ User cancelled sign-in');
+            console.log('User cancelled native sign-in');
             setLoading(false);
             return null;
           }
 
-          // Throw the error to be handled by outer catch
+          // Final attempt: try web-credential again (might prompt less)
+          try {
+            console.log('Final attempt: web credential fallback...');
+            const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
+              skipNativeAuth: true,
+              scopes: ['profile', 'email', 'openid'],
+              serverClientId: GOOGLE_WEB_CLIENT_ID,
+            } as any);
+            const idToken = (fallback as any)?.credential?.idToken;
+            const accessToken = (fallback as any)?.credential?.accessToken;
+            console.log('Fallback tokens (final)', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
+            if (idToken || accessToken) {
+              const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
+              const webResult = await signInWithCredential(auth, credential);
+              console.log('Web credential fallback SUCCESS:', webResult.user?.email);
+              setLoading(false);
+              return webResult.user;
+            }
+          } catch (fallbackErr) {
+            console.error('Web credential fallback failed (final):', fallbackErr);
+          }
+
+          setLoading(false);
           throw nativeError;
         }
       } else {
-        // Web platform - use popup
-        console.log('🌐 Starting web Google sign-in...');
+        console.log('Starting web Google sign-in...');
         const provider = new GoogleAuthProvider();
-        provider.addScope('profile');
-        provider.addScope('email');
-        
         const result = await signInWithPopup(auth, provider);
-        console.log('✅ Web sign-in SUCCESS:', result.user?.email);
+        console.log('Web sign-in result:', result.user);
         
         setLoading(false);
         return result.user;
       }
     } catch (e: any) {
-      console.error("❌ Google sign-in failed (outer catch):", e.message || e);
+      console.error("Google sign in failed (outer catch):", e);
       setLoading(false);
       
       // Don't throw on user cancellation
-      if (e?.code === 'auth/popup-closed-by-user' || 
-          e?.code === 'auth/cancelled-popup-request' ||
-          e?.code === '12501' ||
-          e?.message?.toLowerCase().includes('cancel')) {
-        console.log('⚠️ Sign-in cancelled by user');
+      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
         return null;
       }
       
