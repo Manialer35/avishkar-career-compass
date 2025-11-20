@@ -19,29 +19,30 @@ const AuthForm: React.FC = () => {
       console.error("Google sign in error in AuthForm:", {
         code: error?.code,
         message: error?.message,
+        errorString: error?.toString(),
         full: JSON.stringify(error)
       });
       
       // Only show error for actual errors, not cancelled sign-ins
       if (error?.code === 'auth/operation-not-allowed') {
-        toast.error("Google Sign-in is not enabled. Please enable it in Firebase Console: Authentication → Sign-in method → Google");
+        toast.error("Google Sign-in not enabled in Firebase Console");
       } else if (error?.code === 'auth/popup-closed-by-user' || 
                  error?.code === 'auth/cancelled-popup-request' ||
-                 error?.code === '12501') { // Android cancellation code
+                 error?.code === '12501') {
         // User cancelled - don't show error
         console.log("User cancelled sign-in");
       } else if (error?.code === 'auth/unauthorized-domain') {
-        toast.error("Domain not authorized. Add your domain in Firebase Console: Authentication → Settings → Authorized domains");
-      } else if (
-        error?.message?.includes('10') || // DEVELOPER_ERROR
-        error?.code === '12500' || // SIGN_IN_FAILED
-        error?.code === '12502' // IN_PROGRESS
-      ) {
-        toast.error("Google Sign-in configuration error on Android (code 10/12500). We added a fallback, please try again.");
+        toast.error("Domain not authorized in Firebase Console");
+      } else if (error?.code === '12500') {
+        toast.error("Android Google Sign-in configuration error (12500). Check SHA fingerprints in Firebase Console");
+      } else if (error?.code === '10') {
+        toast.error("Google Services configuration error (code 10). Verify google-services.json");
       } else if (error?.message && 
                  !error?.message.toLowerCase().includes('cancel') &&
                  !error?.message.includes('12501')) {
-        toast.error("Failed to sign in with Google. Please try again.");
+        // Show the actual error for debugging
+        const errorMsg = error?.code ? `Error ${error.code}: ${error.message}` : "Failed to sign in with Google. Please try again.";
+        toast.error(errorMsg);
       }
     }
   };
