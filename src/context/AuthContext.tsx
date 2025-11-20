@@ -17,36 +17,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     let listenerHandle: any = null;
     let webUnsub: (() => void) | null = null;
-    
-    // Check current auth state on mount (native)
-    FirebaseAuthentication.getCurrentUser()
-      .then(({ user: currentUser }) => {
-        console.log('Firebase auth state:', currentUser?.email || 'no user');
-        setUser(currentUser);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Auth state check failed:', error);
-        setUser(null);
-        setLoading(false);
-      });
 
     // Listen for auth state changes (native)
     FirebaseAuthentication.addListener('authStateChange', (result) => {
-      console.log('Firebase auth state changed:', result.user?.email || 'logged out');
+      console.log('Firebase native auth state changed:', result.user?.email || 'logged out');
       setUser(result.user);
       setLoading(false);
     }).then((handle) => {
       listenerHandle = handle;
     });
 
-    // Listen for auth state changes (web) - also on native to support fallback via web SDK
+    // Listen for auth state changes (web) - unified listener for web and fallback
     webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log('Firebase WEB auth state changed:', firebaseUser?.email || 'logged out');
-      // Only update if native user is not set to avoid flicker; but keep it in sync as a fallback
-      setUser((prev) => prev ?? firebaseUser);
+      console.log('Firebase web auth state changed:', firebaseUser?.email || 'logged out');
+      setUser(firebaseUser);
       setLoading(false);
     });
+
+    // Check current auth state on mount
+    FirebaseAuthentication.getCurrentUser()
+      .then(({ user: currentUser }) => {
+        console.log('Initial Firebase auth state:', currentUser?.email || 'no user');
+        if (currentUser) {
+          setUser(currentUser);
+        }
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Auth state check failed:', error);
+        setLoading(false);
+      });
 
     return () => {
       if (listenerHandle) {
@@ -62,105 +62,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
-      console.log('signInWithGoogle platform:', Capacitor.getPlatform(), 'isNative:', isNative);
+      console.log('Google sign-in on platform:', Capacitor.getPlatform());
       
       if (isNative) {
-        // Prefer Web credential flow inside WebView first
+        // Try native sign-in first on Android/iOS
         try {
-          console.log('Starting web-credential Google sign-in (forced first)...');
-          const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
-            skipNativeAuth: true,
-            scopes: ['profile', 'email', 'openid'],
-            serverClientId: GOOGLE_WEB_CLIENT_ID,
-          } as any);
-
-          const idToken = (fallback as any)?.credential?.idToken;
-          const accessToken = (fallback as any)?.credential?.accessToken;
-          console.log('Web-credential tokens', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
-
-          if (idToken || accessToken) {
-            const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
-            const webResult = await signInWithCredential(auth, credential);
-            console.log('Web credential sign-in SUCCESS:', webResult.user?.email);
-            setLoading(false);
-            return webResult.user;
-          }
-        } catch (webCredErr: any) {
-          console.error('Web credential sign-in failed (first attempt):', webCredErr);
-        }
-
-        // If web-credential path failed, try native sign-in as a fallback
-        console.log('Falling back to native Google sign-in...');
-        try {
+          console.log('Attempting native Google sign-in...');
           const result = await FirebaseAuthentication.signInWithGoogle();
-          console.log('Native sign-in SUCCESS:', JSON.stringify(result));
+          console.log('Native sign-in successful:', result.user?.email);
           setLoading(false);
           return result.user;
         } catch (nativeError: any) {
-          console.error('Native sign-in ERROR details:', {
-            code: nativeError?.code,
-            message: nativeError?.message,
-            error: JSON.stringify(nativeError)
-          });
-
-          // On Android, sometimes the plugin throws errors even on success
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          const { user: currentUser } = await FirebaseAuthentication.getCurrentUser();
-          if (currentUser) {
-            console.log('Native sign-in succeeded despite error, user found:', currentUser.email);
-            setLoading(false);
-            return currentUser;
-          }
-
-          // If still no user, check for cancellation
-          if (nativeError?.code === '12501' ||
-              nativeError?.message?.toLowerCase().includes('cancel') ||
-              nativeError?.message?.toLowerCase().includes('12501')) {
-            console.log('User cancelled native sign-in');
+          // Check for user cancellation
+          if (nativeError?.code === '12501' || 
+              nativeError?.message?.toLowerCase().includes('cancel')) {
+            console.log('User cancelled sign-in');
             setLoading(false);
             return null;
           }
 
-          // Final attempt: try web-credential again (might prompt less)
+          // Try web credential fallback
+          console.log('Native sign-in failed, trying web credential fallback...');
           try {
-            console.log('Final attempt: web credential fallback...');
-            const fallback = await (FirebaseAuthentication as any).signInWithGoogle({
+            const webResult = await (FirebaseAuthentication as any).signInWithGoogle({
               skipNativeAuth: true,
               scopes: ['profile', 'email', 'openid'],
               serverClientId: GOOGLE_WEB_CLIENT_ID,
-            } as any);
-            const idToken = (fallback as any)?.credential?.idToken;
-            const accessToken = (fallback as any)?.credential?.accessToken;
-            console.log('Fallback tokens (final)', { hasIdToken: !!idToken, hasAccessToken: !!accessToken });
+            });
+
+            const idToken = webResult?.credential?.idToken;
+            const accessToken = webResult?.credential?.accessToken;
+
             if (idToken || accessToken) {
-              const credential = GoogleAuthProvider.credential(idToken || null, accessToken || undefined);
-              const webResult = await signInWithCredential(auth, credential);
-              console.log('Web credential fallback SUCCESS:', webResult.user?.email);
+              const credential = GoogleAuthProvider.credential(idToken || null, accessToken);
+              const authResult = await signInWithCredential(auth, credential);
+              console.log('Web credential sign-in successful:', authResult.user?.email);
               setLoading(false);
-              return webResult.user;
+              return authResult.user;
             }
-          } catch (fallbackErr) {
-            console.error('Web credential fallback failed (final):', fallbackErr);
+          } catch (webError) {
+            console.error('Web credential fallback failed:', webError);
           }
 
           setLoading(false);
           throw nativeError;
         }
       } else {
+        // Web platform
         console.log('Starting web Google sign-in...');
         const provider = new GoogleAuthProvider();
         const result = await signInWithPopup(auth, provider);
-        console.log('Web sign-in result:', result.user);
-        
+        console.log('Web sign-in successful:', result.user?.email);
         setLoading(false);
         return result.user;
       }
     } catch (e: any) {
-      console.error("Google sign in failed (outer catch):", e);
+      console.error("Google sign-in failed:", e);
       setLoading(false);
       
-      // Don't throw on user cancellation
       if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
         return null;
       }

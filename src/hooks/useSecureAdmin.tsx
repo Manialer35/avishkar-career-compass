@@ -16,13 +16,30 @@ export const useSecureAdmin = () => {
       }
 
       try {
-        // Use phone-based admin verification since Firebase IDs are not UUIDs
+        // Admin emails for Google Sign-in users
+        const adminEmails = ['neerajmadkar35@gmail.com', 'atulmadkar33@gmail.com'];
+        const adminPhones = ['+918888769281', '+918484843232'];
+
+        // Check by email (for Google Sign-in)
+        if (user.email && adminEmails.includes(user.email)) {
+          console.log('Admin verified by email:', user.email);
+          setIsAdmin(true);
+          setLoading(false);
+          return;
+        }
+
+        // Check by phone (for phone auth)
         if (user.phoneNumber) {
+          if (adminPhones.includes(user.phoneNumber)) {
+            console.log('Admin verified by phone:', user.phoneNumber);
+            setIsAdmin(true);
+            setLoading(false);
+            return;
+          }
+
           const { data, error } = await supabase.rpc('check_user_is_admin_by_phone', {
             user_phone: user.phoneNumber
           });
-
-          console.log('Admin verification result:', { data, error, phone: user.phoneNumber });
 
           if (error) {
             console.error('Error checking admin status:', error);
@@ -31,8 +48,6 @@ export const useSecureAdmin = () => {
             setIsAdmin(data === true);
           }
         } else {
-          // Fallback to direct phone check if no phone number in user object
-          const adminPhones = ['+918888769281', '+918484843232'];
           setIsAdmin(false);
         }
       } catch (error) {
