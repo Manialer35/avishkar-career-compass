@@ -2,8 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { GOOGLE_WEB_CLIENT_ID } from "@/config/google";
+import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 const AuthContext = createContext<any>(null);
 
@@ -18,20 +17,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let listenerHandle: any = null;
     let webUnsub: (() => void) | null = null;
 
+    // Unified auth state change handler
+    const handleAuthStateChange = (authUser: any) => {
+      console.log('Auth state changed:', authUser?.email || 'logged out');
+      setUser(authUser);
+      setLoading(false);
+    };
+
     // Listen for auth state changes (native)
     FirebaseAuthentication.addListener('authStateChange', (result) => {
-      console.log('Firebase native auth state changed:', result.user?.email || 'logged out');
-      setUser(result.user);
-      setLoading(false);
+      handleAuthStateChange(result.user);
     }).then((handle) => {
       listenerHandle = handle;
     });
 
-    // Listen for auth state changes (web) - unified listener for web and fallback
+    // Listen for auth state changes (web)
     webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-      console.log('Firebase web auth state changed:', firebaseUser?.email || 'logged out');
-      setUser(firebaseUser);
-      setLoading(false);
+      handleAuthStateChange(firebaseUser);
     });
 
     // Check current auth state on mount
@@ -65,48 +67,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('Google sign-in on platform:', Capacitor.getPlatform());
       
       if (isNative) {
-        // Try native sign-in first on Android/iOS
-        try {
-          console.log('Attempting native Google sign-in...');
-          const result = await FirebaseAuthentication.signInWithGoogle();
-          console.log('Native sign-in successful:', result.user?.email);
-          setLoading(false);
-          return result.user;
-        } catch (nativeError: any) {
-          // Check for user cancellation
-          if (nativeError?.code === '12501' || 
-              nativeError?.message?.toLowerCase().includes('cancel')) {
-            console.log('User cancelled sign-in');
-            setLoading(false);
-            return null;
-          }
-
-          // Try web credential fallback
-          console.log('Native sign-in failed, trying web credential fallback...');
-          try {
-            const webResult = await (FirebaseAuthentication as any).signInWithGoogle({
-              skipNativeAuth: true,
-              scopes: ['profile', 'email', 'openid'],
-              serverClientId: GOOGLE_WEB_CLIENT_ID,
-            });
-
-            const idToken = webResult?.credential?.idToken;
-            const accessToken = webResult?.credential?.accessToken;
-
-            if (idToken || accessToken) {
-              const credential = GoogleAuthProvider.credential(idToken || null, accessToken);
-              const authResult = await signInWithCredential(auth, credential);
-              console.log('Web credential sign-in successful:', authResult.user?.email);
-              setLoading(false);
-              return authResult.user;
-            }
-          } catch (webError) {
-            console.error('Web credential fallback failed:', webError);
-          }
-
-          setLoading(false);
-          throw nativeError;
-        }
+        console.log('Attempting native Google sign-in...');
+        const result = await FirebaseAuthentication.signInWithGoogle();
+        console.log('Native sign-in successful:', result.user?.email);
+        setLoading(false);
+        return result.user;
       } else {
         // Web platform
         console.log('Starting web Google sign-in...');
@@ -117,10 +82,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return result.user;
       }
     } catch (e: any) {
-      console.error("Google sign-in failed:", e);
+      console.error("Google sign-in failed with code:", e?.code, "message:", e?.message);
+      console.error("Full error:", JSON.stringify(e, null, 2));
       setLoading(false);
       
-      if (e?.code === 'auth/popup-closed-by-user' || e?.code === 'auth/cancelled-popup-request') {
+      // User cancelled
+      if (e?.code === '12501' || 
+          e?.code === 'auth/popup-closed-by-user' || 
+          e?.code === 'auth/cancelled-popup-request' ||
+          e?.message?.toLowerCase().includes('cancel')) {
+        console.log('User cancelled sign-in');
         return null;
       }
       
