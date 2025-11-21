@@ -35,6 +35,11 @@
           "android_info": {
             "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9",
             "certificate_hash": "09030da6cb170faa292eec169ab3b5631d0f685a"
+          "client_id": "779694722832-PLACEHOLDER-RELEASE-CLIENT.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9",
+            "certificate_hash": "REPLACE_WITH_YOUR_RELEASE_SHA1"
           }
         },
         {

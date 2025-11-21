@@ -12,3 +12,6 @@ class MainActivity : BridgeActivity() {
         registerPlugin(io.capawesome.capacitorjs.plugins.firebase.authentication.FirebaseAuthenticationPlugin::class.java)
     }
 }
+import com.getcapacitor.BridgeActivity
+
+class MainActivity : BridgeActivity()
