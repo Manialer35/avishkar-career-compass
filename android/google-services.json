@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "779694722832-PLACEHOLDER-RELEASE-CLIENT.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.lovable.edaf6c8a99f44154a62e5ea9345f08e9",
+            "certificate_hash": "REPLACE_WITH_YOUR_RELEASE_SHA1"
+          }
+        },
+        {
           "client_id": "779694722832-83fshca9h8kglma7028811rnk06em4of.apps.googleusercontent.com",
           "client_type": 3
         }
