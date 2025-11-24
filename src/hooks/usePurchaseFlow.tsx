@@ -36,6 +36,9 @@ export const usePurchaseFlow = () => {
       console.log('Initiating purchase for material:', materialId, 'Price:', price);
 
       // Call the edge function to create Razorpay order
+      const userId = user.uid || user.localId || user.email;
+      console.log('Creating order for user:', userId);
+      
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -45,7 +48,7 @@ export const usePurchaseFlow = () => {
           currency: 'INR',
           productId: materialId,
           productName: materialTitle,
-          customerId: user.email, // Use email as customer ID
+          customerId: userId,
           customerEmail: user.email || ''
         }
       });
@@ -90,6 +93,10 @@ export const usePurchaseFlow = () => {
             // Get authentication token for verification
             const token = await getSupabaseToken();
             
+            // Get user ID consistently
+            const userId = user.uid || user.localId || user.email;
+            console.log('Verifying payment for user:', userId);
+            
             // Verify payment
             const verifyResult = await supabase.functions.invoke('verify-razorpay-payment', {
               headers: {
@@ -100,7 +107,7 @@ export const usePurchaseFlow = () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 productId: materialId,
-                userId: user.email // Use email as user ID
+                userId: userId
               }
             });
 
@@ -162,10 +169,12 @@ export const usePurchaseFlow = () => {
     if (!user) return false;
 
     try {
+      const userId = user.uid || user.localId || user.email;
+      
       const { data, error } = await supabase
         .from('user_purchases')
         .select('*')
-        .eq('user_id', user.email) // Use email as user ID
+        .eq('user_id', userId)
         .eq('material_id', materialId)
         .maybeSingle();
 
