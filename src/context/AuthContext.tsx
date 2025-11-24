@@ -4,7 +4,15 @@ import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
-const AuthContext = createContext<any>(null);
+interface AuthContextType {
+  user: any | null;
+  loading: boolean;
+  signInWithGoogle: () => Promise<any>;
+  signOut: () => Promise<void>;
+  getSupabaseToken: () => Promise<string>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
@@ -142,4 +150,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
