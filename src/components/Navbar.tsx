@@ -85,28 +85,8 @@ const Navbar = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img
-              src={logoUrl}
-              alt="Aavishkar Academy Logo"
-              className="w-12 h-8 object-contain"
-              onError={(e) => {
-                console.log("Logo failed to load");
-              }}
-            />
-            <h1 className="text-xl font-bold">
-              <span className="text-white">Aavishkar</span>
-              <span className="text-blue-300"> Career Academy</span>
-            </h1>
-          </div>
-        </div>
-      </header>
-    );
-  }
+  // Always show navbar, handle loading state inline
+  const showUserIcon = !loading && user;
 
   return (
     <header className="w-full bg-academy-primary text-white py-4 px-4 shadow-md">
@@ -127,7 +107,7 @@ const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-4">
-          {user && (
+          {showUserIcon && (
             <div 
               className="relative inline-block" 
               style={{ opacity: 1, visibility: 'visible' }}
