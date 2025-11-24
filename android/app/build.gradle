@@ -109,6 +109,9 @@ dependencies {
     implementation "com.google.firebase:firebase-auth-ktx"
     implementation "com.google.firebase:firebase-crashlytics-ktx"
     implementation "com.google.firebase:firebase-messaging-ktx"
+    
+    // Google Sign-In (required for Firebase Auth with Google)
+    implementation "com.google.android.gms:play-services-auth:21.2.0"
 
     implementation fileTree(dir: "libs", include: ["*.jar"])
 
