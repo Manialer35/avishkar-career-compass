@@ -68,7 +68,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (isNative) {
         console.log('Attempting native Google sign-in...');
-        const result = await FirebaseAuthentication.signInWithGoogle();
+        const result = await FirebaseAuthentication.signInWithGoogle({
+          scopes: ['email', 'profile'],
+        });
         console.log('Native sign-in successful:', result.user?.email);
         setLoading(false);
         return result.user;
