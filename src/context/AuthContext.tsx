@@ -112,8 +112,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const getSupabaseToken = async () => {
+    try {
+      const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
+      
+      if (isNative) {
+        // For native platforms, get ID token from Firebase Authentication
+        const result = await FirebaseAuthentication.getIdToken();
+        return result.token;
+      } else {
+        // For web, get ID token from Firebase auth
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          throw new Error('No authenticated user');
+        }
+        const token = await currentUser.getIdToken();
+        return token;
+      }
+    } catch (error) {
+      console.error('Error getting Supabase token:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ signInWithGoogle, signOut, user, loading }}>
+    <AuthContext.Provider value={{ signInWithGoogle, signOut, user, loading, getSupabaseToken }}>
       {children}
     </AuthContext.Provider>
   );
