@@ -35,6 +35,14 @@ dependencies {
     implementation "com.google.firebase:firebase-auth-ktx"
     implementation "com.google.android.gms:play-services-auth:21.2.0"
     
+    // Capacitor Firebase plugins
+    if (findProject(':capacitor-firebase-app') != null) {
+        implementation project(':capacitor-firebase-app')
+    }
+    if (findProject(':capacitor-firebase-authentication') != null) {
+        implementation project(':capacitor-firebase-authentication')
+    }
+    
     if (findProject(':capacitor-android') != null) {
         implementation project(':capacitor-android')
     }
