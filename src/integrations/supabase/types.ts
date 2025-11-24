@@ -744,6 +744,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_pending_admin_emails: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+        }[]
+      }
       get_pending_admins: {
         Args: never
         Returns: {
@@ -779,6 +786,10 @@ export type Database = {
       is_admin_phone: { Args: { phone_num: string }; Returns: boolean }
       is_admin_user: { Args: { user_uuid?: string }; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
+      promote_email_to_admin: {
+        Args: { target_email: string }
+        Returns: string
+      }
       promote_phone_to_admin: {
         Args: { target_phone: string }
         Returns: string
