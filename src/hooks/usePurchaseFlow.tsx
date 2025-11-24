@@ -45,8 +45,8 @@ export const usePurchaseFlow = () => {
           currency: 'INR',
           productId: materialId,
           productName: materialTitle,
-          customerId: user.uid,
-          customerEmail: user.email || user.phoneNumber || ''
+          customerId: user.email, // Use email as customer ID
+          customerEmail: user.email || ''
         }
       });
 
@@ -77,13 +77,13 @@ export const usePurchaseFlow = () => {
         key: 'rzp_live_R8LCnQPRlQpF0s', // Razorpay live key (must match server RAZORPAY_KEY_ID)
         amount: data.amount,
         currency: data.currency,
-        name: 'Study Academy',
+        name: 'Aavishkar Career Academy',
         description: `Payment for ${materialTitle}`,
         order_id: data.id,
         prefill: {
-          name: user?.displayName || user?.email?.split('@')[0] || '',
+          name: user?.name || user?.email?.split('@')[0] || '',
           email: user?.email || '',
-          contact: user?.phoneNumber || '',
+          contact: '',
         },
         handler: async function (response: any) {
           try {
@@ -100,7 +100,7 @@ export const usePurchaseFlow = () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 productId: materialId,
-                userId: user.uid
+                userId: user.email // Use email as user ID
               }
             });
 
@@ -165,7 +165,7 @@ export const usePurchaseFlow = () => {
       const { data, error } = await supabase
         .from('user_purchases')
         .select('*')
-        .eq('user_id', user.uid)
+        .eq('user_id', user.email) // Use email as user ID
         .eq('material_id', materialId)
         .maybeSingle();
 
