@@ -112,18 +112,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const getSupabaseToken = async () => {
-    try {
-      const result = await FirebaseAuthentication.getIdToken();
-      return result.token;
-    } catch (error) {
-      console.error("Failed to get ID token:", error);
-      return null;
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ signInWithGoogle, signOut, user, loading, getSupabaseToken }}>
+    <AuthContext.Provider value={{ signInWithGoogle, signOut, user, loading }}>
       {children}
     </AuthContext.Provider>
   );

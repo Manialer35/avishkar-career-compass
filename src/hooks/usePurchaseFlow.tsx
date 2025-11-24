@@ -35,9 +35,6 @@ export const usePurchaseFlow = () => {
 
       console.log('Initiating purchase for material:', materialId, 'Price:', price);
 
-      const userId = user?.uid || user?.id || '';
-      const userEmail = user?.email || '';
-
       // Call the edge function to create Razorpay order
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         headers: {
@@ -48,8 +45,8 @@ export const usePurchaseFlow = () => {
           currency: 'INR',
           productId: materialId,
           productName: materialTitle,
-          customerId: userId,
-          customerEmail: userEmail
+          customerId: user.uid,
+          customerEmail: user.email || user.phoneNumber || ''
         }
       });
 
@@ -103,7 +100,7 @@ export const usePurchaseFlow = () => {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
                 productId: materialId,
-                userId: userId
+                userId: user.uid
               }
             });
 
@@ -165,11 +162,10 @@ export const usePurchaseFlow = () => {
     if (!user) return false;
 
     try {
-      const userId = user?.uid || user?.id || '';
       const { data, error } = await supabase
         .from('user_purchases')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.uid)
         .eq('material_id', materialId)
         .maybeSingle();
 
