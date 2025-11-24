@@ -5,13 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
 
 interface CreateAdminFormProps {
   onComplete: () => void;
 }
 
+const emailSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }).max(255),
+  fullName: z.string().trim().min(2, { message: "Name must be at least 2 characters" }).max(100),
+});
+
 const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,21 +25,13 @@ const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
     e.preventDefault();
     
     // Validation
-    if (!phoneNumber || !fullName) {
+    const validation = emailSchema.safeParse({ email, fullName });
+    if (!validation.success) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Validate phone number format
-    if (!phoneNumber.startsWith('+')) {
-      toast({
-        title: "Invalid phone number",
-        description: "Phone number must include country code (e.g., +918888769281)",
-        variant: "destructive"
+        title: "Validation Error",
+        description: validation.error.errors[0].message,
+        variant: "destructive",
+        duration: 4000,
       });
       return;
     }
@@ -41,9 +39,9 @@ const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
     setLoading(true);
     
     try {
-      // Call the database function to promote phone to admin
-      const { data, error } = await supabase.rpc('promote_phone_to_admin', {
-        target_phone: phoneNumber
+      // Call the database function to promote email to admin
+      const { data, error } = await supabase.rpc('promote_email_to_admin', {
+        target_email: email.toLowerCase().trim()
       });
       
       if (error) throw error;
@@ -51,14 +49,19 @@ const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
       toast({
         title: "Admin Created",
         description: data || "Admin privileges have been granted successfully",
+        duration: 3000,
       });
       
+      // Reset form
+      setEmail('');
+      setFullName('');
       onComplete();
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 4000,
       });
     } finally {
       setLoading(false);
@@ -66,19 +69,20 @@ const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
       <div className="space-y-2">
-        <Label htmlFor="phoneNumber">Phone Number</Label>
+        <Label htmlFor="email">Email Address</Label>
         <Input
-          id="phoneNumber"
-          type="tel"
-          placeholder="+918888769281"
-          value={phoneNumber}
-          onChange={(e) => setPhoneNumber(e.target.value)}
+          id="email"
+          type="email"
+          placeholder="admin@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
+          className="transition-all focus:ring-2 focus:ring-primary"
         />
         <p className="text-sm text-muted-foreground">
-          Include country code (e.g., +91 for India)
+          Enter the email address of the user you want to make admin
         </p>
       </div>
       
@@ -91,15 +95,25 @@ const CreateAdminForm = ({ onComplete }: CreateAdminFormProps) => {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
+          className="transition-all focus:ring-2 focus:ring-primary"
         />
       </div>
       
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onComplete}>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onComplete}
+          className="transition-all hover:scale-105"
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Creating...' : 'Create Admin'}
+        <Button 
+          type="submit" 
+          disabled={loading}
+          className="transition-all hover:scale-105"
+        >
+          {loading ? 'Creating...' : 'Grant Admin Access'}
         </Button>
       </div>
     </form>

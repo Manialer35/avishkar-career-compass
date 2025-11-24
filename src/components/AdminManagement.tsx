@@ -5,28 +5,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { UserPlus, Phone, Shield } from 'lucide-react';
+import { UserPlus, Mail, Shield } from 'lucide-react';
+import { z } from 'zod';
+
+const emailSchema = z.string().email().max(255);
 
 export const AdminManagement: React.FC = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [pendingAdmins, setPendingAdmins] = useState<string[]>([]);
   const { toast } = useToast();
 
   const addAdmin = async () => {
-    if (!phoneNumber.trim()) {
+    const validation = emailSchema.safeParse(email.trim());
+    if (!validation.success) {
       toast({
-        title: "Invalid Input",
-        description: "Please enter a valid phone number",
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive",
+        duration: 4000,
       });
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('promote_phone_to_admin', {
-        target_phone: phoneNumber
+      const { data, error } = await supabase.rpc('promote_email_to_admin', {
+        target_email: email.toLowerCase().trim()
       });
 
       if (error) throw error;
@@ -34,19 +39,22 @@ export const AdminManagement: React.FC = () => {
       toast({
         title: "Admin Added",
         description: data,
+        duration: 3000,
       });
 
       if (data.includes('PENDING')) {
-        setPendingAdmins(prev => [...prev, phoneNumber]);
+        setPendingAdmins(prev => [...prev, email.toLowerCase().trim()]);
       }
 
-      setPhoneNumber('');
+      setEmail('');
+      loadPendingAdmins(); // Reload list
     } catch (error: any) {
       console.error('Error adding admin:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to add admin",
         variant: "destructive",
+        duration: 4000,
       });
     } finally {
       setLoading(false);
@@ -55,9 +63,9 @@ export const AdminManagement: React.FC = () => {
 
   const loadPendingAdmins = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_pending_admins');
+      const { data, error } = await supabase.rpc('get_pending_admin_emails');
       if (error) throw error;
-      setPendingAdmins(data?.map((item: any) => item.phone_number) || []);
+      setPendingAdmins(data?.map((item: any) => item.email) || []);
     } catch (error) {
       console.error('Error loading pending admins:', error);
     }
@@ -69,7 +77,7 @@ export const AdminManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="card-hover animate-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -79,15 +87,16 @@ export const AdminManagement: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              placeholder="Enter phone number (e.g., +918888769281)"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="flex-1"
+              placeholder="Enter email address (e.g., admin@example.com)"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 transition-all focus:ring-2 focus:ring-primary"
             />
             <Button 
               onClick={addAdmin} 
               disabled={loading}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 transition-all hover:scale-105"
             >
               <UserPlus className="h-4 w-4" />
               Add Admin
@@ -95,18 +104,18 @@ export const AdminManagement: React.FC = () => {
           </div>
           
           {pendingAdmins.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium mb-2">Pending Admin Phone Numbers:</h3>
+            <div className="animate-fade-in">
+              <h3 className="text-sm font-medium mb-2">Pending Admin Emails:</h3>
               <div className="flex flex-wrap gap-2">
-                {pendingAdmins.map((phone) => (
-                  <Badge key={phone} variant="outline" className="flex items-center gap-1">
-                    <Phone className="h-3 w-3" />
-                    {phone}
+                {pendingAdmins.map((adminEmail) => (
+                  <Badge key={adminEmail} variant="outline" className="flex items-center gap-1 transition-all">
+                    <Mail className="h-3 w-3" />
+                    {adminEmail}
                   </Badge>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                These phone numbers will automatically become admins when they sign up.
+                These email addresses will automatically become admins when they sign up with Google.
               </p>
             </div>
           )}
