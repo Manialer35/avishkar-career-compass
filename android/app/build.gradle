@@ -102,6 +102,17 @@ android {
 
 apply from: file("../capacitor.build.gradle")
 
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.google.gms:google-services:4.4.2"
+        classpath "com.google.firebase:firebase-crashlytics-gradle:3.0.2"
+    }
+}
+
 dependencies {
     // Firebase BOM
     implementation platform("com.google.firebase:firebase-bom:33.4.0")
