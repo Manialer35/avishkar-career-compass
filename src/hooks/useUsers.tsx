@@ -44,7 +44,8 @@ const useUsers = (searchTerm: string = '') => {
       toast({
         title: "Error fetching users",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 4000,
       });
     } finally {
       setLoading(false);
@@ -104,12 +105,14 @@ const useUsers = (searchTerm: string = '') => {
       toast({
         title: "User deleted",
         description: `${userToDelete.full_name || 'User'} has been deleted successfully.`,
+        duration: 3000,
       });
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
+        duration: 4000,
       });
     } finally {
       setIsDeleteDialogOpen(false);
