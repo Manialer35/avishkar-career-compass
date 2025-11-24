@@ -8,18 +8,31 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   
-  // If user is already authenticated, redirect to home
+  // If user is already authenticated, redirect to home immediately
   useEffect(() => {
     if (user && !loading) {
-      console.log('User already authenticated, redirecting to home');
-      navigate('/');
+      console.log('User authenticated, redirecting to home');
+      // Use replace to prevent back button issues
+      navigate('/', { replace: true });
     }
-  }, [user, navigate, loading]);
+  }, [user, loading, navigate]);
 
+  // Show loading while auth state is being determined
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-academy-primary"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If user exists but we're still on this page, force redirect
+  if (user) {
+    console.log('User exists, forcing redirect to home');
+    navigate('/', { replace: true });
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }

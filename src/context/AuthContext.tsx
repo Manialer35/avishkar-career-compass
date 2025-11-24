@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('Setting up auth listeners');
     
+    const isNative = Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios';
     let listenerHandle: any = null;
     let webUnsub: (() => void) | null = null;
 
@@ -32,31 +33,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     };
 
-    // Listen for auth state changes (native)
-    FirebaseAuthentication.addListener('authStateChange', (result) => {
-      handleAuthStateChange(result.user);
-    }).then((handle) => {
-      listenerHandle = handle;
-    });
+    if (isNative) {
+      // Native: Use Capacitor Firebase Authentication
+      console.log('Setting up native auth listener');
+      
+      // First check current user
+      FirebaseAuthentication.getCurrentUser()
+        .then(({ user: currentUser }) => {
+          console.log('Initial Firebase auth state:', currentUser?.email || 'no user');
+          handleAuthStateChange(currentUser);
+        })
+        .catch((error) => {
+          console.error('Auth state check failed:', error);
+          setLoading(false);
+        });
 
-    // Listen for auth state changes (web)
-    webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-      handleAuthStateChange(firebaseUser);
-    });
-
-    // Check current auth state on mount
-    FirebaseAuthentication.getCurrentUser()
-      .then(({ user: currentUser }) => {
-        console.log('Initial Firebase auth state:', currentUser?.email || 'no user');
-        if (currentUser) {
-          setUser(currentUser);
-        }
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Auth state check failed:', error);
-        setLoading(false);
+      // Then listen for changes
+      FirebaseAuthentication.addListener('authStateChange', (result) => {
+        handleAuthStateChange(result.user);
+      }).then((handle) => {
+        listenerHandle = handle;
       });
+    } else {
+      // Web: Use Firebase web SDK
+      console.log('Setting up web auth listener');
+      webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
+        handleAuthStateChange(firebaseUser);
+      });
+    }
 
     return () => {
       if (listenerHandle) {
