@@ -38,27 +38,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import ShippingPolicy from "./pages/ShippingPolicy";
 
-// Optimized navigation hook with reduced re-renders
-const useAuthNavigation = () => {
-  const navigate = useNavigate();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (loading) return;
-    
-    const path = window.location.pathname;
-    const isLoggedIn = Boolean(user);
-    
-    // Only navigate if necessary to reduce unnecessary renders
-    if (!isLoggedIn && path !== "/auth") {
-      navigate("/auth", { replace: true });
-    } else if (isLoggedIn && path === "/auth") {
-      navigate("/", { replace: true });
-    }
-  }, [user, loading, navigate]);
-
-  return null;
-};
+// Auth redirect is handled in Auth.tsx - removed from here to avoid duplicate logic
 
 // Main Layout now uses the AuthNavigation hook
 const MainLayout = () => {
@@ -71,9 +51,6 @@ const MainLayout = () => {
   const showBottomNav = isMainRoute || location.pathname === '/home' 
     || location.pathname === '/study-materials' || location.pathname === '/premium-materials'
     || location.pathname === '/admin';
-    
-  // Use the auth navigation hook
-  useAuthNavigation();
     
   return (
     <div className="flex flex-col min-h-screen bg-academy-primary/5">
@@ -113,7 +90,11 @@ const MainLayout = () => {
                 <AdminDashboard />
               </AdminRoute>
             } />
-            <Route path="/admin/users" element={<UsersManagement />} />
+            <Route path="/admin/users" element={
+              <AdminRoute>
+                <UsersManagement />
+              </AdminRoute>
+            } />
             <Route path="/admin/system-settings" element={
               <AdminRoute>
                 <SystemSettings />
