@@ -121,8 +121,8 @@ export const usePurchaseFlow = () => {
                 description: "You now have access to the study material",
               });
               
-              // Redirect to material access page
-              window.location.href = `/material/${materialId}/access`;
+              // Redirect to secure material viewer page
+              window.location.href = `/secure-material/${materialId}`;
             } else {
               throw new Error('Payment verification failed');
             }

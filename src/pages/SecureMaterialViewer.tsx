@@ -76,12 +76,15 @@ const SecureMaterialViewer = () => {
 
         setMaterial(formattedMaterial);
 
-        // Check if user has purchased this material
+        // Check if user has purchased this material - use Firebase user ID
+        const userId = user.id || (user as any).uid || user.email;
+        console.log('Checking purchase for user:', userId, 'material:', materialId);
+        
         const { data: purchaseData, error: purchaseError } = await supabase
           .from('user_purchases')
           .select('*')
           .eq('material_id', materialId)
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .order('purchased_at', { ascending: false })
           .limit(1)
           .single();
