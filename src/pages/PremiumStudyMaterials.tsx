@@ -1,12 +1,14 @@
 
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder, Clock } from 'lucide-react';
+import { ArrowLeft, Book, FileText, BookOpen, GraduationCap, Calculator, Users, MapPin, Calendar, Building, Folder, Clock, Eye } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useFolders } from '@/hooks/useFolders';
 import FolderCard from '@/components/FolderCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useMaterialAccess } from '@/hooks/useMaterialAccess';
+import { useAuth } from '@/context/AuthContext';
 
 // Define the interface for a product
 interface ProductType {
@@ -38,6 +40,8 @@ const getIconForMaterial = (title: string) => {
 // Product Card component
 const ProductCard = ({ product }: { product: ProductType }) => {
   const IconComponent = getIconForMaterial(product.name);
+  const { user } = useAuth();
+  const { hasAccess, loading: checkingAccess } = useMaterialAccess(product.id);
   
   const formatDuration = (months?: number, type?: string) => {
     if (type === 'lifetime') return 'Lifetime Access';
@@ -79,12 +83,29 @@ const ProductCard = ({ product }: { product: ProductType }) => {
                 Not Available Yet
               </Button>
             </div>
+          ) : checkingAccess ? (
+            <Button 
+              className="w-full bg-gray-300 text-gray-600"
+              disabled
+            >
+              Checking access...
+            </Button>
+          ) : user && hasAccess ? (
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              asChild
+            >
+              <Link to={`/material/${product.id}/access`}>
+                <Eye className="mr-2 h-4 w-4" />
+                Open Material
+              </Link>
+            </Button>
           ) : (
             <Button 
               className="w-full bg-academy-red hover:bg-academy-red/90 text-white"
               asChild
             >
-              <Link to={`/purchase/${product.id}`}>Purchase</Link>
+              <Link to={`/purchase/${product.id}`}>Purchase Now</Link>
             </Button>
           )}
         </div>
