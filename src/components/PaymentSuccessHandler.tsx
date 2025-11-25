@@ -31,6 +31,10 @@ const PaymentSuccessHandler = () => {
       }
 
       try {
+        // Get user ID consistently
+        const userId = (user as any)?.uid || (user as any)?.id || user?.email;
+        console.log('Verifying payment for user:', userId);
+        
         // Verify payment and unlock material
         const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
           body: {
@@ -38,6 +42,7 @@ const PaymentSuccessHandler = () => {
             razorpay_order_id: orderId,
             razorpay_signature: signature,
             productId: materialId,
+            userId: userId,
           },
         });
 
