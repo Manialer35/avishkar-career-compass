@@ -49,21 +49,7 @@ const PaymentSuccessHandler = () => {
         if (error) throw error;
 
         if (data.success) {
-          // Record the purchase in our database
-          const { error: purchaseError } = await supabase
-            .from('user_purchases')
-            .insert({
-              user_id: (user as any)?.id || (user as any)?.uid || '',
-              material_id: materialId,
-              payment_id: paymentId,
-              amount: data.amount || 0,
-              purchased_at: new Date().toISOString(),
-            });
-
-          if (purchaseError) {
-            console.error('Error recording purchase:', purchaseError);
-          }
-
+          // Edge function already recorded the purchase, just show success and redirect
           toast({
             title: "Payment Successful!",
             description: "Your study material has been unlocked",
