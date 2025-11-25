@@ -1,9 +1,10 @@
-
 import { BookOpen, Users, Trophy, CheckCircle, GraduationCap, Video, Phone, Youtube } from 'lucide-react';
+import BackButton from '@/components/BackButton';
 
 const About = () => {
   return (
     <div className="container mx-auto px-4 py-8">
+      <BackButton className="mb-4" />
       <h2 className="text-2xl font-bold text-academy-primary mb-6">About Aavishkar Career Academy</h2>
       
       <div className="bg-white rounded-lg shadow-md p-6 mb-8">
