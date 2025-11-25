@@ -32,7 +32,7 @@ const useUsers = (searchTerm: string = '') => {
       // Map the data to match expected interface
       const combinedData = (usersData || []).map((user: any) => ({
         id: user.id,
-        email: user.phone_number || 'No phone available',
+        email: user.email || user.phone_number || 'No contact info',
         role: user.role || 'user',
         full_name: user.full_name,
         created_at: user.created_at

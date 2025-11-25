@@ -98,16 +98,19 @@ serve(async (req) => {
       console.error("Error updating order:", updateOrderError);
     }
 
-    // Record purchase in user_purchases table
+    // Record purchase in user_purchases table (or update if already exists)
     const { error: purchaseError } = await supabase
       .from('user_purchases')
-      .insert({
-        user_id: userId, // Use Firebase user ID
+      .upsert({
+        user_id: userId,
         material_id: productId,
         payment_id: razorpay_payment_id,
         amount: material.price,
         expires_at: expiryDate,
         purchased_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,material_id',
+        ignoreDuplicates: false
       });
 
     if (purchaseError) {
