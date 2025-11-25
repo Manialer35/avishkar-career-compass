@@ -128,14 +128,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error("Payment verification error:", {
-      error: error.message,
-      stack: error.stack,
-      userId,
-      productId,
-      razorpay_order_id,
-      razorpay_payment_id
-    });
+    console.error("Payment verification error:", error.message);
     
     return new Response(
       JSON.stringify({ 
