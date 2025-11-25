@@ -22,6 +22,10 @@ export const useMaterialAccess = (materialId: string) => {
     try {
       setLoading(true);
 
+      // Get consistent user ID (same logic as payment handler)
+      const userId = (user as any)?.uid || (user as any)?.id || user?.email;
+      console.log('Checking access for user:', userId, 'material:', materialId);
+
       // Get material details
       const { data: materialData, error: materialError } = await supabase
         .from('study_materials')
@@ -37,15 +41,16 @@ export const useMaterialAccess = (materialId: string) => {
 
       // If material is not premium, allow access
       if (!materialData.ispremium) {
+        console.log('Material is free, granting access');
         setHasAccess(true);
         return;
       }
 
-      // Check if user has purchased this material using Firebase UID
+      // Check if user has purchased this material
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('user_purchases')
         .select('*')
-        .eq('user_id', user.uid)
+        .eq('user_id', userId)
         .eq('material_id', materialId)
         .maybeSingle();
 
@@ -53,14 +58,18 @@ export const useMaterialAccess = (materialId: string) => {
         throw purchaseError;
       }
 
+      console.log('Purchase check result:', purchaseData);
+
       // Check if purchase exists and is not expired
       if (purchaseData) {
         const now = new Date();
         const expiresAt = purchaseData.expires_at ? new Date(purchaseData.expires_at) : null;
         
         if (!expiresAt || expiresAt > now) {
+          console.log('Access granted - valid purchase found');
           setHasAccess(true);
         } else {
+          console.log('Access denied - purchase expired');
           setHasAccess(false);
           toast({
             title: "Access Expired",
@@ -69,6 +78,7 @@ export const useMaterialAccess = (materialId: string) => {
           });
         }
       } else {
+        console.log('Access denied - no purchase found');
         setHasAccess(false);
       }
     } catch (error) {

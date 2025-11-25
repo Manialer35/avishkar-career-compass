@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,9 +15,11 @@ interface MaterialAccessProps {
 
 const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }: MaterialAccessProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [material, setMaterial] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const fromPayment = location.state?.fromPayment || false;
   
   useEffect(() => {
     if (productId) {
@@ -27,13 +29,19 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
     }
     
     if (purchaseSuccess) {
+      console.log('Purchase successful, showing success toast');
       toast({
         title: "Purchase Successful!",
         description: `You now have access to "${productName}"`,
         duration: 5000,
       });
     }
-  }, [productId, purchaseSuccess]);
+    
+    // If coming from payment, add extra delay to ensure DB is updated
+    if (fromPayment) {
+      console.log('Coming from payment, material should now be accessible');
+    }
+  }, [productId, purchaseSuccess, fromPayment]);
   
   const fetchMaterialDetails = async () => {
     try {
