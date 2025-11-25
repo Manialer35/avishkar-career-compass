@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Calendar, Clock, MapPin } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BackButton from '@/components/BackButton';
 
 interface EventType {
   id: string;
@@ -30,7 +30,6 @@ const Event = () => {
       setLoading(true);
       console.log("Fetching events data...");
       
-      // Use the classes table for events data
       const { data, error } = await supabase
         .from('classes')
         .select('id, class_title, class_description, class_date, class_location, class_time')
@@ -105,6 +104,7 @@ const Event = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <BackButton className="mb-4" />
       <h1 className="text-2xl font-bold text-center mb-8 text-academy-primary">
         Upcoming Events & Seminars
       </h1>
