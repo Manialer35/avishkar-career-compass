@@ -87,13 +87,14 @@ const SecureMaterialViewer = () => {
           .eq('user_id', userId)
           .order('purchased_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (purchaseError && purchaseError.code !== 'PGRST116') {
           throw purchaseError;
         }
 
         if (!purchaseData) {
+          console.log('[SecureMaterialViewer] No purchase found for user:', userId);
           setError('You have not purchased this material');
           return;
         }
@@ -111,19 +112,14 @@ const SecureMaterialViewer = () => {
           }
         }
 
-        // If all checks pass, get the secure URL
+        // If all checks pass, set the content URL directly (external URLs like Google Drive)
         if (formattedMaterial.content_url) {
-          const { data: urlData, error: urlError } = await supabase
-            .storage
-            .from('study_materials')
-            .createSignedUrl(formattedMaterial.content_url, 3600); // URL valid for 1 hour
-
-          if (urlError) {
-            throw urlError;
-          }
-
-          setContentUrl(urlData.signedUrl);
+          // For premium materials, the downloadurl contains external links (Google Drive, etc.)
+          // We use these directly instead of creating signed URLs
+          console.log('[SecureMaterialViewer] Setting content URL for material');
+          setContentUrl(formattedMaterial.content_url);
         } else {
+          console.log('[SecureMaterialViewer] No content URL available');
           setError('This material has no content available');
         }
       } catch (error) {
