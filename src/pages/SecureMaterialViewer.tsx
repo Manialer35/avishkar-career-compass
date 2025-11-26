@@ -76,9 +76,9 @@ const SecureMaterialViewer = () => {
 
         setMaterial(formattedMaterial);
 
-        // Check if user has purchased this material - use Firebase user ID
-        const userId = user.id || (user as any).uid || user.email;
-        console.log('Checking purchase for user:', userId, 'material:', materialId);
+        // Check if user has purchased this material - use Firebase user ID consistently
+        const userId = (user as any)?.uid || user.id || user.email;
+        console.log('[SecureMaterialViewer] Checking purchase for user:', userId, 'material:', materialId);
         
         const { data: purchaseData, error: purchaseError } = await supabase
           .from('user_purchases')

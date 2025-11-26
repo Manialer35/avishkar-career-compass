@@ -71,6 +71,8 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
   };
   
   const handleViewMaterial = () => {
+    console.log('[MaterialAccess] Opening material:', productId, 'isPremium:', material?.ispremium);
+    
     if (material?.ispremium) {
       // Redirect to secure viewer for premium materials
       navigate(`/secure-material/${productId}`);
@@ -100,9 +102,14 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-pulse text-gray-500">Loading material access...</div>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">Loading material access...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
