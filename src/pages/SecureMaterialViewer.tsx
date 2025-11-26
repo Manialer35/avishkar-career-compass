@@ -203,8 +203,46 @@ const SecureMaterialViewer = () => {
 
   const renderContent = () => {
     if (!contentUrl) return null;
+
+    console.log('[SecureMaterialViewer] Rendering content URL:', contentUrl);
+
+    // Check if it's a Google Drive link
+    if (contentUrl.includes('drive.google.com')) {
+      console.log('[SecureMaterialViewer] Detected Google Drive URL');
+      // Extract file ID from Google Drive URL
+      const fileIdMatch = contentUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      const fileId = fileIdMatch ? fileIdMatch[1] : null;
+      
+      if (fileId) {
+        // Use Google Drive viewer embed URL
+        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        return (
+          <div className="w-full h-screen max-h-[80vh] secure-content">
+            <iframe 
+              src={embedUrl}
+              className="w-full h-full border-0" 
+              title={material?.title}
+              allow="autoplay"
+            />
+          </div>
+        );
+      } else {
+        // Fallback: Open in new tab
+        return (
+          <div className="text-center py-8">
+            <p className="mb-4">This material is hosted on Google Drive.</p>
+            <Button 
+              onClick={() => window.open(contentUrl, '_blank')}
+              className="bg-academy-red hover:bg-academy-red/90"
+            >
+              Open in New Tab
+            </Button>
+          </div>
+        );
+      }
+    }
     
-    // Determine file type from URL
+    // Determine file type from URL for direct file links
     const fileExtension = contentUrl.split('.').pop()?.toLowerCase();
     
     switch(fileExtension) {
@@ -271,9 +309,17 @@ const SecureMaterialViewer = () => {
           </div>
         );
       default:
+        console.log('[SecureMaterialViewer] Unknown file type:', fileExtension);
+        // For unknown types or external links, provide an open option
         return (
-          <div className="text-center py-8">
-            <p>This file type cannot be previewed securely.</p>
+          <div className="text-center py-8 space-y-4">
+            <p className="text-gray-600">Cannot preview this file type directly in the app.</p>
+            <Button 
+              onClick={() => window.open(contentUrl, '_blank')}
+              className="bg-academy-red hover:bg-academy-red/90"
+            >
+              Open Material
+            </Button>
           </div>
         );
     }
