@@ -23,7 +23,7 @@ export const useMaterialAccess = (materialId: string) => {
       setLoading(true);
 
       // Get consistent user ID - use uid first for Firebase compatibility
-      const userId = (user as any)?.uid || user?.id || user?.email;
+      const userId = (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
       console.log('[useMaterialAccess] Checking access for user:', userId, 'material:', materialId);
 
       // Get material details
