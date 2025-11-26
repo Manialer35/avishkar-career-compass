@@ -45,7 +45,7 @@ const Auth = () => {
             Welcome to Aavishkar Academy
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your account or create a new one
+            Use your Google account to sign in or create a new account
           </p>
         </div>
         
