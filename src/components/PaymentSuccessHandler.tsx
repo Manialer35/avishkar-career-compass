@@ -31,9 +31,9 @@ const PaymentSuccessHandler = () => {
       }
 
       try {
-        // Get user ID consistently
-        const userId = (user as any)?.uid || (user as any)?.id || user?.email;
-        console.log('Verifying payment for user:', userId, 'material:', materialId);
+        // Get user ID consistently - use uid first for Firebase compatibility
+        const userId = (user as any)?.uid || user?.id || user?.email;
+        console.log('[PaymentSuccessHandler] Verifying payment for user:', userId, 'material:', materialId);
         
         // Verify payment and unlock material
         const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
@@ -46,13 +46,13 @@ const PaymentSuccessHandler = () => {
           },
         });
 
-        console.log('Payment verification response:', { data, error });
+        console.log('[PaymentSuccessHandler] Payment verification response:', { data, error });
 
         if (error) throw error;
 
         if (data.success) {
           // Edge function already recorded the purchase, just show success and redirect
-          console.log('Payment verified successfully, redirecting to material access page');
+          console.log('[PaymentSuccessHandler] Payment verified successfully, redirecting to material access page');
           
           toast({
             title: "Payment Successful!",

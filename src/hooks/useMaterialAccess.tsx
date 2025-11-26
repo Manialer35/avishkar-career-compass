@@ -22,9 +22,9 @@ export const useMaterialAccess = (materialId: string) => {
     try {
       setLoading(true);
 
-      // Get consistent user ID (same logic as payment handler)
-      const userId = (user as any)?.uid || (user as any)?.id || user?.email;
-      console.log('Checking access for user:', userId, 'material:', materialId);
+      // Get consistent user ID - use uid first for Firebase compatibility
+      const userId = (user as any)?.uid || user?.id || user?.email;
+      console.log('[useMaterialAccess] Checking access for user:', userId, 'material:', materialId);
 
       // Get material details
       const { data: materialData, error: materialError } = await supabase
@@ -58,7 +58,7 @@ export const useMaterialAccess = (materialId: string) => {
         throw purchaseError;
       }
 
-      console.log('Purchase check result:', purchaseData);
+      console.log('[useMaterialAccess] Purchase check result:', purchaseData);
 
       // Check if purchase exists and is not expired
       if (purchaseData) {
@@ -66,10 +66,10 @@ export const useMaterialAccess = (materialId: string) => {
         const expiresAt = purchaseData.expires_at ? new Date(purchaseData.expires_at) : null;
         
         if (!expiresAt || expiresAt > now) {
-          console.log('Access granted - valid purchase found');
+          console.log('[useMaterialAccess] Access granted - valid purchase found');
           setHasAccess(true);
         } else {
-          console.log('Access denied - purchase expired');
+          console.log('[useMaterialAccess] Access denied - purchase expired');
           setHasAccess(false);
           toast({
             title: "Access Expired",
@@ -78,7 +78,7 @@ export const useMaterialAccess = (materialId: string) => {
           });
         }
       } else {
-        console.log('Access denied - no purchase found');
+        console.log('[useMaterialAccess] Access denied - no purchase found for user:', userId);
         setHasAccess(false);
       }
     } catch (error) {
