@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { App } from '@capacitor/app';
 import { useLocation } from 'react-router-dom';
 
