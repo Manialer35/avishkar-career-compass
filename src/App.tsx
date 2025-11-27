@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { useEffect, lazy, Suspense, useState } from "react";
+import { useBackButtonHandler } from "./hooks/useBackButtonHandler";
 import Navbar from "./components/Navbar";
 import BottomNavigation from "./components/BottomNavigation";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -44,6 +45,7 @@ import ShippingPolicy from "./pages/ShippingPolicy";
 const MainLayout = () => {
   const location = useLocation();
   const { user } = useAuth();
+  useBackButtonHandler();
   
   const mainRoutes = ['/', '/about', '/event', '/enquiry', '/profile', '/events', '/online-classes'];
   const policyRoutes = ['/terms-conditions', '/privacy-policy', '/refund-policy', '/shipping-policy'];
