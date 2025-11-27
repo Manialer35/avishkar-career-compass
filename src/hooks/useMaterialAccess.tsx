@@ -47,6 +47,8 @@ export const useMaterialAccess = (materialId: string) => {
       }
 
       // Check if user has purchased this material
+      console.log('[useMaterialAccess] Querying purchases for user:', userId, 'material:', materialId);
+      
       const { data: purchaseData, error: purchaseError } = await supabase
         .from('user_purchases')
         .select('*')
@@ -55,10 +57,11 @@ export const useMaterialAccess = (materialId: string) => {
         .maybeSingle();
 
       if (purchaseError && purchaseError.code !== 'PGRST116') {
+        console.error('[useMaterialAccess] Purchase query error:', purchaseError);
         throw purchaseError;
       }
 
-      console.log('[useMaterialAccess] Purchase check result:', purchaseData);
+      console.log('[useMaterialAccess] Purchase query result:', purchaseData ? 'Found purchase' : 'No purchase found', purchaseData);
 
       // Check if purchase exists and is not expired
       if (purchaseData) {
