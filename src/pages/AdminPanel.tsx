@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Book, Video, Users, Calendar, Image, FileText, Shield } from 'lucide-react';
+import { Book, Video, Users, Calendar, Image, FileText, Shield, ShoppingCart } from 'lucide-react';
 import FreeMaterialsTab from '@/components/admin/FreeMaterialsTab';
 import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
 import VideosTab from '@/components/admin/VideosTab';
@@ -16,6 +16,7 @@ import ClassRegistrationsTab from '@/components/admin/ClassRegistrationsTab';
 import AdminClassesManagement from '@/components/admin/AdminClassesManagement';
 import EditMaterialDialog from '@/components/admin/EditMaterialDialog';
 import AdminNavigation from '@/components/AdminNavigation';
+import PurchaseHistoryTab from '@/components/admin/PurchaseHistoryTab';
 import { useAdminMaterials } from '@/hooks/useAdminMaterials';
 import { useSecureAdmin } from '@/hooks/useSecureAdmin';
 
@@ -142,6 +143,14 @@ const AdminPanel = () => {
                   >
                     <Image className="h-4 w-4" />
                     <span>Images</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="purchases" 
+                    className="flex items-center gap-2 text-sm px-3 sm:px-4 py-2 min-w-fit whitespace-nowrap data-[state=active]:bg-green-100 data-[state=active]:text-green-700"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    <span className="hidden sm:inline">Purchases</span>
+                    <span className="sm:hidden">Sales</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -273,6 +282,22 @@ const AdminPanel = () => {
                 <CardContent className="flex-1 overflow-hidden">
                   <ScrollArea className="h-full">
                     <ImageManagementTab />
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="purchases" className="h-full">
+              <Card className="h-full flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Purchase History & Logs
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <PurchaseHistoryTab />
                   </ScrollArea>
                 </CardContent>
               </Card>
