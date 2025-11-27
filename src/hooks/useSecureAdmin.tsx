@@ -16,39 +16,24 @@ export const useSecureAdmin = () => {
       }
 
       try {
-        // Admin emails for Google Sign-in users
-        const adminEmails = ['neerajmadkar35@gmail.com', 'atulmadkar33@gmail.com'];
-        const adminPhones = ['+918888769281', '+918484843232'];
+        // Get user ID consistently - Firebase user ID is what's stored in Supabase
+        const userId = (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
+        console.log('Checking admin status for user:', userId, 'email:', user.email);
 
-        // Check by email (for Google Sign-in)
-        if (user.email && adminEmails.includes(user.email)) {
-          console.log('Admin verified by email:', user.email);
-          setIsAdmin(true);
-          setLoading(false);
-          return;
-        }
+        // Query the user_roles table directly using the Firebase user ID
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        // Check by phone (for phone auth)
-        if (user.phoneNumber) {
-          if (adminPhones.includes(user.phoneNumber)) {
-            console.log('Admin verified by phone:', user.phoneNumber);
-            setIsAdmin(true);
-            setLoading(false);
-            return;
-          }
-
-          const { data, error } = await supabase.rpc('check_user_is_admin_by_phone', {
-            user_phone: user.phoneNumber
-          });
-
-          if (error) {
-            console.error('Error checking admin status:', error);
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(data === true);
-          }
-        } else {
+        if (error) {
+          console.error('Error checking admin status:', error);
           setIsAdmin(false);
+        } else {
+          const isAdminUser = data?.role === 'admin';
+          console.log('Admin check result:', isAdminUser, 'role:', data?.role);
+          setIsAdmin(isAdminUser);
         }
       } catch (error) {
         console.error('Exception checking admin status:', error);

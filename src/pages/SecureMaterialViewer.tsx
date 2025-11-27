@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Lock, Shield } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 
 interface Purchase {
   id: string;
@@ -38,8 +39,9 @@ const SecureMaterialViewer = () => {
       try {
         setLoading(true);
         
-        // Get current user
-        const { data: { user } } = await supabase.auth.getUser();
+        // CRITICAL: Get Firebase user from context, NOT from Supabase auth
+        // This ensures we use the same user ID that was stored during payment
+        const { user } = useAuth() as any;
         
         if (!user) {
           setError('Please log in to access this material');
