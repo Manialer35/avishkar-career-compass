@@ -28,6 +28,7 @@ interface StudyMaterial {
 const SecureMaterialViewer = () => {
   const { materialId } = useParams<{ materialId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth(); // ✅ Call hook at component level, not in callback
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
   const [purchase, setPurchase] = useState<Purchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,10 +39,6 @@ const SecureMaterialViewer = () => {
     const checkAccess = async () => {
       try {
         setLoading(true);
-        
-        // CRITICAL: Get Firebase user from context, NOT from Supabase auth
-        // This ensures we use the same user ID that was stored during payment
-        const { user } = useAuth() as any;
         
         if (!user) {
           setError('Please log in to access this material');
@@ -135,7 +132,7 @@ const SecureMaterialViewer = () => {
     if (materialId) {
       checkAccess();
     }
-  }, [materialId]);
+  }, [materialId, user]); // Add user to dependencies
 
   // Enhanced anti-screenshot and anti-piracy protection
   useEffect(() => {

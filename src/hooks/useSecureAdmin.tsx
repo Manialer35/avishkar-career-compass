@@ -9,7 +9,10 @@ export const useSecureAdmin = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      console.log('[useSecureAdmin] Starting admin check...');
+      
       if (!user) {
+        console.log('[useSecureAdmin] No user logged in');
         setIsAdmin(false);
         setLoading(false);
         return;
@@ -18,7 +21,8 @@ export const useSecureAdmin = () => {
       try {
         // Get user ID consistently - Firebase user ID is what's stored in Supabase
         const userId = (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
-        console.log('Checking admin status for user:', userId, 'email:', user.email);
+        console.log('[useSecureAdmin] Checking admin for user:', userId);
+        console.log('[useSecureAdmin] User email:', user.email);
 
         // Query the user_roles table directly using the Firebase user ID
         const { data, error } = await supabase
@@ -27,16 +31,18 @@ export const useSecureAdmin = () => {
           .eq('user_id', userId)
           .maybeSingle();
 
+        console.log('[useSecureAdmin] Query result:', { data, error });
+
         if (error) {
-          console.error('Error checking admin status:', error);
+          console.error('[useSecureAdmin] Error checking admin status:', error);
           setIsAdmin(false);
         } else {
           const isAdminUser = data?.role === 'admin';
-          console.log('Admin check result:', isAdminUser, 'role:', data?.role);
+          console.log('[useSecureAdmin] Is admin?', isAdminUser, 'Role:', data?.role);
           setIsAdmin(isAdminUser);
         }
       } catch (error) {
-        console.error('Exception checking admin status:', error);
+        console.error('[useSecureAdmin] Exception checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setLoading(false);
