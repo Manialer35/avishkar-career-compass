@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { App } from '@capacitor/app';
 import { useLocation } from 'react-router-dom';
 
-export const useBackButtonHandler = () => {
+const useBackButtonHandler = () => {
   const location = useLocation();
 
   useEffect(() => {
@@ -38,4 +38,6 @@ export const useBackButtonHandler = () => {
     };
   }, [location.pathname]);
 };
+
+export default useBackButtonHandler;
 
