@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthUserId } from '@/utils/getAuthUserId';
 
 interface PaymentSuccessHandlerProps {
   paymentId: string;
@@ -51,17 +52,25 @@ export const PaymentSuccessHandler: React.FC<PaymentSuccessHandlerProps> = ({
         expiryDate = expiry.toISOString();
       }
 
-      // Record the purchase in user_purchases table
+      const userId = getAuthUserId(user);
+      if (!userId) {
+        throw new Error('User ID not available');
+      }
+
+      // Record the purchase in user_purchases table (idempotent)
       const { error: purchaseError } = await supabase
         .from('user_purchases')
-        .insert({
-          user_id: user.uid,
-          material_id: productId,
-          payment_id: paymentId,
-          amount: amount,
-          expires_at: expiryDate,
-          purchased_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            user_id: userId,
+            material_id: productId,
+            payment_id: paymentId,
+            amount: amount,
+            expires_at: expiryDate,
+            purchased_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,material_id', ignoreDuplicates: false }
+        );
 
       if (purchaseError) {
         throw purchaseError;

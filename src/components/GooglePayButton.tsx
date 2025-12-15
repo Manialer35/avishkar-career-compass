@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from "@/context/AuthContext";
-import { PaymentSuccessHandler } from './payment/PaymentSuccessHandler';
+import { getAuthUserId } from '@/utils/getAuthUserId';
 
 interface GooglePayButtonProps {
   productId: string;
@@ -18,7 +18,6 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const { toast } = useToast();
   const [paymentAvailable, setPaymentAvailable] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [paymentId, setPaymentId] = useState<string | null>(null);
   const { user, getSupabaseToken } = useAuth();
   
   // PRODUCTION FIX: Use live Razorpay key for production
@@ -57,24 +56,25 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const createRazorpayOrder = async () => {
     try {
       const authToken = await getSupabaseToken();
-      
+      const userId = getAuthUserId(user);
+
       console.log('Creating Razorpay order with:', {
         amount: price * 100,
         currency: 'INR',
         productId: productId,
         productName: productName,
-        customerId: user?.uid,
+        customerId: userId,
         customerEmail: user?.email,
         hasAuthToken: !!authToken
       });
-      
+
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: {
           amount: price * 100, // Convert to paise
           currency: 'INR',
           productId: productId,
           productName: productName,
-          customerId: user?.uid,
+          customerId: userId,
           customerEmail: user?.email
         },
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
@@ -96,14 +96,15 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
   const verifyPayment = async (paymentData: any) => {
     try {
       const authToken = await getSupabaseToken();
-      
+      const userId = getAuthUserId(user);
+
       const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
         body: {
           razorpay_payment_id: paymentData.razorpay_payment_id,
           razorpay_order_id: paymentData.razorpay_order_id,
           razorpay_signature: paymentData.razorpay_signature,
           productId: productId,
-          userId: user?.uid
+          userId,
         },
         headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
       });
@@ -157,13 +158,15 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
         handler: async (response: any) => {
           try {
             console.log('Payment successful, verifying...', response);
-            
-            // Verify payment
+
             const verification = await verifyPayment(response);
-            
+
             if (verification.success) {
-              // Set payment ID to trigger payment success handler
-              setPaymentId(response.razorpay_payment_id);
+              toast({
+                title: "Payment Successful!",
+                description: "You now have access to this material.",
+              });
+              onSuccess(); // parent handles navigation
             } else {
               throw new Error("Payment verification failed");
             }
@@ -204,31 +207,6 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
     }
   };
 
-  const handlePaymentRecorded = () => {
-    setPaymentId(null);
-    toast({
-      title: "Payment Successful",
-      description: "Your payment has been processed successfully.",
-    });
-    
-    // PRODUCTION FIX: Auto-redirect to material access with proper URL
-    setTimeout(() => {
-      const baseUrl = window.location.origin;
-      window.location.href = `${baseUrl}/material/${productId}/access?purchase=success`;
-    }, 1500);
-    
-    onSuccess();
-  };
-
-  const handlePaymentError = (error: string) => {
-    setPaymentId(null);
-    toast({
-      title: "Payment Processing Error",
-      description: error,
-      variant: "destructive",
-    });
-    onCancel();
-  };
 
   return (
     <>
@@ -248,16 +226,6 @@ const GooglePayButton = ({ productId, productName, price, onSuccess, onCancel }:
           </>
         )}
       </Button>
-      
-      {paymentId && (
-        <PaymentSuccessHandler
-          paymentId={paymentId}
-          productId={productId}
-          amount={price}
-          onSuccess={handlePaymentRecorded}
-          onError={handlePaymentError}
-        />
-      )}
     </>
   );
 };
