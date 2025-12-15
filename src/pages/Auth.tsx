@@ -1,21 +1,24 @@
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import AuthForm from '@/components/auth/AuthForm';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading } = useAuth();
+
+  const returnTo = (location.state as any)?.returnTo as string | undefined;
   
-  // If user is already authenticated, redirect to home immediately
+  // If user is already authenticated, redirect immediately
   useEffect(() => {
     if (user && !loading) {
-      console.log('User authenticated, redirecting to home');
+      console.log('User authenticated, redirecting');
       // Use replace to prevent back button issues
-      navigate('/', { replace: true });
+      navigate(returnTo || '/', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, returnTo]);
 
   // Show loading while auth state is being determined
   if (loading) {
@@ -28,8 +31,8 @@ const Auth = () => {
 
   // If user exists but we're still on this page, force redirect
   if (user) {
-    console.log('User exists, forcing redirect to home');
-    navigate('/', { replace: true });
+    console.log('User exists, forcing redirect');
+    navigate(((location.state as any)?.returnTo as string | undefined) || '/', { replace: true });
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>

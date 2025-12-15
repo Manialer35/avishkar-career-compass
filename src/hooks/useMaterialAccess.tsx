@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthUserId } from '@/utils/getAuthUserId';
 
 export const useMaterialAccess = (materialId: string) => {
   const [hasAccess, setHasAccess] = useState<boolean>(false);
@@ -22,8 +23,8 @@ export const useMaterialAccess = (materialId: string) => {
     try {
       setLoading(true);
 
-      // Get consistent user ID - use uid first for Firebase compatibility
-      const userId = (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
+      // Get consistent user ID (Firebase-compatible)
+      const userId = getAuthUserId(user);
       console.log('[useMaterialAccess] Checking access for user:', userId, 'material:', materialId);
 
       // Get material details

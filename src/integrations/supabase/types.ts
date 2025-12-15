@@ -799,8 +799,8 @@ export type Database = {
         Returns: number
       }
       is_admin:
-        | { Args: { user_uuid: string }; Returns: boolean }
         | { Args: { user_id_param: string }; Returns: boolean }
+        | { Args: { user_uuid: string }; Returns: boolean }
       is_admin_by_phone: { Args: { phone_num: string }; Returns: boolean }
       is_admin_phone: { Args: { phone_num: string }; Returns: boolean }
       is_admin_user: { Args: { user_uuid?: string }; Returns: boolean }
