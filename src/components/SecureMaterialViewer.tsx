@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Shield, AlertTriangle } from 'lucide-react';
@@ -11,14 +11,21 @@ import { supabase } from '@/integrations/supabase/client';
 const SecureMaterialViewer = () => {
   const { materialId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { hasAccess, loading, material } = useMaterialAccess(materialId || '');
+  const { hasAccess, loading, material, checkAccess } = useMaterialAccess(materialId || '');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [hasCheckedAccess, setHasCheckedAccess] = useState(false);
 
+  // Check if we're coming from a successful payment
+  const fromPayment = location.state?.fromPayment || location.state?.purchaseSuccess;
+
+  // Only redirect to premium-materials if we've fully checked access and it's denied
+  // Don't redirect if coming from payment (give it time to verify)
   useEffect(() => {
-    if (!loading && !hasAccess) {
+    if (!loading && !authLoading && user && !hasAccess && !fromPayment && hasCheckedAccess) {
       toast({
         title: "Access Denied",
         description: "You don't have access to this premium material.",
@@ -26,7 +33,14 @@ const SecureMaterialViewer = () => {
       });
       navigate('/premium-materials');
     }
-  }, [hasAccess, loading, navigate, toast]);
+  }, [hasAccess, loading, authLoading, user, navigate, toast, fromPayment, hasCheckedAccess]);
+
+  // Mark that we've completed at least one access check
+  useEffect(() => {
+    if (!loading && !authLoading) {
+      setHasCheckedAccess(true);
+    }
+  }, [loading, authLoading]);
 
   const handleSecureDownload = async () => {
     if (!material?.downloadurl || !user) return;
@@ -65,11 +79,12 @@ const SecureMaterialViewer = () => {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-muted-foreground">Verifying your access...</p>
         </div>
       </div>
     );
