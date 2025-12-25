@@ -1,31 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthUserId } from '@/utils/getAuthUserId';
+import { useLocation } from 'react-router-dom';
 
 export const useMaterialAccess = (materialId: string) => {
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [material, setMaterial] = useState<any>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
 
-  useEffect(() => {
-    if (materialId && user) {
-      checkAccess();
-    } else {
-      setLoading(false);
+  // Check if we're coming from a successful payment
+  const fromPayment = location.state?.fromPayment || location.state?.purchaseSuccess;
+
+  const checkAccess = useCallback(async () => {
+    // Wait for auth to be ready
+    if (authLoading) {
+      console.log('[useMaterialAccess] Waiting for auth...');
+      return;
     }
-  }, [materialId, user]);
 
-  const checkAccess = async () => {
+    if (!materialId) {
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      console.log('[useMaterialAccess] No user, denying access');
+      setLoading(false);
+      setHasAccess(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
       // Get consistent user ID (Firebase-compatible)
       const userId = getAuthUserId(user);
       console.log('[useMaterialAccess] Checking access for user:', userId, 'material:', materialId);
+
+      if (!userId) {
+        console.error('[useMaterialAccess] Could not extract user ID from user object:', user);
+        setHasAccess(false);
+        setLoading(false);
+        return;
+      }
 
       // Get material details
       const { data: materialData, error: materialError } = await supabase
@@ -42,7 +64,7 @@ export const useMaterialAccess = (materialId: string) => {
 
       // If material is not premium, allow access
       if (!materialData.ispremium) {
-        console.log('Material is free, granting access');
+        console.log('[useMaterialAccess] Material is free, granting access');
         setHasAccess(true);
         return;
       }
@@ -62,7 +84,7 @@ export const useMaterialAccess = (materialId: string) => {
         throw purchaseError;
       }
 
-      console.log('[useMaterialAccess] Purchase query result:', purchaseData ? 'Found purchase' : 'No purchase found', purchaseData);
+      console.log('[useMaterialAccess] Purchase query result:', purchaseData);
 
       // Check if purchase exists and is not expired
       if (purchaseData) {
@@ -86,7 +108,7 @@ export const useMaterialAccess = (materialId: string) => {
         setHasAccess(false);
       }
     } catch (error) {
-      console.error('Error checking material access:', error);
+      console.error('[useMaterialAccess] Error checking material access:', error);
       setHasAccess(false);
       toast({
         title: "Error",
@@ -96,11 +118,27 @@ export const useMaterialAccess = (materialId: string) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [materialId, user, authLoading, toast]);
+
+  // Run check when dependencies change or when coming from payment
+  useEffect(() => {
+    checkAccess();
+  }, [checkAccess]);
+
+  // Re-check access after a short delay if coming from payment (handles race conditions)
+  useEffect(() => {
+    if (fromPayment && user && !authLoading) {
+      const timer = setTimeout(() => {
+        console.log('[useMaterialAccess] Re-checking access after payment redirect');
+        checkAccess();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [fromPayment, user, authLoading, checkAccess]);
 
   return {
     hasAccess,
-    loading,
+    loading: loading || authLoading,
     material,
     checkAccess,
   };
