@@ -44,27 +44,29 @@ const MaterialAccess = ({ productId, purchaseSuccess = false, productName = '' }
   }, [productId, purchaseSuccess, fromPayment]);
   
   const fetchMaterialDetails = async () => {
+    if (!productId) return;
+
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from('study_materials')
         .select('*')
         .eq('id', productId)
-        .single();
-        
-      if (error) {
-        throw error;
-      }
-      
-      setMaterial(data);
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // If no row matches, show the "Material Not Found" state (no toast).
+      setMaterial(data ?? null);
     } catch (error: any) {
       console.error('Error fetching material details:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description: "We couldn't load the material details.",
-        variant: "destructive",
+        variant: 'destructive',
       });
+      setMaterial(null);
     } finally {
       setLoading(false);
     }
