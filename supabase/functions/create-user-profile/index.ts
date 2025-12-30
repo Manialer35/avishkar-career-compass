@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Admin emails that should automatically get admin role
+const ADMIN_EMAILS = [
+  'neerajmadkar35@gmail.com',
+  'khot.md@gmail.com'
+];
+
+// Admin phone numbers (legacy support)
+const ADMIN_PHONES = ['+918888769281', '+918484843232'];
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    const { firebaseUserId, username, fullName, avatarUrl, phoneNumber } = await req.json();
+    const { firebaseUserId, username, fullName, avatarUrl, phoneNumber, email } = await req.json();
 
     if (!firebaseUserId) {
       throw new Error('Firebase user ID is required');
@@ -31,7 +40,7 @@ serve(async (req) => {
       }
     );
 
-    console.log(`Creating profile for Firebase user: ${firebaseUserId}`);
+    console.log(`Creating profile for Firebase user: ${firebaseUserId}, email: ${email}`);
 
     // Check if profile already exists
     const { data: existingProfile } = await supabaseAdmin
@@ -41,9 +50,32 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingProfile) {
-      console.log('Profile already exists, skipping creation');
+      console.log('Profile already exists, checking role...');
+      
+      // Even if profile exists, check and update admin role if needed
+      const isAdminEmail = email && ADMIN_EMAILS.includes(email.toLowerCase());
+      const isAdminPhone = phoneNumber && ADMIN_PHONES.includes(phoneNumber);
+      const shouldBeAdmin = isAdminEmail || isAdminPhone;
+      
+      if (shouldBeAdmin) {
+        // Update role to admin if they should be admin
+        const { error: updateRoleError } = await supabaseAdmin
+          .from('user_roles')
+          .upsert({
+            user_id: firebaseUserId,
+            role: 'admin',
+            phone_number: phoneNumber || null
+          }, { onConflict: 'user_id' });
+        
+        if (updateRoleError) {
+          console.error('Error updating admin role:', updateRoleError);
+        } else {
+          console.log(`Updated user ${email || phoneNumber} to admin`);
+        }
+      }
+      
       return new Response(
-        JSON.stringify({ success: true, message: 'Profile already exists' }),
+        JSON.stringify({ success: true, message: 'Profile already exists', isAdmin: shouldBeAdmin }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,23 +106,38 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingRole) {
-      console.log('User role already exists, skipping creation');
+      console.log('User role already exists, checking if needs admin upgrade');
+      
+      const isAdminEmail = email && ADMIN_EMAILS.includes(email.toLowerCase());
+      const isAdminPhone = phoneNumber && ADMIN_PHONES.includes(phoneNumber);
+      
+      if ((isAdminEmail || isAdminPhone) && existingRole.role !== 'admin') {
+        await supabaseAdmin
+          .from('user_roles')
+          .update({ role: 'admin' })
+          .eq('user_id', firebaseUserId);
+        console.log('Upgraded existing user to admin');
+      }
+      
       return new Response(
-        JSON.stringify({ success: true, message: 'Profile and role already exist' }),
+        JSON.stringify({ success: true, message: 'Profile and role already exist', isAdmin: isAdminEmail || isAdminPhone }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Determine if user should be admin based on phone number
-    const adminPhones = ['+918888769281', '+918484843232'];
-    const isAdminPhone = phoneNumber && adminPhones.includes(phoneNumber);
+    // Determine if user should be admin based on email OR phone number
+    const isAdminEmail = email && ADMIN_EMAILS.includes(email.toLowerCase());
+    const isAdminPhone = phoneNumber && ADMIN_PHONES.includes(phoneNumber);
+    const shouldBeAdmin = isAdminEmail || isAdminPhone;
+
+    console.log(`Admin check - Email: ${email}, isAdminEmail: ${isAdminEmail}, isAdminPhone: ${isAdminPhone}`);
 
     // Create user role using service role (bypasses RLS)
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: firebaseUserId,
-        role: isAdminPhone ? 'admin' : 'user',
+        role: shouldBeAdmin ? 'admin' : 'user',
         phone_number: phoneNumber || null
       });
 
@@ -99,13 +146,13 @@ serve(async (req) => {
       throw new Error(`Failed to create user role: ${roleError.message}`);
     }
 
-    console.log(`User role created successfully: ${isAdminPhone ? 'admin' : 'user'}`);
+    console.log(`User role created successfully: ${shouldBeAdmin ? 'admin' : 'user'}`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Profile and role created successfully',
-        isAdmin: isAdminPhone 
+        isAdmin: shouldBeAdmin 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
