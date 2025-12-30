@@ -3,6 +3,7 @@ import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import { Capacitor } from "@capacitor/core";
 import { auth } from "@/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: any | null;
@@ -13,6 +14,39 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// Create user profile and role in Supabase
+const createUserProfile = async (firebaseUser: any) => {
+  if (!firebaseUser) return;
+  
+  try {
+    const userId = firebaseUser.uid || firebaseUser.localId;
+    const email = firebaseUser.email;
+    const displayName = firebaseUser.displayName || firebaseUser.name;
+    const photoURL = firebaseUser.photoURL || firebaseUser.photoUrl;
+    
+    console.log('[AuthContext] Creating profile for user:', userId, 'email:', email);
+    
+    const { data, error } = await supabase.functions.invoke('create-user-profile', {
+      body: {
+        firebaseUserId: userId,
+        username: email ? email.split('@')[0] : `user_${userId.substring(0, 8)}`,
+        fullName: displayName || null,
+        avatarUrl: photoURL || null,
+        email: email,
+        phoneNumber: firebaseUser.phoneNumber || null
+      }
+    });
+    
+    if (error) {
+      console.error('[AuthContext] Error creating profile:', error);
+    } else {
+      console.log('[AuthContext] Profile created/updated:', data);
+    }
+  } catch (error) {
+    console.error('[AuthContext] Exception creating profile:', error);
+  }
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
@@ -27,8 +61,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let webUnsub: (() => void) | null = null;
 
     // Unified auth state change handler
-    const handleAuthStateChange = (authUser: any) => {
+    const handleAuthStateChange = async (authUser: any) => {
       console.log('Auth state changed:', authUser?.email || 'logged out');
+      
+      // Create/update profile when user signs in
+      if (authUser) {
+        await createUserProfile(authUser);
+      }
+      
       setUser(authUser);
       setLoading(false);
     };
@@ -39,9 +79,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // First check current user
       FirebaseAuthentication.getCurrentUser()
-        .then(({ user: currentUser }) => {
+        .then(async ({ user: currentUser }) => {
           console.log('Initial Firebase auth state:', currentUser?.email || 'no user');
-          handleAuthStateChange(currentUser);
+          await handleAuthStateChange(currentUser);
         })
         .catch((error) => {
           console.error('Auth state check failed:', error);
@@ -49,16 +89,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
       // Then listen for changes
-      FirebaseAuthentication.addListener('authStateChange', (result) => {
-        handleAuthStateChange(result.user);
+      FirebaseAuthentication.addListener('authStateChange', async (result) => {
+        await handleAuthStateChange(result.user);
       }).then((handle) => {
         listenerHandle = handle;
       });
     } else {
       // Web: Use Firebase web SDK
       console.log('Setting up web auth listener');
-      webUnsub = onAuthStateChanged(auth, (firebaseUser) => {
-        handleAuthStateChange(firebaseUser);
+      webUnsub = onAuthStateChanged(auth, async (firebaseUser) => {
+        await handleAuthStateChange(firebaseUser);
       });
     }
 
