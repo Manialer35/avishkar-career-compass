@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useSecureAdmin = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -9,46 +9,40 @@ export const useSecureAdmin = () => {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      console.log('[useSecureAdmin] Starting admin check...');
-      
       if (!user) {
-        console.log('[useSecureAdmin] No user logged in');
         setIsAdmin(false);
         setLoading(false);
         return;
       }
 
       try {
-        // Get user ID consistently - Firebase user ID is what's stored in Supabase
-        const userId = (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
-        console.log('[useSecureAdmin] Checking admin for user:', userId);
-        console.log('[useSecureAdmin] User email:', user.email);
+        const userId =
+          (user as any)?.uid || (user as any)?.localId || user?.id || user?.email;
 
-        // Query the user_roles table directly using the Firebase user ID
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        console.log('[useSecureAdmin] Query result:', { data, error });
+        const { data, error } = await supabase.functions.invoke("verify-admin", {
+          body: {
+            firebaseUserId: userId,
+            email: user?.email ?? null,
+            phoneNumber: (user as any)?.phoneNumber ?? null,
+          },
+        });
 
         if (error) {
-          console.error('[useSecureAdmin] Error checking admin status:', error);
+          console.error("[useSecureAdmin] verify-admin error:", error);
           setIsAdmin(false);
-        } else {
-          const isAdminUser = data?.role === 'admin';
-          console.log('[useSecureAdmin] Is admin?', isAdminUser, 'Role:', data?.role);
-          setIsAdmin(isAdminUser);
+          return;
         }
-      } catch (error) {
-        console.error('[useSecureAdmin] Exception checking admin status:', error);
+
+        setIsAdmin(Boolean((data as any)?.isAdmin));
+      } catch (err) {
+        console.error("[useSecureAdmin] Exception checking admin status:", err);
         setIsAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
+    setLoading(true);
     checkAdminStatus();
   }, [user]);
 

@@ -1,5 +1,4 @@
-
-project_id = "avishkar-academy"
+project_id = "iflffrqsbsklyhfuskxt"
 
 [api]
 enabled = true
@@ -45,4 +44,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-user-profile]
+verify_jwt = false
+
+[functions.verify-admin]
 verify_jwt = false
