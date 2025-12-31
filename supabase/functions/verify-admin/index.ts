@@ -13,16 +13,45 @@ const ADMIN_EMAILS = ["neerajmadkar35@gmail.com", "khot.md@gmail.com"];
 // Phone-based admin allowlist (legacy)
 const ADMIN_PHONES = ["+918888769281", "+918484843232"];
 
+type VerifyAdminBody = {
+  firebaseUserId?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { firebaseUserId, email, phoneNumber } = await req.json();
+    const body = (await req.json().catch(() => ({}))) as VerifyAdminBody;
+    const firebaseUserId =
+      typeof body.firebaseUserId === "string" && body.firebaseUserId.trim()
+        ? body.firebaseUserId.trim()
+        : "";
 
     const normalizedEmail =
-      typeof email === "string" ? email.trim().toLowerCase() : "";
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+
+    const phoneNumber =
+      typeof body.phoneNumber === "string" && body.phoneNumber.trim()
+        ? body.phoneNumber.trim()
+        : "";
+
+    console.log("[verify-admin] payload:", {
+      hasFirebaseUserId: Boolean(firebaseUserId),
+      email: normalizedEmail || null,
+      phoneNumber: phoneNumber || null,
+    });
+
+    // We never grant admin based on email alone unless we can tie it to a user id.
+    if (!firebaseUserId) {
+      return new Response(JSON.stringify({ isAdmin: false, reason: "missing_user_id" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Service role client (bypasses RLS)
     const supabaseAdmin = createClient(
@@ -33,78 +62,71 @@ serve(async (req) => {
       },
     );
 
-    // 1) If we have the Firebase user id, prefer checking roles table
-    if (firebaseUserId) {
-      const { data, error } = await supabaseAdmin
+    // 1) Prefer checking user_roles for this firebase user id
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", firebaseUserId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[verify-admin] Error reading user_roles:", error);
+      // Do not 400 here; returning false avoids locking everyone out due to transient issues.
+      return new Response(JSON.stringify({ isAdmin: false, reason: "roles_read_error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // 2) If missing role row, auto-grant admin when email is allowlisted
+    if (!data && normalizedEmail && ADMIN_EMAILS.includes(normalizedEmail)) {
+      const { error: upsertError } = await supabaseAdmin
         .from("user_roles")
-        .select("role")
-        .eq("user_id", firebaseUserId)
-        .maybeSingle();
+        .upsert(
+          {
+            user_id: firebaseUserId,
+            role: "admin",
+            phone_number: phoneNumber || null,
+          },
+          { onConflict: "user_id" },
+        );
 
-      if (error) {
-        console.error("[verify-admin] Error reading user_roles:", error);
-        throw new Error("Failed to verify admin status");
-      }
-
-      // If role row missing but email is allowlisted, auto-grant admin
-      if (!data && normalizedEmail && ADMIN_EMAILS.includes(normalizedEmail)) {
-        const { error: upsertError } = await supabaseAdmin
-          .from("user_roles")
-          .upsert(
-            {
-              user_id: firebaseUserId,
-              role: "admin",
-              phone_number: phoneNumber ?? null,
-            },
-            { onConflict: "user_id" },
-          );
-
-        if (upsertError) {
-          console.error("[verify-admin] Error upserting admin role:", upsertError);
-        }
-
-        return new Response(JSON.stringify({ isAdmin: true }), {
+      if (upsertError) {
+        console.error("[verify-admin] Error upserting admin role:", upsertError);
+        return new Response(JSON.stringify({ isAdmin: false, reason: "roles_upsert_error" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
         });
       }
 
-      return new Response(JSON.stringify({ isAdmin: data?.role === "admin" }), {
+      console.log("[verify-admin] auto-granted admin via allowlisted email", normalizedEmail);
+
+      return new Response(JSON.stringify({ isAdmin: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    // 2) Email-only check (fallback)
-    if (normalizedEmail) {
-      return new Response(
-        JSON.stringify({ isAdmin: ADMIN_EMAILS.includes(normalizedEmail) }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        },
-      );
-    }
-
-    // 3) Phone-only check (legacy fallback)
-    if (phoneNumber) {
-      // Prefer local allowlist to avoid RPC dependence
-      const isAdmin = ADMIN_PHONES.includes(phoneNumber);
-      return new Response(JSON.stringify({ isAdmin }), {
+    // 3) Fallback: legacy phone allowlist (only when we have phone)
+    if (!data && phoneNumber && ADMIN_PHONES.includes(phoneNumber)) {
+      return new Response(JSON.stringify({ isAdmin: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    return new Response(JSON.stringify({ isAdmin: false }), {
+    const isAdmin = data?.role === "admin";
+    console.log("[verify-admin] resolved", { firebaseUserId, isAdmin });
+
+    return new Response(JSON.stringify({ isAdmin }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    console.error("[verify-admin] Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[verify-admin] Unhandled error:", error);
+    return new Response(JSON.stringify({ isAdmin: false, reason: "unhandled_error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400,
+      status: 200,
     });
   }
 });
