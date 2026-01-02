@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { Book, Video, Users, Calendar, Image, FileText, Shield, ShoppingCart } from 'lucide-react';
 import FreeMaterialsTab from '@/components/admin/FreeMaterialsTab';
 import PremiumMaterialsTab from '@/components/admin/PremiumMaterialsTab';
@@ -87,11 +87,10 @@ const AdminPanel = () => {
 
         {/* Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 lg:space-y-6">
-          {/* Tab Navigation - Mobile optimized */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <ScrollArea className="w-full">
-              <div className="flex overflow-x-auto scrollbar-hide">
-                <TabsList className="flex h-12 w-max bg-white p-1 space-x-1">
+          {/* Tab Navigation - Mobile optimized with native scroll */}
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="overflow-x-auto touch-pan-x scrollbar-hide" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <TabsList className="flex h-12 w-max bg-white p-1 space-x-1">
                   <TabsTrigger 
                     value="free-materials" 
                     className="flex items-center gap-2 text-sm px-3 sm:px-4 py-2 min-w-fit whitespace-nowrap data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
@@ -153,152 +152,137 @@ const AdminPanel = () => {
                     <span className="sm:hidden">Sales</span>
                   </TabsTrigger>
                 </TabsList>
-              </div>
-            </ScrollArea>
+            </div>
           </div>
 
-          {/* Tab Content */}
-          <div className="min-h-[50vh] sm:min-h-[60vh]">
-            <TabsContent value="free-materials" className="h-full">
-              <Card className="h-full flex flex-col">
+          {/* Tab Content - Remove fixed heights for proper mobile scrolling */}
+          <div className="pb-20">
+            <TabsContent value="free-materials">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Book className="h-5 w-5" />
                     Free Study Materials Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <FreeMaterialsTab 
-                      materials={allMaterials}
-                      loading={materialsLoading}
-                      onAddNew={() => {
-                        setMaterialsActiveTab('free');
-                        handleAddNew();
-                      }}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  </ScrollArea>
+                <CardContent>
+                  <FreeMaterialsTab 
+                    materials={allMaterials}
+                    loading={materialsLoading}
+                    onAddNew={() => {
+                      setMaterialsActiveTab('free');
+                      handleAddNew();
+                    }}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="premium-materials" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="premium-materials">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Premium Study Materials Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <PremiumMaterialsTab 
-                      materials={allMaterials}
-                      loading={materialsLoading}
-                      onAddNew={() => {
-                        setMaterialsActiveTab('premium');
-                        handleAddNew();
-                      }}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                  </ScrollArea>
+                <CardContent>
+                  <PremiumMaterialsTab 
+                    materials={allMaterials}
+                    loading={materialsLoading}
+                    onAddNew={() => {
+                      setMaterialsActiveTab('premium');
+                      handleAddNew();
+                    }}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="videos" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="videos">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Video className="h-5 w-5" />
                     Training Videos Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <VideosTab />
-                  </ScrollArea>
+                <CardContent>
+                  <VideosTab />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="events" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="events">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     Events Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <EventsTab />
-                  </ScrollArea>
+                <CardContent>
+                  <EventsTab />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="classes" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="classes">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
                     Classes Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden p-0">
+                <CardContent className="p-0 sm:p-6">
                   <AdminClassesManagement />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="registrations" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="registrations">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
                     Class Registrations
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <ClassRegistrationsTab />
-                  </ScrollArea>
+                <CardContent>
+                  <ClassRegistrationsTab />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="images" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="images">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Image className="h-5 w-5" />
                     Image Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <ImageManagementTab />
-                  </ScrollArea>
+                <CardContent>
+                  <ImageManagementTab />
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="purchases" className="h-full">
-              <Card className="h-full flex flex-col">
+            <TabsContent value="purchases">
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5" />
                     Purchase History & Logs
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full">
-                    <PurchaseHistoryTab />
-                  </ScrollArea>
+                <CardContent>
+                  <PurchaseHistoryTab />
                 </CardContent>
               </Card>
             </TabsContent>
